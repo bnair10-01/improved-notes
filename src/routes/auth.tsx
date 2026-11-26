@@ -67,7 +67,7 @@ function AuthPage() {
               <GoogleMark />
               Continue with Google
             </Button>
-            <Button type="button" className="w-full" style={{ background: "#000000", color: "#FFFFFF", border: "1px solid #000000" }} onClick={() => run(signInWithApple)} disabled={busy}>
+            <Button type="button" className="w-full" style={{ background: "#000000", color: "#FFFFFF", border: "1px solid #747775" }} onClick={() => run(signInWithApple)} disabled={busy}>
               <AppleMark />
               Continue with Apple
             </Button>

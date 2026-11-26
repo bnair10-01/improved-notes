@@ -188,7 +188,7 @@ function Welcome() {
             <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={() => void social(signInWithGoogle)} disabled={busy}>
               {busy ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
             </Button>
-            <Button className="w-full" style={{ background: "#000000", color: "#FFFFFF", border: "1px solid #000000" }} onClick={() => void social(signInWithApple)} disabled={busy}>
+            <Button className="w-full" style={{ background: "#000000", color: "#FFFFFF", border: "1px solid #747775" }} onClick={() => void social(signInWithApple)} disabled={busy}>
               <AppleMark /> Continue with Apple
             </Button>
           </div>

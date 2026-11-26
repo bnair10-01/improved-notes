@@ -8,6 +8,7 @@ import { SplitPreview } from "@/components/split/SplitPreview";
 import { askNotes, importFromUrl, type UrlImport } from "@/lib/ai/tasks";
 import type { Citation } from "@/lib/ai/cite";
 import { openDialog } from "@/lib/dialogs";
+import { sourceLink } from "@/lib/video";
 import { couldBeSubject, forceMode, homeIntent, questionSubject, toNote, type HomeIntent, type HomeMode } from "@/lib/home-intent";
 import { ResearchPanel } from "./ResearchPanel";
 import { prepareImage } from "@/lib/image";
@@ -253,7 +254,7 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
       )}
 
       <SplitPreview open={!!imported} onOpenChange={(o) => !o && setImported(null)}
-        material={imported ? { ...imported, source: `[${new URL(imported.url).hostname}](${imported.url})`, tags: [imported.kind] } : null}
+        material={imported ? { ...imported, source: sourceLink(imported.kind, imported.title, imported.url), tags: [imported.kind] } : null}
         initialTopic={imported?.title ?? ""} folderId={null}
         onSaved={(id) => navigate({ to: "/vault/$noteId", params: { noteId: id } })} />
     </div>

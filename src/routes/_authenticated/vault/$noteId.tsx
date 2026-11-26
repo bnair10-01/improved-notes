@@ -24,6 +24,8 @@ import { classifyRemote, conflictCopyTitle } from "@/lib/conflict";
 import { NoteShareMenu } from "@/components/learner/NoteShareMenu";
 import { InsightColumn } from "@/components/vault/InsightColumn";
 import { NoteTools } from "@/components/vault/NoteTools";
+import { NoteVideo, seekVideo } from "@/components/vault/NoteVideo";
+import { appendMyNote, linkSeconds, sourceVideos, videoId } from "@/lib/video";
 import { TopicSuggestion } from "@/components/vault/TopicSuggestion";
 import { ResizableInsight } from "@/components/vault/ResizableInsight";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -72,6 +74,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
   const [confirmTrash, setConfirmTrash] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
   const [insightOpen, setInsightOpen] = useState(false);
+  const [focusEnd, setFocusEnd] = useState(false);
   const isMobile = useIsMobile();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTitle = useRef(note?.title ?? "");
@@ -168,6 +171,9 @@ function NoteEditor({ noteId }: { noteId: string }) {
     navigate(hit ? openTarget(hit) : { to: "/vault/$noteId", params: { noteId: id } });
   }
 
+  const videos = sourceVideos(md);
+  const addVideoNote = (id: string, seconds: number) => { const next = appendMyNote(md, id, seconds); setMd(next); scheduleSave(next); setTab("edit"); setFocusEnd(true); };
+
   const words = md.trim() ? md.trim().split(/\s+/).length : 0;
   const insight = <InsightColumn note={note} vault={vault} markdown={md} onOpenGraph={() => { setShowGraph(true); setInsightOpen(false); }} />;
 
@@ -213,6 +219,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
 
         <NoteTools note={note} markdown={md} />
         <TopicSuggestion note={note} vault={vault} markdown={md} />
+        {videos.length > 0 && <NoteVideo videos={videos} onAddNote={addVideoNote} />}
         {note.kind === "model3d" && <div className="mt-4"><ModelNotePanel noteId={noteId} /></div>}
         {(note.kind === "slides" || note.kind === "audio") && (
           <div className="mt-4">
@@ -234,7 +241,9 @@ function NoteEditor({ noteId }: { noteId: string }) {
                 <ReactMarkdown remarkPlugins={[remarkGfm, remarkUncertain, remarkHighlight]}
                   components={{ a: ({ href, children }) => href?.startsWith("#wl:")
                     ? <a href={href} className="wikilink" onClick={(e) => { e.preventDefault(); void openWiki(decodeURIComponent(href.slice(4))); }}>{children}</a>
-                    : <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>
+                    : videos.some((v) => v.id === videoId(href ?? ""))
+                      ? <a href={href} onClick={(e) => { e.preventDefault(); seekVideo(videoId(href!)!, linkSeconds(href!)); }} title="Play from here">{children}</a>
+                      : <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>
                   {wikilinksToMarkdown(md)}
                 </ReactMarkdown>
                 {parseModelEmbeds(md).map((m) => (
@@ -244,7 +253,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
               </article>
             </TabsContent>
             <TabsContent value="edit" className="m-0 h-[55vh]">
-              <MarkdownEditor value={md} notes={live} ink={note.ink} onInkChange={(v) => { void updateNote(noteId, { ink: v }); }} onChange={(v) => { setMd(v); scheduleSave(v); }} />
+              <MarkdownEditor value={md} notes={live} focusEnd={focusEnd} onFocusedEnd={() => setFocusEnd(false)} ink={note.ink} onInkChange={(v) => { void updateNote(noteId, { ink: v }); }} onChange={(v) => { setMd(v); scheduleSave(v); }} />
             </TabsContent>
           </Tabs>
         </div>

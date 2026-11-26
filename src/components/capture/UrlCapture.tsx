@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SplitPreview } from "@/components/split/SplitPreview";
 import { importFromUrl, type UrlImport } from "@/lib/ai/tasks";
+import { sourceLink } from "@/lib/video";
 
 /** Paste a website or YouTube link: it's read, divided into notes by idea, and you choose the topic before anything is saved. */
 export function UrlCapture({ kind, folderId, folderName }: { kind: "website" | "youtube"; folderId: string | null; folderName?: string }) {
@@ -37,7 +38,7 @@ export function UrlCapture({ kind, folderId, folderName }: { kind: "website" | "
         </p>
         <Button type="submit" disabled={busy || !url.trim()}>{busy ? <><Loader2 className="animate-spin" /> Reading…</> : <><Sparkles /> Read and divide</>}</Button>
       </form>
-      <SplitPreview open={!!item} onOpenChange={(o) => !o && setItem(null)} material={item ? { ...item, source: `[${new URL(item.url).hostname}](${item.url})`, tags: [item.kind] } : null}
+      <SplitPreview open={!!item} onOpenChange={(o) => !o && setItem(null)} material={item ? { ...item, source: sourceLink(item.kind, item.title, item.url), tags: [item.kind] } : null}
         initialTopic={item?.title ?? ""} folderId={folderId} {...(folderName ? { folderName } : {})}
         onSaved={(id) => navigate({ to: "/vault/$noteId", params: { noteId: id } })} />
     </>

@@ -25,8 +25,15 @@ const TOOL = "grid h-8 min-w-8 place-items-center rounded-md px-2 text-sm text-f
  * Markdown textarea with a "/" block menu and a "[[" note picker. Writing tools stay out of the way:
  * a small text bar appears while you type or select, and a Pencil mode (P, or a stylus) draws ink on the page.
  */
-export function MarkdownEditor({ value, onChange, notes, ink, onInkChange }: { value: string; onChange: (v: string) => void; notes: VNote[]; ink?: string | undefined; onInkChange?: (v: string) => void }) {
+export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focusEnd, onFocusedEnd }: { value: string; onChange: (v: string) => void; notes: VNote[]; ink?: string | undefined; onInkChange?: (v: string) => void; focusEnd?: boolean; onFocusedEnd?: () => void }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  // Asked to put the cursor at the end (after "Add my note at this moment"), ready to type.
+  useEffect(() => {
+    if (!focusEnd) return;
+    const el = ref.current;
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); el.scrollTop = el.scrollHeight; }
+    onFocusedEnd?.();
+  }, [focusEnd, onFocusedEnd]);
   const [menu, setMenu] = useState<Menu>(null);
   const [sel, setSel] = useState(0);
   const [mode, setMode] = useState<"type" | "pencil">("type");

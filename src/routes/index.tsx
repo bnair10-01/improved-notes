@@ -9,7 +9,7 @@ import { NewActionGrid } from "@/components/shell/NewActions";
 import { Hint } from "@/components/shell/Hint";
 import { Button } from "@/components/ui/button";
 import { IS_NATIVE } from "@/lib/firebase";
-import { authMessage, isPermanent, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
+import { authMessage, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
 import { studyOverviewQuery } from "@/lib/study";
 import { openTarget, useVault, type VNote } from "@/lib/vault";
 
@@ -23,7 +23,7 @@ function HomePage() {
     <div className="min-h-screen">
       <AppHeader />
       <main className="mx-auto max-w-5xl px-4 pb-10 pt-5 sm:pt-10">
-        {!ready ? null : isPermanent(user) ? <Dashboard name={firstName(user?.displayName, user?.email)} /> : <Welcome />}
+        {!ready ? null : user ? <Dashboard name={firstName(user?.displayName, user?.email)} /> : <Welcome />}
       </main>
     </div>
   );

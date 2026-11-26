@@ -12,7 +12,7 @@ import { Settings } from "lucide-react";
 import { MobileTabBar } from "./shell/MobileTabBar";
 import { SyncStatus } from "./shell/SyncStatus";
 import { NAV } from "@/lib/nav";
-import { isPermanent, signOut as signOutUser, useAuth } from "@/lib/auth";
+import { signOut as signOutUser, useAuth } from "@/lib/auth";
 
 export function AppHeader() {
   const { user } = useAuth();
@@ -46,7 +46,7 @@ export function AppHeader() {
           <span data-brand-name className="truncate">Improved Notes</span>
         </Link>
         <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          {isPermanent(user) && <div data-header-links className="hidden items-center gap-1 md:flex">
+          {user && <div data-header-links className="hidden items-center gap-1 md:flex">
             {NAV.map((n) => <Link key={n.to} to={n.to} className={link} activeProps={active} activeOptions={{ exact: n.exact }}>{n.label}</Link>)}
             <span className="mx-1 h-5 w-px bg-border" aria-hidden />
           </div>}

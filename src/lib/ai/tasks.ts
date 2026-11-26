@@ -9,7 +9,7 @@ import type { AiDiagram } from "../diagram-types";
 import type { Segment } from "../audio";
 import { CARD_MAX, CARD_MIN, QUIZ_MAX, QUIZ_MIN, clampCount } from "../study-validate";
 import { SHAPES, validateSpec, type Spec } from "../model3d";
-import { AiFailure, imagePart, runJson, runModel, safe } from "./run";
+import { AiFailure, imagePart, runJson, runModel, runStream, safe } from "./run";
 import type { JS } from "./schema";
 
 const str: JS = { type: "string" };
@@ -343,3 +343,18 @@ export const askNotes = ({ question, context }: { question: string; context: str
     });
     return { answer: { answer: (data.answer ?? "").trim() || "I couldn't find that in your notes.", sources: data.sources ?? [] } };
   }) as Promise<AskResponse>;
+
+
+/** A short summary that appears as it is written. */
+export async function summariseStream(
+  { title, markdown, style = "short", length = "brief" }: { title: string; markdown: string; style?: SummaryStyle; length?: "brief" | "medium" | "detailed" },
+  onText: (soFar: string) => void,
+  signal?: { cancelled: boolean },
+): Promise<string> {
+  const text = markdown.slice(0, 60_000);
+  const { text: out } = await runStream({
+    task: "summary", chars: text.length, onText, ...(signal ? { signal } : {}),
+    instructions: `Write ${STYLE[style]} in Markdown. Length: ${length}. Use ONLY the content of the notes below. Never add outside facts. Skip anything marked [illegible].\n\nNOTES:\n# ${title}\n${text}`,
+  });
+  return out.trim();
+}

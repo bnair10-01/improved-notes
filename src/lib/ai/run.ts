@@ -11,7 +11,7 @@ import { recordInference, type InferenceSource } from "./status";
  * Models on iOS) when a local model is available, and falls back to the cloud when not.
  */
 let aiInstance: ReturnType<typeof getAI> | null = null;
-const ai = () => (aiInstance ??= getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: true }));
+export const ai = () => (aiInstance ??= getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: true }));
 
 export type RunOptions = {
   task: AiTask;
@@ -63,13 +63,18 @@ export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Pro
   await loadAiConfig();
   const chars = opts.chars ?? opts.instructions.length;
   const r = route(opts.task, chars, { hasImages: !!opts.hasImages, forceCloud: !!opts.forceCloud });
+  // Simple tasks don't need the model to "think" first (it adds seconds). Hard ones (photos, drawings, 3D) keep it.
+  const thinks = opts.task === "transcribe" || opts.task === "diagrams" || opts.task === "model3d" || !!opts.hasImages;
   const model = getGenerativeModel(ai(), {
     mode: r.mode,
     // Tell the on-device model the JSON shape too, otherwise it answers in free text.
     ...(opts.schema ? { onDeviceParams: { promptOptions: { responseConstraint: opts.schema } } } : {}),
     inCloudParams: {
       model: r.model,
-      ...(opts.schema ? { generationConfig: { responseMimeType: "application/json", responseSchema: toSchema(opts.schema) } } : {}),
+      generationConfig: {
+        ...(thinks ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+        ...(opts.schema ? { responseMimeType: "application/json", responseSchema: toSchema(opts.schema) } : {}),
+      },
     },
   });
   try {
@@ -77,6 +82,33 @@ export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Pro
     const source: InferenceSource = result.response.inferenceSource === "on_device" ? "on_device" : "in_cloud";
     recordInference(source, opts.task);
     return { text: result.response.text(), source };
+  } catch (e) {
+    throw explain(e);
+  }
+}
+
+/** Like runModel for plain text, but hands you the text as it is written so the screen fills in right away. */
+export async function runStream(opts: Omit<RunOptions, "schema"> & { onText: (soFar: string) => void; signal?: { cancelled: boolean } }): Promise<{ text: string; source: InferenceSource }> {
+  checkAppCheck();
+  await loadAiConfig();
+  const r = route(opts.task, opts.chars ?? opts.instructions.length, { hasImages: !!opts.hasImages });
+  const thinks = !!opts.hasImages;
+  const model = getGenerativeModel(ai(), {
+    mode: r.mode,
+    inCloudParams: { model: r.model, generationConfig: thinks ? {} : { thinkingConfig: { thinkingBudget: 0 } } },
+  });
+  try {
+    const res = await model.generateContentStream([{ text: opts.instructions }, ...(opts.parts ?? [])]);
+    let text = "";
+    for await (const chunk of res.stream) {
+      if (opts.signal?.cancelled) break;
+      text += chunk.text();
+      opts.onText(text);
+    }
+    const final = await res.response;
+    const source: InferenceSource = final.inferenceSource === "on_device" ? "on_device" : "in_cloud";
+    recordInference(source, opts.task);
+    return { text, source };
   } catch (e) {
     throw explain(e);
   }

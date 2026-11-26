@@ -45,6 +45,12 @@ export function setSession(patch: Partial<Session>) {
   persist();
   listeners.forEach((l) => l());
 }
+/** Forget the in-progress scan completely: photos, transcript and map. */
+export function resetSession() {
+  state = { pages: [], result: null, noteId: null };
+  try { sessionStorage.removeItem(KEY); } catch { /* private mode */ }
+  listeners.forEach((l) => l());
+}
 export function getSession() {
   return state;
 }

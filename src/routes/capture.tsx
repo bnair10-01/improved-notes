@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
 import { Hint } from "@/components/shell/Hint";
 import { prepareImage, rotateDataUrl } from "@/lib/image";
-import { setSession, useSession } from "@/lib/session";
+import { getSession, resetSession, setSession, useSession } from "@/lib/session";
 import { transcribeNotes } from "@/lib/ai/tasks";
 import { ensureSignedIn, useAuth } from "@/lib/auth";
 
@@ -23,6 +23,9 @@ function CapturePage() {
   const transcribe = transcribeNotes;
   const navigate = useNavigate();
   const { user, ready } = useAuth();
+
+  // Opening Capture after a note was already transcribed starts a new scan, not the old photos.
+  useEffect(() => { if (getSession().result) resetSession(); }, []);
 
   // Scanning works without an account: a guest session is created and linked to a real sign-in later.
   useEffect(() => { ensureSignedIn().catch((e) => console.warn("Guest session unavailable", e)); }, []);

@@ -7,7 +7,7 @@ import { ArrowUp, Loader2, Network, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { GenerateDialog } from "@/components/study/GenerateDialog";
 import { InferenceBadge } from "@/components/shell/InferenceBadge";
-import { askNotes, generateMaterial } from "@/lib/ai/tasks";
+import { askNotes, summariseStream } from "@/lib/ai/tasks";
 import { explain } from "@/lib/ai/run";
 import { buildContext, rankNotes } from "@/lib/retrieve";
 import { studyOverviewQuery } from "@/lib/study";
@@ -31,8 +31,9 @@ export function InsightColumn({ note, vault, markdown, onOpenGraph, saved = true
     if (!markdown.trim()) { toast("Write or transcribe something first."); return; }
     setSummarising(true);
     try {
-      const r = await generateMaterial({ kind: "summary", style: "short", length: "brief" }, `# ${note.title}\n${markdown}`);
-      setSummary(String(r["markdown"] ?? "").trim() || null);
+      setSummary("");
+      const out = await summariseStream({ title: note.title, markdown }, (t) => setSummary(t));
+      setSummary(out || null);
     } catch (e) { toast.error(explain(e).message); }
     finally { setSummarising(false); }
   }
@@ -71,7 +72,9 @@ export function InsightColumn({ note, vault, markdown, onOpenGraph, saved = true
             {summarising ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}{summary ? "Redo" : "Summarize"}
           </button>
         </div>
-        {summary
+        {summarising && !summary
+          ? <p className="text-sm text-muted-foreground" aria-live="polite">Reading your note…</p>
+          : summary
           ? <div className="transcript text-sm"><ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown></div>
           : <p className="text-sm text-muted-foreground">A short summary of this note, made from what you wrote.</p>}
       </section>

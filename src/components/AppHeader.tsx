@@ -14,6 +14,7 @@ import { MobileTabBar } from "./shell/MobileTabBar";
 import { SyncStatus } from "./shell/SyncStatus";
 import { NAV } from "@/lib/nav";
 import { signOut as signOutUser, useAuth } from "@/lib/auth";
+import { resetSession } from "@/lib/session";
 
 export function AppHeader() {
   const { user } = useAuth();
@@ -34,8 +35,9 @@ export function AppHeader() {
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
+    resetSession();
     await signOutUser();
-    navigate({ to: "/auth", search: { redirect: "/history" }, replace: true });
+    navigate({ to: "/", replace: true });
   }
 
   return (

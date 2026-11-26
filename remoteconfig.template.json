@@ -32,6 +32,12 @@
       },
       "valueType": "BOOLEAN",
       "description": "Kill switch: set to false to turn off on-device inference for everyone."
+    },
+    "tts_model": {
+      "defaultValue": {
+        "value": "gemini-3.1-flash-tts-preview"
+      },
+      "description": "Gemini text-to-speech model used by Read aloud."
     }
   }
 }

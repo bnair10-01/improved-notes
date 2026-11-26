@@ -10,6 +10,7 @@ import { getSession, resetSession, setSession, useSession } from "@/lib/session"
 import { transcribeNotes } from "@/lib/ai/tasks";
 import { ensureSignedIn, useAuth } from "@/lib/auth";
 import { UrlCapture } from "@/components/capture/UrlCapture";
+import { NewTopicDialog } from "@/components/topics/NewTopicDialog";
 import { openDialog } from "@/lib/dialogs";
 import { createNote, useRefreshVault, useVault } from "@/lib/vault";
 
@@ -40,6 +41,7 @@ function CapturePage() {
   const { user, ready } = useAuth();
   const [method, setMethod] = useState<Method>("scan");
   const [folderId, setFolderId] = useState<string>("");
+  const [newTopic, setNewTopic] = useState(false);
   const { data: vault } = useVault();
   const refresh = useRefreshVault();
 
@@ -124,11 +126,13 @@ function CapturePage() {
         </div>
         <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
           Topic <span className="text-xs">(optional)</span>
-          <select value={folderId} onChange={(e) => setFolderId(e.target.value)} className="rounded-md border bg-background px-2 py-1.5 text-sm text-foreground" aria-label="Topic">
+          <select value={folderId} onChange={(e) => (e.target.value === "__new" ? setNewTopic(true) : setFolderId(e.target.value))} className="rounded-md border bg-background px-2 py-1.5 text-sm text-foreground" aria-label="Topic">
             <option value="">None. I'll file it later</option>
             {(vault?.folders ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            <option value="__new">New topic…</option>
           </select>
         </label>
+        <NewTopicDialog open={newTopic} onOpenChange={setNewTopic} onCreated={(id) => setFolderId(id)} />
         {(method === "voice" || method === "lecture") && <div className="paper-sheet mt-5 p-4 text-sm"><p className="text-muted-foreground">Recordings are transcribed in the cloud.</p><Button className="mt-3" onClick={() => openDialog("audio")}>Open the recorder</Button></div>}
         {(method === "pdf" || method === "slides") && <div className="paper-sheet mt-5 p-4 text-sm"><p className="text-muted-foreground">Each page or slide becomes part of one note.</p><Button className="mt-3" onClick={() => openDialog("slides")}>Choose a file</Button></div>}
         {(method === "website" || method === "youtube") && <UrlCapture kind={method} folderId={folderId || null} />}

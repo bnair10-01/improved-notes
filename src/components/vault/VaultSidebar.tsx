@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { createFolder, createNote, deleteFolder, openTarget, purgeNote, renameFolder, renameNote, updateNote, useRefreshVault, type Vault, type VFolder, type VNote } from "@/lib/vault";
+import { NewTopicDialog } from "@/components/topics/NewTopicDialog";
+import { createNote, deleteFolder, openTarget, purgeNote, renameFolder, renameNote, updateNote, useRefreshVault, type Vault, type VFolder, type VNote } from "@/lib/vault";
 
 export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?: () => void }) {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
   const [confirm, setConfirm] = useState<{ title: string; body: string; act: () => Promise<void>; typed?: string } | null>(null);
   const [typedText, setTypedText] = useState("");
   const [dropOn, setDropOn] = useState<string | null>(null);
+  const [newTopic, setNewTopic] = useState<{ parent: string | null } | null>(null);
   const { data: study } = useQuery(studyOverviewQuery);
   const due = study?.dueTotal ?? 0;
 
@@ -98,7 +100,7 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
               <DropdownMenuTrigger asChild><button aria-label={`Folder ${f.name} options`} className="opacity-60 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => void run(createNote({ folder_id: f.id }).then(refresh))}>New note here</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void run(createFolder("New folder", f.id))}>New subfolder</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setNewTopic({ parent: f.id })}>New subtopic</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setEditing(f.id)}>Rename</DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive" onClick={() => setConfirm({ title: `Delete folder "${f.name}"?`, body: "Notes inside are kept and move out of the folder. Subfolders are deleted.", act: () => deleteFolder(f.id) })}>Delete</DropdownMenuItem>
               </DropdownMenuContent>
@@ -124,7 +126,7 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
       </div>
       <div className="flex gap-1 text-xs text-muted-foreground">
         <button onClick={() => void newNote("concept")} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><Lightbulb className="h-3 w-3" /> Concept</button>
-        <button onClick={() => void run(createFolder("New topic"))} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><FolderPlus className="h-3 w-3" /> Topic</button>
+        <button onClick={() => setNewTopic({ parent: null })} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><FolderPlus className="h-3 w-3" /> Topic</button>
         <Link to="/vault/graph" onClick={onNavigate} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><Network className="h-3 w-3" /> Graph</Link>
       </div>
 
@@ -179,6 +181,7 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
       )}
       <Button variant="ghost" size="sm" className="justify-start" onClick={() => setShowTrash(!showTrash)}><Trash2 /> {showTrash ? "Back to notes" : `Trash${trash.length ? ` (${trash.length})` : ""}`}</Button>
 
+      <NewTopicDialog open={!!newTopic} onOpenChange={(o) => !o && setNewTopic(null)} parentId={newTopic?.parent ?? null} onCreated={(id) => { onNavigate?.(); navigate({ to: "/topics/$folderId", params: { folderId: id } }); }} />
       <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{confirm?.title}</AlertDialogTitle><AlertDialogDescription>{confirm?.body}</AlertDialogDescription></AlertDialogHeader>

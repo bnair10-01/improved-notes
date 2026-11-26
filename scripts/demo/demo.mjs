@@ -77,8 +77,12 @@ async function openTopic(name) {
 }
 
 async function newTopic(name) {
-  d.promptText = name;
   await d.click({ text: "New topic" });
+  await d.waitFor("document.querySelector('[aria-label=\"Topic name\"]')", { label: "the New topic dialog" });
+  await d.click({ sel: "[aria-label='Topic name']" });
+  await d.type(name, { chunk: 1, delay: 45 });
+  await d.pause(500);
+  await d.click({ text: "^Create topic$" });
   await d.waitFor("/\\/topics\\/[^/]+$/.test(location.pathname)", { label: "new topic page" });
   ids[`topic:${name}`] = await pathId();
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,21 +12,26 @@ export function NewTopicDialog({ open, onOpenChange, parentId = null, onCreated 
   const refresh = useRefreshVault();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setName(""); }, [open]);
+  const [created, setCreated] = useState(false);
+  const inflight = useRef(false);
+  useEffect(() => { if (open) { setName(""); setCreated(false); } }, [open]);
 
   const trimmed = name.trim();
-  const taken = !!trimmed && (vault?.folders ?? []).some((f) => f.parent_id === parentId && f.name.trim().toLowerCase() === trimmed.toLowerCase());
+  // Only warn about a name that was already taken before this dialog saved anything; the topic we just made must not trigger it.
+  const taken = !busy && !created && !!trimmed && (vault?.folders ?? []).some((f) => f.parent_id === parentId && f.name.trim().toLowerCase() === trimmed.toLowerCase());
 
   async function create() {
-    if (!trimmed || taken || busy) return;
+    if (!trimmed || taken || busy || inflight.current) return;
+    inflight.current = true; // a second click in the same instant must not create a second topic
     setBusy(true);
     try {
       const id = await createFolder(trimmed, parentId);
+      setCreated(true);
       await refresh();
       onOpenChange(false);
       onCreated?.(id, trimmed);
     } catch { toast.error("Couldn't create the topic. Please try again."); }
-    finally { setBusy(false); }
+    finally { setBusy(false); inflight.current = false; }
   }
 
   return (
@@ -39,7 +44,7 @@ export function NewTopicDialog({ open, onOpenChange, parentId = null, onCreated 
         <form onSubmit={(e) => { e.preventDefault(); void create(); }} className="space-y-3">
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="For example: Cell biology" aria-label="Topic name" maxLength={80} />
           {taken && <p role="alert" className="text-xs text-destructive">You already have a topic with that name.</p>}
-          <Button type="submit" className="w-full" disabled={!trimmed || taken || busy}>{busy ? <><Loader2 className="animate-spin" /> Creating…</> : "Create topic"}</Button>
+          <Button type="submit" className="w-full" disabled={!trimmed || taken || busy || created}>{busy ? <><Loader2 className="animate-spin" /> Creating…</> : "Create topic"}</Button>
         </form>
       </DialogContent>
     </Dialog>

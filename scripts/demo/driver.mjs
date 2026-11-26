@@ -121,6 +121,33 @@ export async function launch({ headed = true, width = 1440, height = 900, chrome
       d.shots.push(file);
       return file;
     },
+    // Screen recording: save the tab's frames while the demo runs; encode.mjs turns them into a video afterwards.
+    async startRecording({ fps = 12, quality = 62, maxWidth = 1280 } = {}) {
+      const dir = join(outDir, "frames");
+      mkdirSync(dir, { recursive: true });
+      const frames = [];
+      let last = -1, n = 0, t0 = -1;
+      d._rec = { dir, frames };
+      handlers.push((m) => {
+        if (m.method !== "Page.screencastFrame") return;
+        const { data, metadata, sessionId } = m.params;
+        send("Page.screencastFrameAck", { sessionId }).catch(() => undefined);
+        const t = metadata.timestamp;
+        if (t0 < 0) t0 = t;
+        if (last >= 0 && t - last < 1 / fps) return;
+        last = t;
+        const f = `${String(n++).padStart(6, "0")}.jpg`;
+        writeFileSync(join(dir, f), Buffer.from(data, "base64"));
+        frames.push({ f, t: t - t0 });
+      });
+      await send("Page.startScreencast", { format: "jpeg", quality, maxWidth, maxHeight: 900, everyNthFrame: 1 });
+    },
+    async stopRecording() {
+      if (!d._rec) return null;
+      try { await send("Page.stopScreencast"); } catch { /* page closed */ }
+      writeFileSync(join(d._rec.dir, "frames.json"), JSON.stringify(d._rec.frames));
+      return { dir: d._rec.dir, count: d._rec.frames.length };
+    },
     async close() { try { ws.close(); } catch { /* closed */ } proc.kill(); },
   };
 

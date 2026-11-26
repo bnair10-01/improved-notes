@@ -29,6 +29,17 @@ describe("NewTopicDialog", () => {
     expect(onCreated).toHaveBeenCalledWith("new-id", "Astronomy");
   });
 
+  it("creates one topic even if Create is pressed twice, and doesn't warn about the topic it just made", async () => {
+    const folders = [{ id: "f1", name: "Cell Biology", parent_id: null as string | null }];
+    createFolder.mockImplementation(async (...a: unknown[]) => { folders.push({ id: "n2", name: String(a[0]), parent_id: null }); await new Promise((r) => setTimeout(r, 30)); return "n2"; });
+    render(<NewTopicDialog open onOpenChange={() => undefined} />);
+    fireEvent.change(screen.getByLabelText("Topic name"), { target: { value: "Astronomy" } });
+    const btn = screen.getByRole("button", { name: "Create topic" });
+    fireEvent.click(btn); fireEvent.click(btn);
+    await waitFor(() => expect(createFolder).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("refuses a name that is already a topic", async () => {
     render(<NewTopicDialog open onOpenChange={() => undefined} />);
     fireEvent.change(screen.getByLabelText("Topic name"), { target: { value: "cell biology" } });

@@ -6,17 +6,21 @@
 //   npm run demo -- --slow 1.5        slower, easier to follow
 //   npm run demo -- --only maps,graph run just some scenes
 //   npm run demo -- --headless        no window (for CI)
+//   npm run demo -- --no-record       skip the video (it is recorded by default, to demo.mp4)
 //   npm run demo -- --url http://localhost:5173
 //
 // It makes real AI calls (summaries, answers, flashcards, a web page import), so it uses a few cents of AI credit.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { rmSync } from "node:fs";
 import { launch, sleep } from "./driver.mjs";
+import { encodeVideo } from "./encode.mjs";
 
 const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return i === -1 ? def : (process.argv[i + 1]?.startsWith("--") || process.argv[i + 1] === undefined ? true : process.argv[i + 1]); };
 const BASE = String(arg("url", "https://improvednotes-d0907.web.app")).replace(/\/$/, "");
 const SPEED = Number(arg("slow", 1)) || 1;
 const HEADED = !arg("headless", false);
+const RECORD = !arg("no-record", false);
 const ONLY = arg("only", "") ? String(arg("only")).split(",") : null;
 const stamp = new Date().toISOString().replace(/[:T]/g, "-").slice(0, 19);
 const OUT = join(process.cwd(), "demo-output", stamp);
@@ -110,6 +114,7 @@ async function writeNote({ title, body, topic }) {
 // ─── Scenes ───
 async function run() {
   d = await launch({ headed: HEADED, outDir: OUT, speed: SPEED });
+  if (RECORD) await d.startRecording();
   log(`Improved Notes demo\n  site:    ${BASE}\n  window:  ${HEADED ? "visible Chrome" : "headless"}\n  output:  ${OUT}`);
 
   await scene("welcome", "1. The welcome page, before signing in", async (t) => {
@@ -413,7 +418,17 @@ function report() {
 
 mkdirSync(OUT, { recursive: true });
 let failed = 1;
+let video = null;
 try { await run(); failed = report(); }
 catch (e) { console.error(`\nDemo could not run: ${e.message}`); }
-finally { await sleep(1500 * SPEED); await d?.close(); }
+finally {
+  await sleep(1500 * SPEED);
+  const rec = RECORD ? await d?.stopRecording() : null;
+  await d?.close();
+  if (rec?.count) {
+    log(`\nEncoding the video from ${rec.count} frames…`);
+    video = await encodeVideo(rec.dir, join(OUT, "demo"));
+    if (video) { rmSync(rec.dir, { recursive: true, force: true }); log(`Video: ${video}`); } else log(`Could not encode the video. The frames are kept in ${rec.dir}`);
+  }
+}
 process.exit(failed ? 1 : 0);

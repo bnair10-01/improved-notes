@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Settings — Improved Notes" }, { name: "description", content: "Personalize your learning preferences and manage exports and sharing." }] }),
   component: SettingsPage,
 });
-export function SettingsPage() {
+function SettingsPage() {
   const profile = useLearningStyle();
   const vault = useVault();
   const links = useShareLinks();

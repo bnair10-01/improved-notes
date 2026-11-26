@@ -4,7 +4,20 @@ Turn handwritten notes into a connected, searchable knowledge vault. AI runs **o
 
 Built for the #BuildHybridAI 2026 hackathon.
 
-> **Status: work in progress.** The data layer, sync, offline queue and backup are built and tested against the Firebase emulators. The app has **not** yet been run against a live Firebase project. The Dark v2 theme is applied; the full redesign and the native apps are not finished. See [Status](#status).
+**Live:** https://improvednotes-d0907.web.app (Chrome recommended; on-device AI needs Gemini Nano).
+
+> **Status:** the web app runs against a live Firebase project. The native apps are shells that use the cloud model only. See [Status](#status).
+
+## What you can do
+
+- **Write first.** "Start writing" opens a blank note. A tools row sits above it: Scan, Voice or lecture, PDF or slides, Website, YouTube, Split into notes.
+- **Insight column on every note:** streamed summary, Ask (answers cite numbered sources, with quotes checked against your text), flashcards and a quiz. A badge shows whether each AI call ran **On-device** or in the **Cloud**.
+- **Topics you name.** The AI may suggest a topic for a note; nothing is filed until you accept. Topic pages have a topic-wide summary and Ask.
+- **Import and split.** Websites and YouTube videos are divided into one note per idea under a topic you name in a preview. "Split into notes" does the same for any long note.
+- **3D vault graph.** Connections between notes are found automatically. Topic maps show "↗" satellites for notes in other topics.
+- **3D model from a note.** See-through shells, repeated parts, and a note quote for each part.
+- **Read aloud** with a natural Gemini voice (device voice as fallback), pencil ink, high contrast, reduced motion, and phone, tablet and foldable layouts.
+- **Sign-in:** Google or email. Guests last only for the current tab.
 
 ## How Firebase is used
 
@@ -98,7 +111,11 @@ npx cap open ios         # open in Xcode
 
 ## Status
 
-Verified (automated, 101 unit tests + 42 emulator tests):
+Verified on the live site with a scripted browser run (`npm run demo`, visible Chrome; 72 checks passed, 2 problems, report and video kept locally):
+- Notebook tree, search, Insight column, topics, website and YouTube import, Split into notes, topic suggestions, the 3D graph and topic maps, 3D models from notes, read-aloud, high contrast, reduced motion, and the phone, tablet and foldable layouts.
+- reCAPTCHA scores headless Chrome as a bot, so AI scenes only work in a visible Chrome window.
+
+Verified (automated, 200 unit tests + 42 emulator tests):
 - Security rules: owner-only access, delete only from Trash, version retention, share links.
 - Data layer against the emulators: guest to account, migration of guest notes into an existing account, Trash and permanent delete, version history, share links, backup and restore.
 - Two devices on one account: live propagation, offline writes syncing on reconnect, conflict detection.
@@ -107,11 +124,14 @@ Verified (automated, 101 unit tests + 42 emulator tests):
 - The app boots in Chrome against the emulators; guest capture and email sign-up work.
 
 Not yet verified or not built:
-- **Not run against a live Firebase project**: AI Logic calls, App Check, Remote Config fetch, Google sign-in. `npm run doctor` checks all of these once a project exists.
-- **On-device inference (Gemini Nano) has not been exercised.**
+- **On-device inference:** Gemini Nano answers from the Chrome console, but the in-app On-device badge on a short text task has not been confirmed yet. Without Nano the app uses the cloud model.
+- Slides and audio imports are not split into notes automatically; press **Split into notes** afterwards.
 - `scripts/setup-backups.sh`: the Firestore commands match the gcloud docs; the Storage commands are unchecked.
-- Design: the Dark v2 palette and fonts are applied. The new workspace layout (insight column), topics, first-run screens, 3D viewer changes and pen tools are not built.
-- Android builds as a debug APK (not run on a device or emulator); iOS builds and launches on the simulator; macOS and Windows are not started. See "Native apps" above.
+- Android builds as a debug APK (not run on a device or emulator, not rebuilt with the new icon); iOS builds and launches on the simulator; macOS and Windows are not started. See "Native apps" above.
+
+## For judges: App Check
+
+AI calls are protected by App Check (reCAPTCHA Enterprise). Use a visible, non-headless Chrome. Automated or headless browsers are scored as bots and AI is blocked for that session.
 
 ## License
 

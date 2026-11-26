@@ -47,13 +47,17 @@ export async function launch({ headed = true, width = 1440, height = 900, chrome
   const ws = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
 
-  let id = 0; const pending = new Map(); const handlers = [];
+  let id = 0; const pending = new Map(); const handlers = []; let closed = false;
   ws.onmessage = (m) => {
     const d = JSON.parse(m.data);
     if (d.id && pending.has(d.id)) { const { res, rej } = pending.get(d.id); pending.delete(d.id); d.error ? rej(new Error(d.error.message)) : res(d.result); }
     else if (d.method) handlers.forEach((h) => h(d));
   };
-  const send = (method, params = {}) => new Promise((res, rej) => { const i = ++id; pending.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method, params })); });
+  ws.onclose = () => { closed = true; for (const { rej } of pending.values()) rej(new Error("Chrome was closed")); pending.clear(); };
+  const send = (method, params = {}) => new Promise((res, rej) => {
+    if (closed) return rej(new Error("Chrome was closed"));
+    const i = ++id; pending.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method, params }));
+  });
 
   const consoleErrors = [];
   const d = {
@@ -157,6 +161,8 @@ export async function launch({ headed = true, width = 1440, height = 900, chrome
     if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") consoleErrors.push(m.params.args.map((a) => a.value ?? a.description ?? "").join(" ").slice(0, 200));
   });
   await send("Page.enable"); await send("Runtime.enable");
+  // Behave as if the window is focused even when it is not, so menus stay open if you use other windows meanwhile.
+  await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Page.addScriptToEvaluateOnNewDocument", { source: OVERLAY });
   return d;
 }

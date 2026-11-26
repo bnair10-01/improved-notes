@@ -39,6 +39,7 @@ const NOTES = [
 ];
 
 // ─── Plumbing ───
+let closedEarly = false;
 const results = [];
 const ids = {};
 let d;
@@ -46,12 +47,13 @@ const log = (...a) => console.log(...a);
 
 async function scene(key, title, fn) {
   if (ONLY && !ONLY.includes(key)) return;
+  if (closedEarly) return;
   const t0 = Date.now();
   const checks = [];
   const ctx = { check: (name, ok, detail = "") => { checks.push({ name, ok: !!ok, detail }); log(`     ${ok ? "✔" : "✘"} ${name}${detail ? `  (${detail})` : ""}`); } };
   log(`\n▶ ${title}`);
   let error = null;
-  try { await fn(ctx); } catch (e) { error = e.message; log(`     ✘ ${e.message}`); try { await d.shot(`FAILED-${key}`); } catch { /* page gone */ } }
+  try { await fn(ctx); } catch (e) { error = e.message; log(`     ✘ ${e.message}`); if (/Chrome was closed/.test(e.message)) closedEarly = true; else { try { await d.shot(`FAILED-${key}`); } catch { /* page gone */ } } }
   results.push({ key, title, error, checks, seconds: Math.round((Date.now() - t0) / 1000) });
 }
 
@@ -202,6 +204,54 @@ async function run() {
     await d.pause(1000);
     t.check("Topic summary cites its notes", await d.evaluate("!!(document.querySelector('[data-testid=topic-insight] [data-sources]'))"));
     await d.shot("topic-summary");
+  });
+
+  await scene("model", "8b. A 3D model of a topic, generated from the notes", async (t) => {
+    await openNote("Mitochondria");
+    await say("The app can build a 3D model from what you wrote. Watch: it reads the note and invents the parts.", 2400);
+    await d.click({ sel: "button", text: "3D model" });
+    await d.waitFor("document.querySelector('[role=dialog] textarea')", { label: "the 3D model dialog" });
+    await d.click({ sel: "[role=dialog] textarea" });
+    await d.type("The structure of a mitochondrion and how each part helps make ATP", { chunk: 2, delay: 28 });
+    await d.shot("model-dialog");
+    const before = await pathId();
+    await d.click({ within: "[role=dialog]", text: "^Create schematic$" });
+    await d.waitFor(`location.pathname.split('/').pop() !== ${JSON.stringify(before)} && document.querySelectorAll('button[aria-label]').length > 8`, { timeout: 180000, label: "the generated model" });
+    await d.waitFor("[...document.querySelectorAll('button[aria-label]')].filter(b=>/^\\d+\\. /.test(b.getAttribute('aria-label'))).length >= 4", { timeout: 60000, label: "numbered parts" });
+    await d.pause(2500);
+    const parts = await d.evaluate("[...document.querySelectorAll('button[aria-label]')].filter(b=>/^\\d+\\. /.test(b.getAttribute('aria-label'))).length");
+    t.check("A 3D model was generated from the note", parts >= 4, `${parts} numbered parts`);
+    t.check("The model is a 3D scene", await d.evaluate("!!document.querySelector('canvas')"));
+    t.check("The model note links back to the note it came from", /Mitochondria/.test(await text()));
+    await say("Every part is numbered. Drag to orbit, scroll to zoom.", 1500);
+    await d.shot("model-3d");
+    // Take it apart with the slider.
+    await d.evaluate("(()=>{const r=document.querySelector('input[type=range][aria-label=\"Explode assembly\"]');const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(r,'100');r.dispatchEvent(new Event('input',{bubbles:true}));r.dispatchEvent(new Event('change',{bubbles:true}))})()");
+    await say("Slide to take it apart (or press E).", 1800);
+    await d.pause(1800);
+    t.check("The model takes itself apart", Number(await d.evaluate("document.querySelector('input[type=range][aria-label=\"Explode assembly\"]').value")) >= 90);
+    await d.shot("model-exploded");
+    // Open a part.
+    await d.click({ sel: "button[aria-label]", text: "^1\\. " });
+    await d.waitFor("document.querySelector('section[aria-label=\"Selected part\"]')", { label: "the part panel" });
+    await d.pause(900);
+    t.check("Each part has Learn, Ask and Notes", await d.evaluate("['Learn','Ask','Notes'].every(x=>[...document.querySelectorAll('section[aria-label=\"Selected part\"] [role=tab]')].some(b=>b.textContent.startsWith(x)))"));
+    await d.click({ sel: "section[aria-label='Selected part'] button", text: "Explain this part" });
+    await d.waitFor("document.querySelector('section[aria-label=\"Selected part\"] [data-answer]')", { timeout: 60000, label: "the part explanation" });
+    await d.pause(1200);
+    t.check("The explanation shows where it came from", await d.evaluate("!!document.querySelector('section[aria-label=\"Selected part\"] [data-sources], section[aria-label=\"Selected part\"] [data-no-source]')"));
+    await d.shot("model-part-learn");
+    await d.click({ sel: "section[aria-label='Selected part'] [role=tab]", text: "^Notes" });
+    await d.click({ sel: "section[aria-label='Selected part'] textarea" });
+    await d.type("Where the proton gradient is built.", { chunk: 2, delay: 25 });
+    await d.pause(1500);
+    t.check("A note on a part adds a gold dot to its number", await d.evaluate("!!document.querySelector('button[aria-label^=\"1.\"] span[class*=c9a24a]')"));
+    await d.shot("model-part-notes");
+    // It belongs to the topic.
+    await openTopic("Cell Biology");
+    await d.pause(900);
+    t.check("The model appears in the Cell Biology topic as a 3D item", await d.evaluate("[...document.querySelectorAll('[role=tab]')].some(b=>/3d/i.test(b.textContent))"));
+    await d.shot("topic-with-model");
   });
 
   await scene("maps", "9. The 3D map of each topic: what connects, what doesn't", async (t) => {

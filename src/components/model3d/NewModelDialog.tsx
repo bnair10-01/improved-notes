@@ -12,7 +12,7 @@ import { validateSpec, type Spec } from '@/lib/model3d';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-export type NewModelDialogProps = { open: boolean; onOpenChange: (open: boolean) => void; sourceNote?: { id: string; title: string; markdown: string } };
+export type NewModelDialogProps = { open: boolean; onOpenChange: (open: boolean) => void; sourceNote?: { id: string; title: string; markdown: string; folderId?: string | null } };
 export function NewModelDialog({ open, onOpenChange, sourceNote }: NewModelDialogProps) {
   const [concept, setConcept] = useState(''), [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
@@ -33,7 +33,7 @@ export function NewModelDialog({ open, onOpenChange, sourceNote }: NewModelDialo
       if (upload) { await uploadFile(storagePath, upload, 'model/gltf-binary'); uploaded = true; }
       // The model note, its file record and its link are saved in one atomic write.
       const now = nowIso(), batch = writeBatch(db);
-      batch.set(userDoc('notes', id), { kind: 'model3d', title, markdown, model_spec: spec, folder_id: null, tags: [], pinned: false, deleted_at: null, source_note_ids: sourceNote ? [sourceNote.id] : [], created_at: now, updated_at: now, rev: 1 });
+      batch.set(userDoc('notes', id), { kind: 'model3d', title, markdown, model_spec: spec, folder_id: sourceNote?.folderId ?? null, tags: [], pinned: false, deleted_at: null, source_note_ids: sourceNote ? [sourceNote.id] : [], created_at: now, updated_at: now, rev: 1 });
       if (upload) batch.set(userDoc('attachments', newId()), { note_id: id, type: 'model_file', storage_path: storagePath, position: 0, metadata: { filename: upload.name, size: upload.size, mime_type: 'model/gltf-binary' }, created_at: now });
       if (sourceNote) batch.set(userDoc('links', newId()), { from_note_id: id, to_note_id: sourceNote.id, kind: 'wikilink', label: null, created_at: now });
       await commit(batch.commit());

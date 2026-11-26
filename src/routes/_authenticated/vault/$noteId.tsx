@@ -276,7 +276,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
         </section>
       </div>
 
-      <NewModelDialog open={modelOpen} onOpenChange={setModelOpen} sourceNote={{ id: noteId, title, markdown: md }} />
+      <NewModelDialog open={modelOpen} onOpenChange={setModelOpen} sourceNote={{ id: noteId, title, markdown: md, folderId: note.folder_id }} />
       <AlertDialog open={confirmTrash} onOpenChange={setConfirmTrash}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Move "{note.title}" to Trash?</AlertDialogTitle><AlertDialogDescription>You can restore it from Trash for 30 days.</AlertDialogDescription></AlertDialogHeader>

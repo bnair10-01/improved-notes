@@ -38,14 +38,9 @@ function firstName(displayName?: string | null, email?: string | null) {
 
 const today = () => new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }).toUpperCase();
 
-/** Content on the left, the faint "what a topic becomes" preview on the right (laptop and up). */
+/** The page content, in one centred column. */
 function Split({ children }: { children: ReactNode }) {
-  return (
-    <div className="mx-auto grid max-w-[1400px] lg:min-h-[calc(100dvh-4rem)] lg:grid-cols-[minmax(0,1fr)_440px]">
-      <div className="flex flex-col gap-7 px-5 pb-12 pt-8 sm:px-10 lg:px-16 lg:pt-16">{children}</div>
-      <TopicPreview />
-    </div>
-  );
+  return <div className="mx-auto flex max-w-[1100px] flex-col gap-7 px-5 pb-12 pt-8 sm:px-10 lg:px-16 lg:pt-16">{children}</div>;
 }
 
 function Headline({ line1, line2 }: { line1: string; line2: string }) {
@@ -56,42 +51,6 @@ function Headline({ line1, line2 }: { line1: string; line2: string }) {
         {line1}<br /><span className="italic text-muted-foreground">{line2}</span>
       </h1>
     </div>
-  );
-}
-
-function TopicPreview() {
-  return (
-    <aside aria-hidden data-distraction className="relative hidden flex-col gap-4 overflow-hidden border-l bg-card/40 p-7 lg:flex">
-      <div className={mono}>What a topic becomes</div>
-      <p className="font-serif text-[15px] leading-relaxed text-muted-foreground">
-        Scans, notes, websites and lectures on one subject end up in one place, linked, summarised and turned into study cards.
-      </p>
-      <div className="mt-1.5 flex flex-col gap-2.5 opacity-45">
-        <div className="font-serif text-3xl leading-tight">Your first topic</div>
-        <div className="flex gap-1.5">
-          <span className="h-5 w-11 rounded-full bg-foreground" />
-          {[70, 56, 64].map((w) => <span key={w} className="h-5 rounded-full border" style={{ width: w }} />)}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="row-span-2 flex flex-col gap-2 rounded-xl border p-2.5">
-            <span className="font-mono text-[9px] text-muted-foreground">SCAN</span>
-            <div className="h-28 rounded bg-[repeating-linear-gradient(135deg,var(--secondary)_0_8px,var(--card)_8px_16px)]" />
-            <span className="h-2 w-4/5 rounded-sm bg-border" /><span className="h-2 w-1/2 rounded-sm bg-secondary" />
-          </div>
-          {["WEBSITE", "PDF", "YOUTUBE"].map((k) => (
-            <div key={k} className="flex flex-col gap-2 rounded-xl border p-2.5">
-              <span className="font-mono text-[9px] text-muted-foreground">{k}</span>
-              <span className="h-2 w-[90%] rounded-sm bg-border" /><span className="h-2 w-3/5 rounded-sm bg-secondary" />
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-3 rounded-xl border p-3">
-          <span className="font-serif text-2xl">9</span>
-          <span className="flex-1 text-xs text-muted-foreground">cards due<br />about 4 min</span>
-          <span className="rounded-md bg-foreground px-2.5 py-1 text-xs font-medium text-background">Study</span>
-        </div>
-      </div>
-    </aside>
   );
 }
 

@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LearningQuiz } from "@/components/learner/OnboardingDialog";
+import { LearningQuiz } from "@/components/learner/LearningQuiz";
 import { A11Y_DEFAULT, applyA11y, readA11y, SIZES, type A11y } from "@/lib/a11y";
 import { isLearningStyle, saveLearningStyle, STYLES, STYLE_LABELS, useLearningStyle } from "@/lib/learning";
 import { buildExportEntries, downloadBlob } from "@/lib/export";

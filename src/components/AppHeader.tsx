@@ -8,7 +8,6 @@ import { ThemePicker } from "./ThemePicker";
 import { A11yPanel } from "./shell/A11yPanel";
 import { HelpDialog } from "./shell/HelpDialog";
 import { DialogHost } from "./shell/DialogHost";
-import { OnboardingDialog } from "./learner/OnboardingDialog";
 import { Settings } from "lucide-react";
 import { MobileTabBar } from "./shell/MobileTabBar";
 import { SyncStatus } from "./shell/SyncStatus";
@@ -95,7 +94,7 @@ export function AppHeader() {
       </div>
     </header>
     <Rail initials={initials} avatarUrl={avatarUrl} />
-    {user && <><MobileTabBar /><DialogHost /><OnboardingDialog /><CommandPalette /></>}
+    {user && <><MobileTabBar /><DialogHost /><CommandPalette /></>}
     </>
   );
 }

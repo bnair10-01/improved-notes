@@ -130,6 +130,26 @@ if (emu) {
     catch (e) { if (/app.?check|401|403|permission|unauthenticated/i.test(String(e?.message))) return "refused as expected"; throw e; }
     throw new Error("the model answered without any App Check token. AI Logic is NOT protected: anyone with your public API key can use your credits");
   });
+  // Sign-in methods. Google and Apple must be switched on in the console, or their buttons fail.
+  await step("Sign-in: Google", "Console > Authentication > Sign-in method > Google > Enable (pick a support email) > Save", async () => {
+    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${config.apiKey}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ providerId: "google.com", continueUri: `https://${config.projectId}.web.app/auth` }) });
+    const j = await r.json();
+    if (j.error) throw new Error(`not enabled (${j.error.message})`);
+    return "enabled";
+  });
+  await step("Sign-in: Apple", "Console > Authentication > Sign-in method > Apple > Enable. Needs an Apple Developer Services ID, Team ID, key ID and private key (see README, Sign-in)", async () => {
+    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${config.apiKey}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ providerId: "apple.com", continueUri: `https://${config.projectId}.web.app/auth` }) });
+    const j = await r.json();
+    if (j.error) throw new Error(`not enabled (${j.error.message})`);
+    return "enabled";
+  });
+  await step("Sign-in: authorized domains", "Console > Authentication > Settings > Authorized domains: add your site and localhost", async () => {
+    const j = await (await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getProjectConfig?key=${config.apiKey}`)).json();
+    const have = j.authorizedDomains ?? [];
+    const need = [`${config.projectId}.web.app`, "localhost"].filter((d) => !have.includes(d));
+    if (need.length) throw new Error(`missing ${need.join(", ")}`);
+    return have.join(", ");
+  });
   skip("On-device (Gemini Nano)", "needs Chrome with the on-device model; open the app in Chrome and check the badge");
 }
 

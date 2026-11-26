@@ -125,6 +125,14 @@ export function authMessage(e: unknown): string {
     "auth/popup-closed-by-user": "Sign-in was cancelled.",
     "auth/account-exists-with-different-credential": "That email already uses a different sign-in method. Sign in with it, then link this one in Settings.",
     "auth/network-request-failed": "No connection. Check your network and try again.",
+    "auth/operation-not-allowed": "That sign-in method isn't switched on for this app yet. Use email for now.",
+    "auth/unauthorized-domain": "Sign-in isn't allowed from this web address yet.",
+    "auth/popup-blocked": "Your browser blocked the sign-in window. Allow pop-ups for this site and try again.",
+    "auth/cancelled-popup-request": "Sign-in was cancelled.",
+    "auth/too-many-requests": "Too many attempts. Wait a minute and try again.",
+    "auth/user-disabled": "This account has been disabled.",
+    "auth/web-storage-unsupported": "Your browser is blocking storage, which sign-in needs. Leave private browsing or allow cookies.",
+    "auth/credential-already-in-use": "That account is already linked to another profile.",
   };
   return map[code] ?? (e instanceof Error ? e.message : "Something went wrong.");
 }

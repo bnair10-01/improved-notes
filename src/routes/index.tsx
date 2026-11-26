@@ -5,11 +5,12 @@ import { ArrowUp, BookOpenCheck, Loader2, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/AppHeader";
 import { GoogleMark } from "@/components/GoogleMark";
+import { AppleMark } from "@/components/AppleMark";
 import { NewActionGrid } from "@/components/shell/NewActions";
 import { Hint } from "@/components/shell/Hint";
 import { Button } from "@/components/ui/button";
 import { IS_NATIVE } from "@/lib/firebase";
-import { authMessage, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
+import { authMessage, rememberNext, signInWithApple, signInWithGoogle, useAuth } from "@/lib/auth";
 import { openDialog } from "@/lib/dialogs";
 import { prepareImage } from "@/lib/image";
 import { setSession } from "@/lib/session";
@@ -168,11 +169,11 @@ function CaptureBar() {
 function Welcome() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
-  async function google() {
+  async function social(signIn: () => Promise<unknown>) {
     setBusy(true);
     try {
       rememberNext("/");
-      await signInWithGoogle();
+      await signIn();
     } catch (e) { toast.error(authMessage(e)); } finally { setBusy(false); }
   }
   return (
@@ -183,9 +184,14 @@ function Welcome() {
       </p>
       <div className="max-w-sm">
         {!IS_NATIVE && (
-          <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={google} disabled={busy}>
-            {busy ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
-          </Button>
+          <div className="space-y-2">
+            <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={() => void social(signInWithGoogle)} disabled={busy}>
+              {busy ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
+            </Button>
+            <Button className="w-full" style={{ background: "#000000", color: "#FFFFFF", border: "1px solid #000000" }} onClick={() => void social(signInWithApple)} disabled={busy}>
+              <AppleMark /> Continue with Apple
+            </Button>
+          </div>
         )}
         <Button asChild variant="ghost" size="sm" className="mt-1 w-full text-muted-foreground"><Link to="/auth" search={{ redirect: "/" }}>Use email instead</Link></Button>
       </div>

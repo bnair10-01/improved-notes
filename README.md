@@ -68,6 +68,21 @@ npm run doctor           # checks a live Firebase project (Auth, Firestore, Stor
 
 On-device inference needs Chrome with Gemini Nano available (see `chrome://on-device-internals`). Without it the app uses the cloud model automatically.
 
+## Sign-in setup (Firebase console)
+
+Email and guest sign-in work out of the box. Google and Apple must be switched on once in the Firebase console, then `npm run doctor` shows them as passing.
+
+**Google** (2 minutes): Authentication > Sign-in method > Google > Enable, choose a support email, Save. Firebase creates the web client for you.
+
+**Authorized domains**: Authentication > Settings > Authorized domains. Add your Hosting domain (`<project>.web.app`) and `localhost` for local development.
+
+**Apple** (needs a paid Apple Developer account):
+1. In the Apple Developer portal, create a **Services ID** (for example `com.yourname.improvednotes.web`) with Sign in with Apple enabled. Set the domain to `<project>.firebaseapp.com` and the return URL to `https://<project>.firebaseapp.com/__/auth/handler`.
+2. Create a **Key** with Sign in with Apple enabled. Download the `.p8` file and note its Key ID. Your Team ID is shown in the account menu.
+3. In the Firebase console: Authentication > Sign-in method > Apple > Enable, then enter the Services ID, Team ID, Key ID and the private key (the text of the `.p8` file).
+
+On iPhone and Android, the apps use the system sign-in sheet instead of a pop-up (planned, see Status).
+
 ## Native apps
 
 The same web build is wrapped with Capacitor for Android and iOS (`android/`, `ios/`).

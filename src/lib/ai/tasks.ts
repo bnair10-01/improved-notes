@@ -8,7 +8,7 @@ import type { MindMap, MindNode } from "../mindmap-types";
 import type { AiDiagram } from "../diagram-types";
 import type { Segment } from "../audio";
 import { CARD_MAX, CARD_MIN, QUIZ_MAX, QUIZ_MIN, clampCount } from "../study-validate";
-import { SHAPES, fitToView, validateSpec, verifyPartQuotes, type Spec } from "../model3d";
+import { SHAPES, fitToView, tidyGenerated, validateSpec, verifyPartQuotes, type Spec } from "../model3d";
 import { AiFailure, imagePart, runJson, runModel, runStream, safe } from "./run";
 import type { JS } from "./schema";
 import { modelInstructions } from "./model-rules";
@@ -324,7 +324,7 @@ export const generateModelSpec = ({ concept, context }: { concept: string; conte
         task: "model3d", schema: MODEL_SCHEMA, chars: concept.length + (notes?.length ?? 0),
         instructions: modelInstructions(concept, notes),
       });
-      const spec = validateSpec(data);
+      const spec = tidyGenerated(validateSpec(data));
       fitToView(spec.parts);
       return notes ? verifyPartQuotes(spec, notes) : spec;
     };

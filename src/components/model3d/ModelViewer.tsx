@@ -1,6 +1,6 @@
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, Html, Lightformer, OrbitControls } from '@react-three/drei';
+import { Edges, Environment, Html, Lightformer, OrbitControls } from '@react-three/drei';
 import { Box3, BoxGeometry, CapsuleGeometry, ConeGeometry, CylinderGeometry, Group, LoadingManager, Mesh, MeshStandardMaterial, SphereGeometry, TorusGeometry, Vector3, type BufferGeometry } from 'three';
 import type { OrbitControls as Controls } from 'three-stdlib';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -50,7 +50,8 @@ function Piece({ part, geometry, t, selected, dim, labels, select, focus, n, has
   });
   return <mesh ref={mesh} geometry={geometry ?? generated!} dispose={null} position={part.position} rotation={part.rotation} {...(shell ? { raycast: () => null } : {})}
     onClick={e => { e.stopPropagation(); select(); }} onDoubleClick={e => { e.stopPropagation(); focus(); }}>
-    <meshStandardMaterial color={part.color} transparent={dim || op < 1} opacity={dim ? Math.min(0.15, op) : op} depthWrite={op >= 1} emissive={part.color} emissiveIntensity={selected ? 0.35 : 0} roughness={0.6} />
+    <meshStandardMaterial color={part.color} transparent={dim || op < 1} opacity={dim ? Math.min(0.15, op) : op} depthWrite={op >= 1} emissive={part.color} emissiveIntensity={selected ? 0.35 : shell ? 0.3 : 0} roughness={0.6} />
+    {shell && !dim && <Edges color={part.color} threshold={25} />}
     {showLabel && <Html center distanceFactor={12}><div className="flex items-center gap-1.5"><button onClick={select} aria-label={`${n}. ${part.name}`} className="relative grid h-6 w-6 place-items-center rounded-full border bg-background/80 font-mono text-[11px] text-foreground shadow backdrop-blur">{n}{hasNote && <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[#c9a24a]" />}</button>{(labels || selected) && <span className="whitespace-nowrap text-xs text-foreground [text-shadow:0_1px_6px_#000]">{part.name}</span>}</div></Html>}
   </mesh>;
 }
@@ -84,14 +85,13 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
   // Frame the whole model: centre the camera on the parts and back off by their extent.
   useEffect(() => {
     if (glbUrl || !root.parts.length) return;
+    // Centre on the parts, then back off just far enough that the model's bounding sphere fills the view.
     const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
-    for (const p of root.parts) for (let i = 0; i < 3; i++) {
-      const h = Math.max(...p.size.map(Math.abs), 0.1) / 2, v = p.position[i] ?? 0;
-      lo[i] = Math.min(lo[i]!, v - h); hi[i] = Math.max(hi[i]!, v + h);
-    }
+    for (const p of root.parts) for (let i = 0; i < 3; i++) { const v = p.position[i] ?? 0; lo[i] = Math.min(lo[i]!, v); hi[i] = Math.max(hi[i]!, v); }
     const c: Vec3 = [(lo[0]! + hi[0]!) / 2, (lo[1]! + hi[1]!) / 2, (lo[2]! + hi[2]!) / 2];
-    const ext = Math.max(hi[0]! - lo[0]!, hi[1]! - lo[1]!, hi[2]! - lo[2]!, 0.5);
-    setFocus(c); setRadius(ext * 1.1);
+    let R = 0.5;
+    for (const p of root.parts) R = Math.max(R, Math.hypot(p.position[0]! - c[0], p.position[1]! - c[1], p.position[2]! - c[2]) + Math.hypot(...p.size) * 0.3);
+    setFocus(c); setRadius(Math.max(2, R * 1.25));
   }, [root, glbUrl]);
   useEffect(() => { if (focusPartId) setSelected(focusPartId); }, [focusPartId]);
   useEffect(() => {

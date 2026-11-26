@@ -68,17 +68,21 @@ async function openNote(title) {
   await dismiss();
   await d.press("k", { meta: true });
   await d.waitFor("document.querySelector('[cmdk-input]')", { label: "search box" });
-  await d.type(title.slice(0, 8), { chunk: 1, delay: 60 });
-  await d.pause(600);
-  await d.press("Enter");
+  await d.type(title, { chunk: 1, delay: 40 });
+  await d.pause(700);
+  // Pick the exact title, not whatever happens to be listed first (a generated note can share its first word).
+  await d.click({ sel: "[cmdk-item]", text: `^${title}$` });
   await d.waitFor(`document.querySelector('[aria-label=Title]') && document.querySelector('[aria-label=Title]').value === ${JSON.stringify(title)}`, { label: `note ${title}` });
   await d.pause(700);
 }
 
 async function openTopic(name) {
   await rail("Topics");
-  await d.click({ text: `^${name}` });
-  await d.waitFor("/\\/topics\\/[^/]+$/.test(location.pathname)", { label: `topic ${name}` });
+  for (let i = 0; i < 3; i++) {
+    await d.click({ text: `^${name}` });
+    try { await d.waitFor("/\\/topics\\/[^/]+$/.test(location.pathname)", { timeout: 7000, label: `topic ${name}` }); break; }
+    catch (e) { if (i === 2) throw e; }
+  }
   await d.pause(900);
 }
 
@@ -247,7 +251,8 @@ async function run() {
     await d.click({ sel: "section[aria-label='Selected part'] [role=tab]", text: "^Notes" });
     await d.click({ sel: "section[aria-label='Selected part'] textarea" });
     await d.type("Where the proton gradient is built.", { chunk: 2, delay: 25 });
-    await d.pause(1500);
+    t.check("What was typed arrives intact", (await d.evaluate("document.querySelector('section[aria-label=\"Selected part\"] textarea').value")) === "Where the proton gradient is built.");
+    await d.pause(2200);
     t.check("A note on a part adds a gold dot to its number", await d.evaluate("!!document.querySelector('button[aria-label^=\"" + partNo + ".\"] span[class*=c9a24a]')"));
     await d.shot("model-part-notes");
     // It belongs to the topic.

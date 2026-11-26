@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateSpec, fitToView, verifyPartQuotes, centroidDirection, explodeOffset, partsToNodes, findPath, parseModelEmbeds } from './model3d';
+import { validateSpec, fitToView, tidyGenerated, verifyPartQuotes, centroidDirection, explodeOffset, partsToNodes, findPath, parseModelEmbeds } from './model3d';
 const part = (extra = {}) => ({ id: 'a', name: 'Housing', shape: 'box', ...extra });
 describe('validateSpec', () => {
   it('accepts fewer than eight, rejects invalid shapes, caps valid parts at thirty', () => {
@@ -102,3 +102,30 @@ describe("richer models", () => {
     expect(spec.parts[1]!.source_quote).toBeUndefined();
   });
 });
+
+describe("tidyGenerated", () => {
+  const mk = (n: number, over: Record<string, unknown> = {}) => ({ id: `p${n}`, name: `Part ${n}`, description: `Does thing ${n}.`, group: "g", shape: "box", size: [1, 1, 1], position: [n, 0, 0], rotation: [0, 0, 0], color: "#60a5fa", explode_direction: [0, 1, 0], assembly_order: n, ...over });
+
+  it("drops a part that was listed twice, along with its copies", () => {
+    const spec = validateSpec({ parts: [mk(1), mk(2, { name: "Part 1", description: "Does thing 1.", copies: 3, arrange: "ring" }), mk(3)] });
+    const out = tidyGenerated(spec);
+    expect(out.parts.map((p) => p.name)).toEqual(["Part 1", "Part 3"]);
+  });
+
+  it("keeps the most meaningful parts when there are too many to read at a glance", () => {
+    const parts = Array.from({ length: 28 }, (_, i) => mk(i + 1, { size: [1 + i * 0.01, 1, 1] }));
+    parts[27] = mk(28, { size: [0.2, 0.2, 0.2], opacity: 0.2 });          // a small shell: kept for being a shell
+    parts[26] = mk(27, { size: [0.2, 0.2, 0.2], source_quote: "from the note" }); // small, but backed by the note
+    const out = tidyGenerated(validateSpec({ parts }), 20);
+    const names = out.parts.map((p) => p.name);
+    expect(names).toHaveLength(20);
+    expect(names).toContain("Part 28");
+    expect(names).toContain("Part 27");
+  });
+
+  it("leaves a normal model alone", () => {
+    const spec = validateSpec({ parts: [mk(1), mk(2), mk(3)] });
+    expect(tidyGenerated(spec).parts).toHaveLength(3);
+  });
+});
+

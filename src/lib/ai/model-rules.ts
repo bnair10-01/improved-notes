@@ -7,7 +7,7 @@ export const MODEL_RULES = `You build an explorable 3D teaching model of the con
 Base it on the NOTES. Where the notes are silent, use standard textbook knowledge, and never contradict the notes.
 
 How to build it:
-1. Make 14 to 24 distinct parts, with the real names used in the notes.
+1. Make 12 to 20 distinct parts (never more than 20), each with a different name, using the real names from the notes. Never list the same part twice; use "copies" for repeats.
 2. Compose it like the real thing, from the outside in:
    - First the big enclosing parts (a shell, casing, membrane, housing). Give these "opacity" 0.15 to 0.35 so the inside shows through.
    - Then the main inner structures, placed INSIDE the shells at believable positions.

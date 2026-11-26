@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { askNotes } from "@/lib/ai/tasks";
@@ -19,6 +19,15 @@ export function PartTabs({ part, modelTitle, editable, onNote }: { part: Part; m
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [q, setQ] = useState("");
   useEffect(() => { setAnswer(null); setQ(""); setTab("learn"); }, [part.id]);
+
+  // Keep what is being typed in local state and save once typing pauses. Saving on every key re-renders the whole model and drops characters.
+  const [draft, setDraft] = useState(part.note ?? "");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latest = useRef({ draft, onNote, saved: part.note ?? "" });
+  latest.current = { draft, onNote, saved: part.note ?? "" };
+  useEffect(() => { setDraft(part.note ?? ""); }, [part.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const commit = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; if (latest.current.draft !== latest.current.saved) latest.current.onNote(latest.current.draft); };
+  useEffect(() => () => commit(), [part.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const live = (vault?.notes ?? []).filter((n) => !n.deleted_at);
   const related = rankNotes(live, `${part.name} ${modelTitle}`, 3);
@@ -62,7 +71,7 @@ export function PartTabs({ part, modelTitle, editable, onNote }: { part: Part; m
         </form>
       )}
       {tab === "notes" && (editable
-        ? <label className="block text-sm"><span className="sr-only">Your notes on this part</span><textarea className="w-full rounded-md border bg-background p-2 text-sm" rows={4} placeholder="Your own notes on this part" value={part.note ?? ""} onChange={(e) => onNote(e.target.value)} /></label>
+        ? <label className="block text-sm"><span className="sr-only">Your notes on this part</span><textarea className="w-full rounded-md border bg-background p-2 text-sm" rows={4} placeholder="Your own notes on this part" value={draft} onChange={(e) => { setDraft(e.target.value); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(commit, 600); }} onBlur={commit} /></label>
         : <p className="text-sm text-muted-foreground">{part.note || "No notes on this part."}</p>)}
       {answer && tab !== "notes" && <AnswerCard question={answer.q} text={answer.text} citations={answer.citations} />}
     </div>

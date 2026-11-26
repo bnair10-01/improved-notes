@@ -1,6 +1,7 @@
-import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Canvas } from "@react-three/fiber";
-import { Html, Line, OrbitControls } from "@react-three/drei";
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Line, OrbitControls } from "@react-three/drei";
+import { Vector3 } from "three";
 import { forceLayout3d, type Vec3 } from "@/lib/graph-layout";
 import { pairKey, relatedPairs, type Related } from "@/lib/related";
 import type { VFolder, VLink, VNote } from "@/lib/vault";
@@ -24,13 +25,29 @@ type Props = {
 type Edge = { a: string; b: string; kind: "written" | "auto"; linkId?: string; shared?: string[] };
 
 const NO_TOPIC = "#c9c8c3";
-const hue = (i: number) => `hsl(${(i * 67 + 20) % 360} 58% 64%)`;
+const hue = (i: number) => `hsl(${(i * 67 + 20) % 360}, 58%, 64%)`; // comma syntax: three.js does not read the space-separated form
 const reduced = () => typeof document !== "undefined" && document.documentElement.dataset["motion"] === "reduce";
 
 class Boundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   override render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+/** Keeps each note's label glued to its sphere: projects the 3D position to the screen every frame. Labels are ordinary page elements, so they are real buttons. */
+function LabelProjector({ anchors, labels }: { anchors: Map<string, Vec3>; labels: { current: Map<string, HTMLElement> } }) {
+  const v = useMemo(() => new Vector3(), []);
+  useFrame(({ camera, size }) => {
+    for (const [id, el] of labels.current) {
+      const a = anchors.get(id);
+      if (!a) continue;
+      v.set(a[0], a[1], a[2]).project(camera);
+      if (v.z > 1 || v.z < -1) { el.style.display = "none"; continue; }
+      el.style.display = "";
+      el.style.transform = `translate(${((v.x * 0.5 + 0.5) * size.width).toFixed(1)}px, ${((-v.y * 0.5 + 0.5) * size.height).toFixed(1)}px) translate(-50%, 0)`;
+    }
+  });
+  return null;
 }
 
 /** Every note as a point in 3D space, joined by the links you wrote and by connections found automatically. */
@@ -61,6 +78,9 @@ export default function VaultGraph3D({ notes, links, folders = [], focusId, show
   const radius = useMemo(() => Math.max(4, ...[...pos.values()].map((p) => Math.hypot(...p))), [pos]);
 
   const degree = useMemo(() => { const d = new Map<string, number>(); for (const e of edges) { d.set(e.a, (d.get(e.a) ?? 0) + 1); d.set(e.b, (d.get(e.b) ?? 0) + 1); } return d; }, [edges]);
+  const radiusOf = (id: string) => 0.3 + Math.min(0.5, (degree.get(id) ?? 0) * 0.08);
+  const labelRefs = useRef(new Map<string, HTMLElement>());
+  const anchors = useMemo(() => new Map(notes.flatMap((n) => { const p = pos.get(n.id); return p ? [[n.id, [p[0], p[1] - radiusOf(n.id) - 0.35, p[2]] as Vec3] as const] : []; })), [notes, pos, degree]); // eslint-disable-line react-hooks/exhaustive-deps
   const colorOf = (n: VNote) => (n.folder_id && folderIndex.has(n.folder_id) ? hue(folderIndex.get(n.folder_id)!) : NO_TOPIC);
   const touching = (id: string) => edges.filter((e) => e.a === id || e.b === id);
   const neighbours = useMemo(() => new Set(selected ? touching(selected).flatMap((e) => [e.a, e.b]) : []), [selected, edges]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -104,16 +124,28 @@ export default function VaultGraph3D({ notes, links, folders = [], focusId, show
                   <sphereGeometry args={[r, 28, 20]} />
                   <meshStandardMaterial color={colorOf(n)} emissive={colorOf(n)} emissiveIntensity={isSel ? 0.7 : n.id === focusId ? 0.5 : 0.12} roughness={0.5} transparent opacity={dim ? 0.25 : outside ? 0.55 : 1} />
                 </mesh>
-                <Html center position={[0, -(r + 0.4), 0]}>
-                  <button type="button" data-graph-node data-note-id={n.id} aria-pressed={isSel} onClick={() => setSelected(n.id === selected ? null : n.id)} onDoubleClick={() => onOpen(n)}
-                    className={`whitespace-nowrap rounded px-1 text-[12.5px] font-medium text-[#e8e7e3] [text-shadow:0_1px_8px_#000,0_0_2px_#000] hover:bg-white/10 ${dim ? "opacity-30" : ""}`}>{outside ? "↗ " : ""}{n.title || "Untitled"}</button>
-                </Html>
               </group>
             );
           })}
+          <LabelProjector anchors={anchors} labels={labelRefs} />
           <OrbitControls enableDamping autoRotate={!reduced() && !selected} autoRotateSpeed={0.45} minDistance={3} maxDistance={radius * 6} />
         </Canvas>
       </Boundary>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" role="group" aria-label="Notes in the graph">
+        {notes.map((n) => {
+          const isSel = n.id === selected, near = neighbours.has(n.id);
+          const dim = !!selected && !isSel && !near;
+          const outside = !!inTopic && !inTopic.has(n.id);
+          return (
+            <button key={n.id} type="button" ref={(el) => { if (el) labelRefs.current.set(n.id, el); else labelRefs.current.delete(n.id); }}
+              data-graph-node data-note-id={n.id} aria-pressed={isSel} onClick={() => setSelected(n.id === selected ? null : n.id)} onDoubleClick={() => onOpen(n)}
+              style={{ transform: "translate(-9999px, -9999px)" }}
+              className={`pointer-events-auto absolute left-0 top-0 whitespace-nowrap rounded px-1 text-[12.5px] font-medium text-[#e8e7e3] [text-shadow:0_1px_8px_#000,0_0_2px_#000] hover:bg-white/10 ${dim ? "opacity-30" : outside ? "opacity-75" : ""}`}>
+              {outside ? "↗ " : ""}{n.title || "Untitled"}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="pointer-events-none absolute left-4 top-3 space-y-1 text-[11px] text-[#8a8984]">
         <p className="flex items-center gap-2"><span className="inline-block h-px w-6 bg-[#e8e7e3]" /> a link you wrote</p>

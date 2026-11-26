@@ -26,7 +26,7 @@ export function NewModelDialog({ open, onOpenChange, sourceNote }: NewModelDialo
   async function create(spec: Spec | null, upload?: File) {
     const user = await ensureSignedIn();
     const title = spec?.title ?? upload?.name.replace(/\.glb$/i, '') ?? '3D model';
-    const markdown = `${spec?.summary ?? 'Uploaded 3D model.'}\n\n${spec?.parts.map(p => `- **${p.name}**: ${p.description}`).join('\n') ?? ''}${sourceNote ? `\n\n[[${sourceNote.title}]]` : ''}`;
+    const markdown = `${spec?.summary ?? 'Uploaded 3D model.'}\n\n${spec?.parts.filter(p => !p.instance_of).map(p => { const n = spec.parts.filter(x => x.instance_of === p.id).length + 1; return `- **${p.name}**${n > 1 ? ` ×${n}` : ''}: ${p.description}${p.source_quote ? ` (“${p.source_quote}”)` : ''}`; }).join('\n') ?? ''}${sourceNote ? `\n\n[[${sourceNote.title}]]` : ''}`;
     const id = newId(), storagePath = `users/${user.uid}/models/${id}/model.glb`;
     let uploaded = false;
     try {

@@ -33,9 +33,11 @@ class CanvasBoundary extends Component<{ children: ReactNode; fallback: ReactNod
   static getDerivedStateFromError() { return { failed: true }; }
   override render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
-function Piece({ part, geometry, t, selected, dim, labels, select, focus, n, hasNote }: {
-  part: Part; geometry?: BufferGeometry; t: number; selected: boolean; dim: boolean; labels: boolean; select: () => void; focus: () => void; n: number; hasNote: boolean;
+function Piece({ part, geometry, t, selected, dim, labels, select, focus, n, hasNote, showLabel }: {
+  part: Part; geometry?: BufferGeometry; t: number; selected: boolean; dim: boolean; labels: boolean; select: () => void; focus: () => void; n: number; hasNote: boolean; showLabel: boolean;
 }) {
+  const op = part.opacity ?? 1;
+  const shell = op < 0.5; // see-through shells let clicks reach the parts inside them
   const mesh = useRef<Mesh>(null);
   const generated = useMemo(() => geometry ? null : geometryFor(part), [part.shape, part.size.join(','), geometry]);
   useEffect(() => () => { generated?.dispose(); }, [generated]);
@@ -46,10 +48,10 @@ function Piece({ part, geometry, t, selected, dim, labels, select, focus, n, has
     if (reduced()) mesh.current.position.copy(target);
     else mesh.current.position.lerp(target, 1 - Math.exp(-12 * dt));
   });
-  return <mesh ref={mesh} geometry={geometry ?? generated!} dispose={null} position={part.position} rotation={part.rotation}
+  return <mesh ref={mesh} geometry={geometry ?? generated!} dispose={null} position={part.position} rotation={part.rotation} {...(shell ? { raycast: () => null } : {})}
     onClick={e => { e.stopPropagation(); select(); }} onDoubleClick={e => { e.stopPropagation(); focus(); }}>
-    <meshStandardMaterial color={part.color} transparent={dim} opacity={dim ? 0.2 : 1} emissive={part.color} emissiveIntensity={selected ? 0.35 : 0} roughness={0.6} />
-    <Html center distanceFactor={12}><div className="flex items-center gap-1.5"><button onClick={select} aria-label={`${n}. ${part.name}`} className="relative grid h-6 w-6 place-items-center rounded-full border bg-background/80 font-mono text-[11px] text-foreground shadow backdrop-blur">{n}{hasNote && <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[#c9a24a]" />}</button>{(labels || selected) && <span className="whitespace-nowrap text-xs text-foreground [text-shadow:0_1px_6px_#000]">{part.name}</span>}</div></Html>
+    <meshStandardMaterial color={part.color} transparent={dim || op < 1} opacity={dim ? Math.min(0.15, op) : op} depthWrite={op >= 1} emissive={part.color} emissiveIntensity={selected ? 0.35 : 0} roughness={0.6} />
+    {showLabel && <Html center distanceFactor={12}><div className="flex items-center gap-1.5"><button onClick={select} aria-label={`${n}. ${part.name}`} className="relative grid h-6 w-6 place-items-center rounded-full border bg-background/80 font-mono text-[11px] text-foreground shadow backdrop-blur">{n}{hasNote && <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[#c9a24a]" />}</button>{(labels || selected) && <span className="whitespace-nowrap text-xs text-foreground [text-shadow:0_1px_6px_#000]">{part.name}</span>}</div></Html>}
   </mesh>;
 }
 function Camera({ target, reset, rotate, radius }: { target: Vec3; reset: number; rotate: boolean; radius: number }) {
@@ -143,6 +145,7 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
   const crumbs = findPath(root, path);
   const current = crumbs.at(-1)?.children_model ?? root;
   const parts = glbUrl ? loaded?.parts ?? [] : current.parts;
+  const primaries = useMemo(() => parts.filter(p => !p.instance_of), [parts]);
   const selected = parts.find(p => p.id === selectedId);
   const ordered = useMemo(() => [...parts].sort((a, b) => a.assembly_order - b.assembly_order), [parts]);
   const framePart = (p: Part) => {
@@ -174,11 +177,15 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
   const editable = !glbUrl;
   const checklist = <div className="space-y-2">
     <label className="block text-sm">Search parts<input className="mt-1 w-full rounded border bg-background p-2" value={search} onChange={e => setSearch(e.target.value)} /></label>
-    <ul className="max-h-64 space-y-2 overflow-auto">{parts.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map(p => <li key={p.id} className="flex items-center gap-2">
-      <input type="checkbox" aria-label={`Show ${p.name}`} checked={!hidden.has(p.id)} onChange={e => setHidden(old => { const n = new Set(old); if (e.target.checked) n.delete(p.id); else n.add(p.id); return n; })} />
-      <button className="min-h-10 flex-1 text-left text-sm underline-offset-4 hover:underline" aria-pressed={selectedId === p.id} onClick={() => setSelected(p.id)}>{p.name}</button>
-      <Button variant="outline" size="sm" aria-pressed={isolate === p.id} onClick={() => setIsolate(isolate === p.id ? null : p.id)}>Isolate</Button>
-    </li>)}</ul>
+    <ul className="max-h-72 space-y-1.5 overflow-auto" aria-label="Parts">{primaries.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map(p => { const copies = parts.filter(x => x.instance_of === p.id).length + 1; return <li key={p.id} className={`rounded-lg border p-2 ${selectedId === p.id ? 'border-foreground' : ''}`}>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" aria-label={`Show ${p.name}`} checked={!hidden.has(p.id)} onChange={e => setHidden(old => { const n = new Set(old); if (e.target.checked) n.delete(p.id); else n.add(p.id); return n; })} />
+        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border font-mono text-[10px]">{primaries.indexOf(p) + 1}</span>
+        <button className="min-h-8 flex-1 text-left text-sm font-medium underline-offset-4 hover:underline" aria-pressed={selectedId === p.id} onClick={() => setSelected(p.id)}>{p.name}{copies > 1 && <span className="ml-1 font-mono text-[11px] text-muted-foreground">×{copies}</span>}</button>
+        <Button variant="outline" size="sm" aria-pressed={isolate === p.id} onClick={() => setIsolate(isolate === p.id ? null : p.id)}>Isolate</Button>
+      </div>
+      {p.description && <p className="mt-1 pl-12 text-xs leading-snug text-muted-foreground">{p.description}</p>}
+    </li>; })}</ul>
   </div>;
   return <div ref={container} className="space-y-3 rounded-xl border bg-background p-3 text-foreground">
     <h3 className="font-semibold">{root.title}</h3>
@@ -190,7 +197,8 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
       <Canvas camera={{ position: [8, 6, 8], near: 0.01, far: 1000 }} gl={{ preserveDrawingBuffer: true }} onCreated={({ gl }) => { canvas.current = gl.domElement; }} onPointerMissed={() => setSelected(null)}>
         <ambientLight intensity={0.8} /><directionalLight position={[5, 8, 5]} intensity={2} />
         <Environment resolution={128}><Lightformer position={[0, 5, -4]} scale={[10, 10, 1]} intensity={2} /></Environment>
-        <group ref={group}>{parts.filter(p => !hidden.has(p.id) && (!isolate || isolate === p.id)).map(p => <Piece n={parts.indexOf(p) + 1} hasNote={!!p.note} key={`${path.join('/')}/${p.id}`} part={p} {...(loaded?.geometry.get(p.id) ? { geometry: loaded.geometry.get(p.id)! } : {})} t={parts.length < 2 ? 0 : explode} selected={p.id === selectedId} dim={!!selectedId && p.id !== selectedId} labels={labels} select={() => setSelected(p.id)} focus={() => framePart(p)} />)}</group>
+        <Html><span aria-hidden /></Html>{/* the first label the 3D library mounts renders empty; this one absorbs that */}
+        <group ref={group}>{parts.filter(p => { const k = p.instance_of ?? p.id; return !hidden.has(k) && (!isolate || isolate === k); }).map(p => { const k = p.instance_of ?? p.id; return <Piece n={primaries.findIndex(x => x.id === k) + 1} showLabel={!p.instance_of} hasNote={!!(p.instance_of ? primaries.find(x => x.id === k)?.note : p.note)} key={`${path.join('/')}/${p.id}`} part={p} {...(loaded?.geometry.get(p.id) ? { geometry: loaded.geometry.get(p.id)! } : {})} t={parts.length < 2 ? 0 : explode} selected={k === selectedId} dim={!!selectedId && k !== selectedId} labels={labels} select={() => setSelected(k)} focus={() => framePart(p)} />; })}</group>
         <Camera target={focus} reset={reset} radius={radius} rotate={rotate} />
       </Canvas></div></CanvasBoundary> : fallback}
     <div className="flex flex-wrap gap-2">

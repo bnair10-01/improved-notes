@@ -25,7 +25,7 @@ const spec = (n: number) => ({ title: "Mitochondrion", summary: "A model.", part
 describe("generateModelSpec", () => {
   beforeEach(() => { replies = []; calls = 0; sentConfigs.length = 0; });
 
-  it("accepts a model with enough parts on the first try", async () => {
+  it("accepts a rich model on the first try", async () => {
     replies = [spec(9)];
     const r = await generateModelSpec({ concept: "A mitochondrion" });
     expect(r.ok && r.spec.parts.length).toBe(9);

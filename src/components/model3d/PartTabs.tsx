@@ -45,6 +45,7 @@ export function PartTabs({ part, modelTitle, editable, onNote }: { part: Part; m
       {tab === "learn" && (
         <div className="space-y-2 text-sm">
           <p className="text-muted-foreground">{part.description || "No description yet."}</p>
+          {part.source_quote && <p className="rounded-md border p-2 text-xs" data-source>From your note: <q className="[quotes:'“''”']">{part.source_quote}</q></p>}
           <button disabled={busy} onClick={() => void run(`Explain the ${part.name} of ${modelTitle} for someone learning it.`)} className="rounded-md border px-2.5 py-1 text-xs hover:bg-secondary disabled:opacity-60">
             {busy ? <Loader2 className="inline h-3 w-3 animate-spin" /> : null} Explain this part
           </button>

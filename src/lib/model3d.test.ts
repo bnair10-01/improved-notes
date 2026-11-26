@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateSpec, centroidDirection, explodeOffset, partsToNodes, findPath, parseModelEmbeds } from './model3d';
+import { validateSpec, fitToView, verifyPartQuotes, centroidDirection, explodeOffset, partsToNodes, findPath, parseModelEmbeds } from './model3d';
 const part = (extra = {}) => ({ id: 'a', name: 'Housing', shape: 'box', ...extra });
 describe('validateSpec', () => {
   it('accepts fewer than eight, rejects invalid shapes, caps valid parts at thirty', () => {
@@ -50,5 +50,55 @@ describe('parseModelEmbeds', () => {
   });
   it('ignores blanks, malformed syntax, code and escaped embeds', () => {
     expect(parseModelEmbeds('![[model: ]] ![[model: broken] \\![[model: Escape]] `![[model: code]]`\n```md\n![[model: fenced]]\n```')).toEqual([]);
+  });
+});
+
+describe("richer models", () => {
+  const base = (over: Record<string, unknown> = {}) => ({ id: "a", name: "ATP synthase", description: "Makes ATP.", group: "g", shape: "cone", size: [0.4, 0.6, 0.4], position: [0, 0, 0], rotation: [0, 0, 0], color: "#60a5fa", explode_direction: [0, 1, 0], assembly_order: 3, ...over });
+
+  it("builds repeated parts in a ring, and marks the copies as one part", () => {
+    const s = validateSpec({ parts: [base({ copies: 6, arrange: "ring", arrange_radius: 2 })] });
+    expect(s.parts).toHaveLength(6);
+    expect(s.parts.filter((p) => !p.instance_of)).toHaveLength(1);
+    expect(s.parts.slice(1).every((p) => p.instance_of === "a")).toBe(true);
+    const radii = s.parts.map((p) => Math.hypot(p.position[0], p.position[2]));
+    radii.forEach((r) => expect(r).toBeCloseTo(2, 5));
+  });
+
+  it("lines copies up along x and scatters them inside a range, the same way every time", () => {
+    const line = validateSpec({ parts: [base({ copies: 3, arrange: "line", arrange_radius: 1 })] });
+    expect(line.parts.map((p) => p.position[0])).toEqual([-1, 0, 1]);
+    const a = validateSpec({ parts: [base({ copies: 5, arrange: "scatter", arrange_radius: 1.5 })] });
+    const b = validateSpec({ parts: [base({ copies: 5, arrange: "scatter", arrange_radius: 1.5 })] });
+    expect(a.parts.map((p) => p.position)).toEqual(b.parts.map((p) => p.position));
+    a.parts.forEach((p) => p.position.forEach((v) => expect(Math.abs(v)).toBeLessThanOrEqual(1.5)));
+  });
+
+  it("makes each copy fly away from the middle when the model is taken apart", () => {
+    const s = validateSpec({ parts: [base({ copies: 4, arrange: "ring", arrange_radius: 2 })] });
+    const dirs = s.parts.map((p) => p.explode_direction.join(","));
+    expect(new Set(dirs).size).toBe(4);
+  });
+
+  it("keeps a shell's see-through setting within range and counts only distinct parts toward the limit", () => {
+    expect(validateSpec({ parts: [base({ opacity: 0.2 })] }).parts[0]!.opacity).toBe(0.2);
+    expect(validateSpec({ parts: [base({ opacity: 0 })] }).parts[0]!.opacity).toBeCloseTo(0.08);
+    expect(validateSpec({ parts: [base({ copies: 12, arrange: "ring" })] }).parts).toHaveLength(12);
+  });
+
+  it("scales a model that is far too big or too small to a comfortable size", () => {
+    const big = validateSpec({ parts: [base({ position: [40, 0, 0], size: [10, 10, 10] })] });
+    fitToView(big.parts);
+    expect(Math.max(...big.parts.map((p) => Math.abs(p.position[0]!) + p.size[0]! / 2))).toBeLessThan(6);
+    const tiny = validateSpec({ parts: [base({ position: [0.2, 0, 0], size: [0.3, 0.3, 0.3] })] });
+    fitToView(tiny.parts);
+    expect(Math.abs(tiny.parts[0]!.position[0]!) + tiny.parts[0]!.size[0]! / 2).toBeGreaterThan(2);
+  });
+
+  it("keeps a part's source quote only if it really appears in the note", () => {
+    const spec = validateSpec({ parts: [base({ source_quote: "makes most of the cell's ATP" }), base({ id: "b", source_quote: "makes oxygen from sunlight" })] });
+    verifyPartQuotes(spec, "The mitochondrion makes most of the cell's ATP through respiration.");
+    expect(spec.parts[0]!.source_quote).toBeTruthy();
+    expect(spec.parts[1]!.source_quote).toBeUndefined();
   });
 });

@@ -13,7 +13,7 @@ Built for the #BuildHybridAI 2026 hackathon.
 | **Firebase AI Logic** (hybrid inference) | Every AI feature: handwriting transcription, summaries, flashcards, quizzes, mind maps, links, slides, audio, 3D. Runs on-device (Gemini Nano in Chrome) when available, otherwise in the cloud. See `src/lib/ai/`. |
 | **App Check** | Verifies requests to AI Logic (reCAPTCHA Enterprise; debug token for local and judging use). |
 | **Remote Config** | Tunes the routing policy (cloud model, on-device size limit, kill switch) without a redeploy. |
-| **Authentication** | Email, Google and Apple. Guests can capture first; signing up links the guest account so nothing is lost. |
+| **Authentication** | Email and Google. Guests can capture first; signing up links the guest account so nothing is lost. |
 | **Firestore** | One account, every device: live sync, offline cache, version history, Trash. |
 | **Storage** | Photos, audio, slides and models. |
 | **Hosting** | The web app. |
@@ -60,7 +60,7 @@ npm run doctor           # checks a live Firebase project (Auth, Firestore, Stor
 
 ### Using a real Firebase project
 
-1. Create a project on the Blaze plan. Enable Authentication (Email, Google, Apple), Firestore, Storage, Remote Config, App Check and AI Logic.
+1. Create a project on the Blaze plan. Enable Authentication (Email, Google), Firestore, Storage, Remote Config, App Check and AI Logic.
 2. Put the web app config in `.env` (see `.env.example`).
 3. For App Check, add a reCAPTCHA Enterprise site key as `VITE_APPCHECK_SITE_KEY`, or register a debug token and set `VITE_APPCHECK_DEBUG_TOKEN`.
 4. `firebase deploy --only firestore:rules,storage,hosting`
@@ -70,18 +70,15 @@ On-device inference needs Chrome with Gemini Nano available (see `chrome://on-de
 
 ## Sign-in setup (Firebase console)
 
-Email and guest sign-in work out of the box. Google and Apple must be switched on once in the Firebase console, then `npm run doctor` shows them as passing.
+Email and guest sign-in work out of the box. Google must be switched on once in the Firebase console, then `npm run doctor` shows it as passing.
 
 **Google** (2 minutes): Authentication > Sign-in method > Google > Enable, choose a support email, Save. Firebase creates the web client for you.
 
 **Authorized domains**: Authentication > Settings > Authorized domains. Add your Hosting domain (`<project>.web.app`) and `localhost` for local development.
 
-**Apple** (needs a paid Apple Developer account):
-1. In the Apple Developer portal, create a **Services ID** (for example `com.yourname.improvednotes.web`) with Sign in with Apple enabled. Set the domain to `<project>.firebaseapp.com` and the return URL to `https://<project>.firebaseapp.com/__/auth/handler`.
-2. Create a **Key** with Sign in with Apple enabled. Download the `.p8` file and note its Key ID. Your Team ID is shown in the account menu.
-3. In the Firebase console: Authentication > Sign-in method > Apple > Enable, then enter the Services ID, Team ID, Key ID and the private key (the text of the `.p8` file).
+Sign in with Apple is not offered: it needs a paid Apple Developer account.
 
-On iPhone and Android, the apps use the system sign-in sheet instead of a pop-up (planned, see Status).
+On iPhone and Android, the apps use email sign-in for now. Google uses a browser pop-up, which a WebView blocks, so the button is hidden there (see Status).
 
 ## Native apps
 
@@ -96,7 +93,7 @@ npx cap open ios         # open in Xcode
 - **Android:** the debug APK builds. It has not been run on a device or emulator.
 - **iOS:** builds for the simulator and launches there (the interface renders and loads). Not run on a physical iPhone. The first build on a new machine needs `sudo xcodebuild -runFirstLaunch` once.
 - **Inside the native apps** the AI uses the cloud model: on-device Gemini Nano (Android) and Apple Foundation Models (iOS) need a native Firebase AI Logic plugin that is **not written yet**.
-- **Sign-in:** email only inside the apps. Google and Apple sign-in use browser popups, which don't work in a WebView, so those buttons are hidden there until `@capacitor-firebase/authentication` is added. App Check's reCAPTCHA also doesn't work in a WebView, so native builds need a debug token for now.
+- **Sign-in:** email only inside the apps. Google sign-in uses a browser popup, which doesn't work in a WebView, so that button is hidden there until `@capacitor-firebase/authentication` is added. App Check's reCAPTCHA also doesn't work in a WebView, so native builds need a debug token for now.
 - **macOS and Windows:** not started. Tauri needs Rust, which is not installed.
 
 ## Status
@@ -110,7 +107,7 @@ Verified (automated, 101 unit tests + 42 emulator tests):
 - The app boots in Chrome against the emulators; guest capture and email sign-up work.
 
 Not yet verified or not built:
-- **Not run against a live Firebase project**: AI Logic calls, App Check, Remote Config fetch, Google/Apple sign-in. `npm run doctor` checks all of these once a project exists.
+- **Not run against a live Firebase project**: AI Logic calls, App Check, Remote Config fetch, Google sign-in. `npm run doctor` checks all of these once a project exists.
 - **On-device inference (Gemini Nano) has not been exercised.**
 - `scripts/setup-backups.sh`: the Firestore commands match the gcloud docs; the Storage commands are unchecked.
 - Design: the Dark v2 palette and fonts are applied. The new workspace layout (insight column), topics, first-run screens, 3D viewer changes and pen tools are not built.

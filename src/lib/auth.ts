@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   EmailAuthProvider,
   GoogleAuthProvider,
-  OAuthProvider,
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
   linkWithCredential,
@@ -49,7 +48,7 @@ export function useAuth() {
   return { user, ready };
 }
 
-/** A signed-in person who has an email/Google/Apple identity (not just a guest session). */
+/** A signed-in person who has an email or Google identity (not just a guest session). */
 export const isPermanent = (u: User | null | undefined) => !!u && !u.isAnonymous;
 
 /**
@@ -76,7 +75,7 @@ async function linkOrSignIn(provider: AuthProvider): Promise<User> {
   } catch (e) {
     if (guest && isCode(e, "auth/credential-already-in-use")) {
       const credential =
-        GoogleAuthProvider.credentialFromError(e as never) ?? OAuthProvider.credentialFromError(e as never);
+        GoogleAuthProvider.credentialFromError(e as never);
       if (!credential) throw e;
       // Still the guest here, so their data is read first and then carried into the existing account.
       return carryGuestData(guest.uid, () => signInWithCredential(auth, credential).then((r) => r.user));
@@ -86,12 +85,6 @@ async function linkOrSignIn(provider: AuthProvider): Promise<User> {
 }
 
 export const signInWithGoogle = () => linkOrSignIn(new GoogleAuthProvider());
-export const signInWithApple = () => {
-  const p = new OAuthProvider("apple.com");
-  p.addScope("email");
-  p.addScope("name");
-  return linkOrSignIn(p);
-};
 
 export async function signUpWithEmail(email: string, password: string): Promise<User> {
   const guest = auth.currentUser?.isAnonymous ? auth.currentUser : null;

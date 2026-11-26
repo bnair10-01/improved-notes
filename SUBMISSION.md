@@ -22,7 +22,7 @@ Draft text for Devpost, plus an honest checklist. Nothing here should be submitt
 
 ## Unblocking the live checks
 
-1. Create a Firebase project on the Blaze plan; enable Authentication (Email, Google, Apple, Anonymous), Firestore, Storage, Remote Config, App Check and AI Logic.
+1. Create a Firebase project on the Blaze plan; enable Authentication (Email, Google, Anonymous), Firestore, Storage, Remote Config, App Check and AI Logic.
 2. Copy the web app config into `.env`; register an App Check debug token and set `VITE_APPCHECK_DEBUG_TOKEN`.
 3. `npm run doctor`, then `firebase deploy --only firestore:rules,storage,hosting`.
 4. In Chrome, enable the on-device model (see `chrome://on-device-internals`) and run the demo.

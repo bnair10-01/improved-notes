@@ -5,10 +5,9 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  authMessage, isPermanent, rememberNext, signInWithApple, signInWithEmail, signInWithGoogle, signUpWithEmail, takeNext, useAuth,
+  authMessage, isPermanent, rememberNext, signInWithEmail, signInWithGoogle, signUpWithEmail, takeNext, useAuth,
 } from "@/lib/auth";
 import { GoogleMark } from "@/components/GoogleMark";
-import { AppleMark } from "@/components/AppleMark";
 import { IS_NATIVE } from "@/lib/firebase";
 
 function safePath(p: unknown) {
@@ -66,10 +65,6 @@ function AuthPage() {
             >
               <GoogleMark />
               Continue with Google
-            </Button>
-            <Button type="button" className="w-full" style={{ background: "#000000", color: "#FFFFFF", border: "1px solid #747775" }} onClick={() => run(signInWithApple)} disabled={busy}>
-              <AppleMark />
-              Continue with Apple
             </Button>
           </div>
         )}

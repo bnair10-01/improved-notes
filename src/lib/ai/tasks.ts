@@ -11,6 +11,7 @@ import { CARD_MAX, CARD_MIN, QUIZ_MAX, QUIZ_MIN, clampCount } from "../study-val
 import { SHAPES, validateSpec, type Spec } from "../model3d";
 import { AiFailure, imagePart, runJson, runModel, runStream, safe } from "./run";
 import type { JS } from "./schema";
+import { numberSources, verifyCitations, type Citation, type Source, type SourceInput } from "./cite";
 
 const str: JS = { type: "string" };
 const strArr: JS = { type: "array", items: str };
@@ -323,42 +324,49 @@ export const generateModelSpec = ({ concept, context }: { concept: string; conte
 
 /* ───────────── Ask your notes ───────────── */
 
-export type AskAnswer = { answer: string; sources: string[] };
+export type AskAnswer = { answer: string; citations: Citation[] };
 export type AskResponse = { ok: true; answer: AskAnswer } | { ok: false; error: string };
 
-const ASK_SCHEMA: JS = wrapObj({ answer: str, sources: strArr });
+const ASK_SCHEMA: JS = wrapObj({ answer: str, citations: { type: "array", items: wrapObj({ n: { type: "integer" }, quote: str }) } });
 
-/** Answer a question from the given notes only. Short context runs on-device first; long context goes to the cloud. */
-export const askNotes = ({ question, context }: { question: string; context: string }): Promise<AskResponse> =>
+/**
+ * Answer a question from the given sources only. Each source is numbered; the model must cite them and quote the
+ * exact passage it used, and any quote that isn't really in the source is dropped before it reaches the screen.
+ * Short context runs on-device first; long context goes to the cloud.
+ */
+export const askNotes = ({ question, sources }: { question: string; sources: SourceInput[] }): Promise<AskResponse> =>
   safe("ask", async () => {
     const q = question.trim();
     if (!q) throw new AiFailure("Type a question first.");
-    if (!context.trim()) throw new AiFailure("There are no notes to answer from yet.");
-    const { data } = await runJson<Partial<AskAnswer>>({
+    const { list, context } = numberSources(sources.filter((x) => x.text.trim()), 5000);
+    if (!list.length) throw new AiFailure("There are no notes to answer from yet.");
+    const { data } = await runJson<{ answer?: string; citations?: unknown }>({
       task: "ask", schema: ASK_SCHEMA, chars: context.length + q.length,
       instructions:
-        "Answer the question using ONLY the notes below. If the notes don't contain the answer, say so plainly and do not guess. " +
-        "Keep it short and clear. In `sources`, list the titles of the notes you used, exactly as written after '# '.\n\n" +
-        `QUESTION: ${q}\n\nNOTES:\n${context}`,
+        "Answer the question using ONLY the numbered sources below. If they don't contain the answer, say so plainly, do not guess, and return no citations. " +
+        "Keep the answer short and clear. After each claim write its source number in square brackets, like [1]. " +
+        "In `citations`, list each source you used with its number `n` and a `quote`: an EXACT passage copied word for word from that source (at most 25 words).\n\n" +
+        `QUESTION: ${q}\n\nSOURCES:\n${context}`,
     });
-    return { answer: { answer: (data.answer ?? "").trim() || "I couldn't find that in your notes.", sources: data.sources ?? [] } };
+    return { answer: { answer: (data.answer ?? "").trim() || "I couldn't find that in your notes.", citations: verifyCitations(data.citations, list) } };
   }) as Promise<AskResponse>;
 
-
-/** A short summary that appears as it is written. */
+/** A summary that appears as it is written. It cites its sources as [1], [2]… and the numbers match `sources`. */
 export async function summariseStream(
-  { title, markdown, style = "short", length = "brief" }: { title: string; markdown: string; style?: SummaryStyle; length?: "brief" | "medium" | "detailed" },
+  { title, sources, style = "short", length = "brief" }: { title: string; sources: Source[]; style?: SummaryStyle; length?: "brief" | "medium" | "detailed" },
   onText: (soFar: string) => void,
   signal?: { cancelled: boolean },
 ): Promise<string> {
-  const text = markdown.slice(0, 60_000);
+  const context = sources.map((x) => `[${x.n}] ${x.title}\n${x.text}`).join("\n\n").slice(0, 60_000);
   const { text: out } = await runStream({
-    task: "summary", chars: text.length, onText, ...(signal ? { signal } : {}),
-    instructions: `Write ${STYLE[style]} in Markdown. Length: ${length}. Use ONLY the content of the notes below. Never add outside facts. Skip anything marked [illegible].\n\nNOTES:\n# ${title}\n${text}`,
+    task: "summary", chars: context.length, onText, ...(signal ? { signal } : {}),
+    instructions:
+      `Write ${STYLE[style]} about "${title}" in Markdown. Length: ${length}. Use ONLY the numbered sources below. Never add outside facts. Skip anything marked [illegible]. ` +
+      "After each point write the number of the source it came from in square brackets, like [2]. Only use numbers that exist below.\n\n" +
+      `SOURCES:\n${context}`,
   });
   return out.trim();
 }
-
 
 /* ───────────── Websites and YouTube ───────────── */
 

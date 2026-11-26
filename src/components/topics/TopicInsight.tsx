@@ -6,8 +6,10 @@ import { ArrowUp, Download, Loader2, Network, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { InferenceBadge } from "@/components/shell/InferenceBadge";
 import { askNotes, summariseStream } from "@/lib/ai/tasks";
+import { citedSources, numberSources, type Citation, type Source } from "@/lib/ai/cite";
+import { AnswerCard } from "@/components/shell/AnswerCard";
+import { SourceList } from "@/components/shell/SourceList";
 import { explain } from "@/lib/ai/run";
-import { buildContext } from "@/lib/retrieve";
 import { sharedConcepts, topicExport } from "@/lib/topics";
 import type { VFolder, VNote } from "@/lib/vault";
 
@@ -17,17 +19,23 @@ const box = "rounded-xl border bg-card/60 p-3.5";
 /** The topic-wide side column: summary, shared ideas, Ask across everything, and export. */
 export function TopicInsight({ folder, notes }: { folder: VFolder; notes: VNote[] }) {
   const [summary, setSummary] = useState<string | null>(null);
+  const [summarySources, setSummarySources] = useState<Source[]>([]);
   const [summarising, setSummarising] = useState(false);
   const [q, setQ] = useState("");
   const [asking, setAsking] = useState(false);
-  const [answer, setAnswer] = useState<{ q: string; text: string; sources: string[] } | null>(null);
+  const [answer, setAnswer] = useState<{ q: string; text: string; citations: Citation[] } | null>(null);
   const concepts = sharedConcepts(notes);
   const usable = notes.filter((n) => n.markdown.trim());
+  const asSources = () => usable.map((n) => ({ id: n.id, kind: n.kind, title: n.title || "Untitled", text: n.markdown }));
 
   async function summarise() {
     if (!usable.length) { toast("Add some notes to this topic first."); return; }
     setSummarising(true); setSummary("");
-    try { setSummary((await summariseStream({ title: folder.name, markdown: buildContext(usable, 12000), style: "key_points", length: "medium" }, setSummary)) || null); }
+    try {
+      const { list } = numberSources(asSources(), 12000);
+      setSummarySources(list);
+      setSummary((await summariseStream({ title: folder.name, sources: list, style: "key_points", length: "medium" }, setSummary)) || null);
+    }
     catch (e) { toast.error(explain(e).message); }
     finally { setSummarising(false); }
   }
@@ -37,9 +45,9 @@ export function TopicInsight({ folder, notes }: { folder: VFolder; notes: VNote[
     if (!usable.length) { toast("Add some notes to this topic first."); return; }
     setAsking(true);
     try {
-      const r = await askNotes({ question: text, context: buildContext(usable, 12000) });
+      const r = await askNotes({ question: text, sources: asSources() });
       if (!r.ok) { toast.error(r.error); return; }
-      setAnswer({ q: text, text: r.answer.answer, sources: r.answer.sources }); setQ("");
+      setAnswer({ q: text, text: r.answer.answer, citations: r.answer.citations }); setQ("");
     } finally { setAsking(false); }
   }
   function exportAll() {
@@ -62,7 +70,14 @@ export function TopicInsight({ folder, notes }: { folder: VFolder; notes: VNote[
           </button>
         </div>
         {summarising && !summary ? <p className="text-sm text-muted-foreground">Reading everything…</p>
-          : summary ? <div className="transcript text-sm"><ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown></div>
+          : summary ? <>
+              <div className="transcript text-sm"><ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown></div>
+              {(() => {
+                const cited = citedSources(summary, summarySources);
+                return cited.length ? <SourceList items={cited.map((c) => ({ n: c.n, title: c.title, id: c.id, kind: c.kind }))} />
+                  : !summarising && <p className="mt-2 border-t pt-2 text-xs text-muted-foreground" data-no-source>This summary didn't point at specific items.</p>;
+              })()}
+            </>
           : <p className="text-sm text-muted-foreground">One summary across every item in this topic.</p>}
       </section>
 
@@ -75,13 +90,7 @@ export function TopicInsight({ folder, notes }: { folder: VFolder; notes: VNote[
 
       <section className={box} aria-label="Ask">
         <div className="mb-2"><span className={label}>Ask across the topic</span></div>
-        {answer && (
-          <div className="mb-3 rounded-lg border bg-background/60 p-2.5 text-sm" aria-live="polite">
-            <p className="mb-1 text-xs text-muted-foreground">{answer.q}</p>
-            <p className="whitespace-pre-wrap">{answer.text}</p>
-            {answer.sources.length > 0 && <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">From: {answer.sources.join(" · ")}</p>}
-          </div>
-        )}
+        {answer && <div className="mb-3"><AnswerCard question={answer.q} text={answer.text} citations={answer.citations} /></div>}
         <form className="flex items-center gap-2 rounded-lg border bg-background/60 px-2.5 py-1.5" onSubmit={(e) => { e.preventDefault(); void ask(q); }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask everything in this topic…" aria-label="Ask a question" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
           <button type="submit" disabled={asking || !q.trim()} aria-label="Send" className="grid h-6 w-6 place-items-center rounded-md bg-primary text-primary-foreground disabled:opacity-50">{asking ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3.5 w-3.5" />}</button>

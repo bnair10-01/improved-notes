@@ -19,7 +19,8 @@ function TopicMapPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const folder = vault?.folders.find((f) => f.id === folderId);
   const notes = useMemo(() => (vault?.notes ?? []).filter((n) => !n.deleted_at && n.folder_id === folderId), [vault, folderId]);
-  const map = useMemo(() => (folder && vault ? topicMap(folder, notes, vault.links) : null), [folder, notes, vault]);
+  const outside = useMemo(() => (vault?.notes ?? []).filter((n) => !n.deleted_at && n.folder_id !== folderId), [vault, folderId]);
+  const map = useMemo(() => (folder && vault ? topicMap(folder, notes, vault.links, outside) : null), [folder, notes, vault, outside]);
 
   useEffect(() => {
     const on = (e: KeyboardEvent) => { if (e.key === "Escape") { if (selected) setSelected(null); else navigate({ to: "/topics/$folderId", params: { folderId } }); } };

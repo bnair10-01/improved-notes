@@ -69,7 +69,10 @@ function Flashcards({ noteId, cards }: { noteId: string; cards: FCard[] }) {
           <div>
             <button onClick={() => setFlipped(!flipped)} className="paper-sheet flex min-h-52 w-full flex-col items-center justify-center gap-3 p-6 text-center">
               <p className="font-serif text-xl">{shown.prompt}</p>
-              {flipped ? <p className="border-t pt-3 text-lg text-primary">{shown.answer || "—"}</p> : <p className="text-xs text-muted-foreground">Tap to flip</p>}
+              {flipped ? <>
+                <p className="border-t pt-3 text-lg text-primary">{shown.answer || "—"}</p>
+                {card?.source_snippet && <p className="text-xs text-muted-foreground" data-source>From your notes: <q className="[quotes:'“''”']">{card.source_snippet}</q></p>}
+              </> : <p className="text-xs text-muted-foreground">Tap to flip</p>}
             </button>
             {flipped && (
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -147,7 +150,7 @@ function Quiz({ quizId, questions, sourceIds }: { quizId: string; questions: Que
                 })}
               </div>
             )}
-            {done && <p className={`mt-2 text-sm ${r.correct ? "text-primary" : "text-destructive"}`}>{r.correct ? "Correct." : `Answer: ${q.answer}.`} <span className="text-muted-foreground">{q.explanation}</span></p>}
+            {done && <p className={`mt-2 text-sm ${r.correct ? "text-primary" : "text-destructive"}`}>{r.correct ? "Correct." : `Answer: ${q.answer}.`} <span className="text-muted-foreground">{q.explanation}</span>{q.source_snippet && <span className="mt-1 block text-xs text-muted-foreground" data-source>From your notes: <q className="[quotes:'“''”']">{q.source_snippet}</q></span>}</p>}
           </div>
         );
       })}

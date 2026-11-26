@@ -8,8 +8,11 @@ import { toast } from "sonner";
 import { GenerateDialog } from "@/components/study/GenerateDialog";
 import { InferenceBadge } from "@/components/shell/InferenceBadge";
 import { askNotes, summariseStream } from "@/lib/ai/tasks";
+import { citedSources, passagesOf, type Citation, type Source } from "@/lib/ai/cite";
+import { AnswerCard } from "@/components/shell/AnswerCard";
+import { SourceList } from "@/components/shell/SourceList";
 import { explain } from "@/lib/ai/run";
-import { buildContext, rankNotes } from "@/lib/retrieve";
+import { rankNotes } from "@/lib/retrieve";
 import { studyOverviewQuery } from "@/lib/study";
 import { openTarget, type VNote, type Vault } from "@/lib/vault";
 
@@ -26,13 +29,16 @@ export function InsightColumn({ note, vault, markdown, onOpenGraph, saved = true
 
   const needSave = () => toast("Save this note first, then you can make cards and quizzes from it.");
   const [summary, setSummary] = useState<string | null>(null);
+  const [summarySources, setSummarySources] = useState<Source[]>([]);
   const [summarising, setSummarising] = useState(false);
   async function summarise() {
     if (!markdown.trim()) { toast("Write or transcribe something first."); return; }
     setSummarising(true);
     try {
       setSummary("");
-      const out = await summariseStream({ title: note.title, markdown }, (t) => setSummary(t));
+      const sources = passagesOf(markdown, note.title, note.id, note.kind);
+      setSummarySources(sources);
+      const out = await summariseStream({ title: note.title, sources }, (t) => setSummary(t));
       setSummary(out || null);
     } catch (e) { toast.error(explain(e).message); }
     finally { setSummarising(false); }
@@ -41,16 +47,16 @@ export function InsightColumn({ note, vault, markdown, onOpenGraph, saved = true
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<"note" | "all">("note");
   const [asking, setAsking] = useState(false);
-  const [answer, setAnswer] = useState<{ q: string; text: string; sources: string[] } | null>(null);
+  const [answer, setAnswer] = useState<{ q: string; text: string; citations: Citation[] } | null>(null);
   async function ask(question: string) {
     const text = question.trim();
     if (!text) return;
     setAsking(true);
     try {
       const pool = scope === "note" ? [{ ...note, markdown }] : rankNotes(live.map((n) => (n.id === note.id ? { ...n, markdown } : n)), text, 5);
-      const r = await askNotes({ question: text, context: buildContext(pool) });
+      const r = await askNotes({ question: text, sources: pool.map((n) => ({ id: n.id, kind: n.kind, title: n.title, text: n.markdown })) });
       if (!r.ok) { toast.error(r.error); return; }
-      setAnswer({ q: text, text: r.answer.answer, sources: r.answer.sources });
+      setAnswer({ q: text, text: r.answer.answer, citations: r.answer.citations });
       setQ("");
     } finally { setAsking(false); }
   }
@@ -75,7 +81,15 @@ export function InsightColumn({ note, vault, markdown, onOpenGraph, saved = true
         {summarising && !summary
           ? <p className="text-sm text-muted-foreground" aria-live="polite">Reading your note…</p>
           : summary
-          ? <div className="transcript text-sm"><ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown></div>
+          ? <>
+              <div className="transcript text-sm"><ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown></div>
+              {(() => {
+                const cited = citedSources(summary, summarySources);
+                return cited.length
+                  ? <SourceList items={cited.map((c) => ({ n: c.n, title: c.title, id: c.id, kind: c.kind, quote: c.text }))} />
+                  : !summarising && <p className="mt-2 border-t pt-2 text-xs text-muted-foreground" data-no-source>This summary didn't point at passages in your note.</p>;
+              })()}
+            </>
           : <p className="text-sm text-muted-foreground">A short summary of this note, made from what you wrote.</p>}
       </section>
 
@@ -114,13 +128,7 @@ export function InsightColumn({ note, vault, markdown, onOpenGraph, saved = true
             {(["note", "all"] as const).map((s) => <button key={s} onClick={() => setScope(s)} className={`px-2 py-0.5 ${scope === s ? "bg-secondary text-foreground" : "text-muted-foreground"}`}>{s === "note" ? "This note" : "All notes"}</button>)}
           </div>
         </div>
-        {answer && (
-          <div className="mb-3 rounded-lg border bg-background/60 p-2.5 text-sm" aria-live="polite">
-            <p className="mb-1 text-xs text-muted-foreground">{answer.q}</p>
-            <p className="whitespace-pre-wrap">{answer.text}</p>
-            {answer.sources.length > 0 && <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">From: {answer.sources.join(" · ")}</p>}
-          </div>
-        )}
+        {answer && <div className="mb-3"><AnswerCard question={answer.q} text={answer.text} citations={answer.citations} /></div>}
         <div className="mb-2 flex flex-wrap gap-1.5">
           {QUICK.map((c) => <button key={c} disabled={asking} onClick={() => void ask(c)} className="rounded-full border px-2.5 py-1 text-xs hover:bg-secondary disabled:opacity-60">{c}</button>)}
         </div>

@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { askNotes } from "@/lib/ai/tasks";
-import { buildContext, rankNotes } from "@/lib/retrieve";
+import { rankNotes } from "@/lib/retrieve";
+import type { Citation } from "@/lib/ai/cite";
+import { AnswerCard } from "@/components/shell/AnswerCard";
 import { openTarget, useVault, type VNote } from "@/lib/vault";
 import type { Part } from "@/lib/model3d";
 
 type Tab = "learn" | "ask" | "notes";
-type Answer = { text: string; sources: string[] };
+type Answer = { q: string; text: string; citations: Citation[] };
 
 /** What a person can do with a selected part: learn about it, ask the vault, keep their own notes. */
 export function PartTabs({ part, modelTitle, editable, onNote }: { part: Part; modelTitle: string; editable: boolean; onNote: (v: string) => void }) {
@@ -25,9 +27,9 @@ export function PartTabs({ part, modelTitle, editable, onNote }: { part: Part; m
     setBusy(true);
     try {
       const pool = rankNotes(live, `${question} ${part.name}`, 4);
-      const own = `# ${part.name} (a part of ${modelTitle})\n${part.description}\n${part.note ?? ""}${extra}`;
-      const r = await askNotes({ question, context: `${own}\n\n${buildContext(pool, 4000)}` });
-      setAnswer(r.ok ? { text: r.answer.answer, sources: r.answer.sources } : { text: r.error, sources: [] });
+      const own = { title: `${part.name} (part of ${modelTitle})`, text: `${part.description}\n${part.note ?? ""}${extra}` };
+      const r = await askNotes({ question, sources: [own, ...pool.map((n) => ({ id: n.id, kind: n.kind, title: n.title, text: n.markdown }))] });
+      setAnswer(r.ok ? { q: question, text: r.answer.answer, citations: r.answer.citations } : { q: question, text: r.error, citations: [] });
     } finally { setBusy(false); }
   }
 
@@ -61,12 +63,7 @@ export function PartTabs({ part, modelTitle, editable, onNote }: { part: Part; m
       {tab === "notes" && (editable
         ? <label className="block text-sm"><span className="sr-only">Your notes on this part</span><textarea className="w-full rounded-md border bg-background p-2 text-sm" rows={4} placeholder="Your own notes on this part" value={part.note ?? ""} onChange={(e) => onNote(e.target.value)} /></label>
         : <p className="text-sm text-muted-foreground">{part.note || "No notes on this part."}</p>)}
-      {answer && tab !== "notes" && (
-        <div className="rounded-lg border bg-background/60 p-2.5 text-sm" aria-live="polite">
-          <p className="whitespace-pre-wrap">{answer.text}</p>
-          {answer.sources.length > 0 && <p className="mt-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">From: {answer.sources.join(" · ")}</p>}
-        </div>
-      )}
+      {answer && tab !== "notes" && <AnswerCard question={answer.q} text={answer.text} citations={answer.citations} />}
     </div>
   );
 }

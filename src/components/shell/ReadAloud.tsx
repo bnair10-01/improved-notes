@@ -46,7 +46,10 @@ export function ReadAloud({ text }: { text: string }) {
           </select>
         </label>
       </div>
-      {passage && <p aria-live="polite" className="mt-1 px-2 pb-1 font-serif text-lg"><span className="read-aloud-current">{passage}</span></p>}
+      {passage && <>
+        <p aria-live="polite" className="mt-1 px-2 pb-1 font-serif text-lg"><span className="read-aloud-current">{passage}</span></p>
+        <p className="px-2 pb-1 text-[11px] text-muted-foreground">Reading this note aloud · voice: {voice === DEVICE_VOICE ? "this device" : `Gemini ${voice}`}</p>
+      </>}
     </div>
   );
 }

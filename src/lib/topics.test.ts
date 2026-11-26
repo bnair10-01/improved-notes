@@ -48,6 +48,24 @@ describe("topicMap", () => {
   });
 });
 
+describe("topicMap across topics", () => {
+  it("shows notes from other topics that link in, as satellites, and leaves unrelated notes out", () => {
+    const inside = [note("1", "Mitochondria", "ATP")];
+    const outsideNotes = [note("2", "Photosynthesis", "reverse of [[Mitochondria]]", { folder_id: "other" }), note("3", "Feudalism", "lords and vassals", { folder_id: "x" })];
+    const m = topicMap({ id: "f", name: "Cell Biology" }, inside, [{ from_note_id: "2", to_note_id: "1", label: null as never }], outsideNotes);
+    expect(m.nodes.map((n) => n.id)).toEqual(["topic:f", "1", "2"]);
+    const sat = m.nodes.find((n) => n.id === "2")!;
+    expect(sat.label).toBe("↗ Photosynthesis");
+    expect(sat.parent_id).toBe("1");
+    expect(m.edges.find((e) => e.to === "2")).toMatchObject({ from: "1", kind: "hierarchy" });
+    expect(m.nodes.some((n) => n.id === "3")).toBe(false);
+  });
+  it("adds a cross link between two items without duplicating the tree edge", () => {
+    const m = topicMap({ id: "f", name: "T" }, [note("1", "A", "x"), note("2", "B", "y")], [{ from_note_id: "1", to_note_id: "2", label: "causes" }, { from_note_id: "2", to_note_id: "1", label: "dup" }]);
+    expect(m.edges.filter((e) => e.kind === "cross_link")).toHaveLength(1);
+  });
+});
+
 describe("topicExport", () => {
   it("builds one Markdown source with every item under its title", () => {
     const md = topicExport({ name: "Bio" }, [note("1", "One", "alpha"), note("2", "Two", "beta", { kind: "handwritten" })]);

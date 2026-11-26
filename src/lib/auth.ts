@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import {
   EmailAuthProvider,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  setPersistence,
+  type Auth,
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
@@ -33,16 +37,51 @@ export function takeNext(): string | null {
   } catch { return null; }
 }
 
+/**
+ * Guests are short-lived on purpose. A guest account lives only in this browser tab (it survives a
+ * reload, but not closing the tab) and is never remembered between visits. Real accounts stay signed in.
+ */
+const GUEST_KEY = "guest-session";
+const markGuest = () => { try { sessionStorage.setItem(GUEST_KEY, "1"); } catch { /* private mode */ } };
+const clearGuestMark = () => { try { sessionStorage.removeItem(GUEST_KEY); } catch { /* private mode */ } };
+const isThisTabsGuest = () => { try { return sessionStorage.getItem(GUEST_KEY) === "1"; } catch { return false; } };
+const isStaleGuest = (u: User | null) => !!u && u.isAnonymous && !isThisTabsGuest();
+
+/** Sign out a guest left over from an earlier visit, so the app opens on the welcome page. */
+export async function dropStaleGuest(a?: Pick<Auth, "authStateReady" | "currentUser">, out: (a: Auth) => Promise<void> = fbSignOut): Promise<void> {
+  try {
+    const target = a ?? auth;
+    await target.authStateReady();
+    if (isStaleGuest(target.currentUser)) await out(target as Auth);
+  } catch { /* nothing to drop */ }
+}
+/** Resolves once the stored session has been checked. Wait for this before reading the current user. */
+export const authSettled: Promise<void> = dropStaleGuest();
+
+/** After a real sign-in, keep the account signed in across visits. */
+async function keepSignedIn<T>(work: Promise<T>): Promise<T> {
+  const result = await work;
+  try { await setPersistence(auth, browserLocalPersistence); } catch { /* keep the session we have */ }
+  clearGuestMark();
+  return result;
+}
+
 /** Session state, kept fresh by Firebase auth events. */
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(auth.currentUser);
+  const [user, setUser] = useState<User | null>(isStaleGuest(auth.currentUser) ? null : auth.currentUser);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setReady(true);
+    let off: (() => void) | undefined;
+    let alive = true;
+    void authSettled.then(() => {
+      if (!alive) return;
+      off = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setReady(true);
+      });
     });
+    return () => { alive = false; off?.(); };
   }, []);
 
   return { user, ready };
@@ -56,8 +95,11 @@ export const isPermanent = (u: User | null | undefined) => !!u && !u.isAnonymous
  * later *linked* to a real sign-in, so nothing made as a guest is lost.
  */
 export async function ensureSignedIn(): Promise<User> {
-  await auth.authStateReady();
+  await authSettled;
   if (auth.currentUser) return auth.currentUser;
+  // A guest is kept only for this tab, not saved on the device between visits.
+  try { await setPersistence(auth, browserSessionPersistence); } catch { /* fall back to the default */ }
+  markGuest();
   const cred = await signInAnonymously(auth);
   return cred.user;
 }
@@ -67,7 +109,10 @@ function isCode(e: unknown, code: string) {
 }
 
 /** Link a provider to the guest account, or sign in (carrying guest data over) if it already exists. */
-async function linkOrSignIn(provider: AuthProvider): Promise<User> {
+function linkOrSignIn(provider: AuthProvider): Promise<User> {
+  return keepSignedIn(linkOrSignInInner(provider));
+}
+async function linkOrSignInInner(provider: AuthProvider): Promise<User> {
   const guest = auth.currentUser?.isAnonymous ? auth.currentUser : null;
   try {
     const result = guest ? await linkWithPopup(guest, provider) : await signInWithPopup(auth, provider);
@@ -89,16 +134,15 @@ export const signInWithGoogle = () => linkOrSignIn(new GoogleAuthProvider());
 export async function signUpWithEmail(email: string, password: string): Promise<User> {
   const guest = auth.currentUser?.isAnonymous ? auth.currentUser : null;
   if (guest) {
-    const result = await linkWithCredential(guest, EmailAuthProvider.credential(email, password));
-    return result.user;
+    return keepSignedIn(linkWithCredential(guest, EmailAuthProvider.credential(email, password)).then((r) => r.user));
   }
-  return (await createUserWithEmailAndPassword(auth, email, password)).user;
+  return keepSignedIn(createUserWithEmailAndPassword(auth, email, password).then((r) => r.user));
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<User> {
   const guest = auth.currentUser?.isAnonymous ? auth.currentUser : null;
   const signIn = () => signInWithEmailAndPassword(auth, email, password).then((r) => r.user);
-  return guest ? carryGuestData(guest.uid, signIn) : signIn();
+  return keepSignedIn(guest ? carryGuestData(guest.uid, signIn) : signIn());
 }
 
 /** Which sign-in methods an email already has, used to explain "account exists" errors. */

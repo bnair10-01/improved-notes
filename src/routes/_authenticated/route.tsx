@@ -1,12 +1,12 @@
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { auth } from "@/lib/firebase";
-import { rememberNext, useAuth } from "@/lib/auth";
+import { authSettled, rememberNext, useAuth } from "@/lib/auth";
 
 // Signed-in area. Guests (anonymous accounts) get the same notes, study and settings as anyone:
 // their data lives under their own guest id and moves to a real account when they sign in.
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
-    await auth.authStateReady();
+    await authSettled;
     if (!auth.currentUser) throw redirect({ to: "/auth", search: { redirect: location.href } });
   },
   component: AuthenticatedLayout,

@@ -50,6 +50,16 @@ export function explain(err: unknown): AiFailure {
   return new AiFailure("The AI couldn't finish that. Please try again.", "other");
 }
 
+/** A single-use App Check token can occasionally fail to arrive. Try once more with a fresh token before telling the person. */
+async function withAppCheckRetry<T>(call: () => Promise<T>): Promise<T> {
+  try { return await call(); }
+  catch (e) {
+    if (explain(e).kind !== "app_check") throw e;
+    await new Promise((r) => setTimeout(r, 1500));
+    return call();
+  }
+}
+
 const stripFences = (t: string) => t.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
 
 let warnedAppCheck = false;
@@ -81,7 +91,7 @@ export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Pro
     },
   });
   try {
-    const result = await model.generateContent([{ text: opts.instructions }, ...(opts.parts ?? [])]);
+    const result = await withAppCheckRetry(() => model.generateContent([{ text: opts.instructions }, ...(opts.parts ?? [])]));
     const source: InferenceSource = result.response.inferenceSource === "on_device" ? "on_device" : "in_cloud";
     recordInference(source, opts.task);
     return { text: result.response.text(), source };
@@ -101,7 +111,7 @@ export async function runStream(opts: Omit<RunOptions, "schema"> & { onText: (so
     inCloudParams: { model: r.model, generationConfig: thinks ? {} : { thinkingConfig: { thinkingBudget: 0 } } },
   });
   try {
-    const res = await model.generateContentStream([{ text: opts.instructions }, ...(opts.parts ?? [])]);
+    const res = await withAppCheckRetry(() => model.generateContentStream([{ text: opts.instructions }, ...(opts.parts ?? [])]));
     let text = "";
     for await (const chunk of res.stream) {
       if (opts.signal?.cancelled) break;

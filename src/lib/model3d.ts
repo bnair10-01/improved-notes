@@ -96,3 +96,10 @@ export function parseModelEmbeds(md: string): ModelEmbedMatch[] {
   }
   return result;
 }
+
+/** What to model. Opened from a note, that is the note itself; anything the person adds only steers it. */
+export function modelConcept(noteTitle: string, extra = ""): string {
+  const title = noteTitle.trim() || "this note";
+  const steer = extra.trim();
+  return (steer ? `${title}: ${steer}` : title).slice(0, 1000);
+}

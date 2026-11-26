@@ -27,4 +27,15 @@ describe("forceLayout3d", () => {
     expect(forceLayout3d(["solo"], []).get("solo")).toEqual([0, 0, 0]);
     expect(forceLayout3d(["a", "b"], [["a", "ghost"]]).size).toBe(2);
   });
+
+  it("keeps separate groups close enough to see together, without notes sitting on top of each other", () => {
+    const names = ["mito", "atp", "photo", "chloro", "lenses", "dvs", "feud", "plague", "model", "web", "cards"];
+    const links: [string, string][] = [["atp", "mito"], ["photo", "mito"], ["chloro", "photo"], ["lenses", "dvs"], ["plague", "feud"], ["mito", "chloro"], ["photo", "atp"], ["model", "mito"]];
+    const p = forceLayout3d(names, links);
+    const maxR = Math.max(...[...p.values()].map((v) => Math.hypot(...v)));
+    let minD = Infinity;
+    for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) minD = Math.min(minD, distance(p.get(names[i]!)!, p.get(names[j]!)!));
+    expect(maxR).toBeLessThan(20);
+    expect(minD).toBeGreaterThan(3);
+  });
 });

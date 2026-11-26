@@ -11,7 +11,7 @@ const hash = (str: string) => { let h = 2166136261; for (let i = 0; i < str.leng
  * Place nodes in 3D with a force-directed layout: every pair repels, linked pairs attract, so connected notes
  * cluster together and unrelated groups drift apart. Deterministic for the same input.
  */
-export function forceLayout3d(ids: string[], edges: [string, string][], { iterations = 260, spread = 7 }: { iterations?: number; spread?: number } = {}): Map<string, Vec3> {
+export function forceLayout3d(ids: string[], edges: [string, string][], { iterations = 260, spread = 7, gravity = 1 }: { iterations?: number; spread?: number; gravity?: number } = {}): Map<string, Vec3> {
   const n = ids.length;
   const pos = new Map<string, Vec3>();
   if (!n) return pos;
@@ -46,7 +46,7 @@ export function forceLayout3d(ids: string[], edges: [string, string][], { iterat
     }
     for (let i = 0; i < n; i++) {
       // a gentle pull to the middle keeps separate groups from drifting off forever
-      D[i]![0] -= P[i]![0] * 0.05; D[i]![1] -= P[i]![1] * 0.05; D[i]![2] -= P[i]![2] * 0.05;
+      D[i]![0] -= P[i]![0] * gravity; D[i]![1] -= P[i]![1] * gravity; D[i]![2] -= P[i]![2] * gravity;
       const m = Math.hypot(...D[i]!) || 1;
       const step = Math.min(m, temp);
       P[i]![0] += (D[i]![0] / m) * step; P[i]![1] += (D[i]![1] / m) * step; P[i]![2] += (D[i]![2] / m) * step;

@@ -13,6 +13,8 @@ type Props = {
   folders?: VFolder[];
   focusId?: string;
   showAuto?: boolean;
+  /** When set, notes outside this set are drawn as dimmer "↗" satellites of a topic. */
+  inTopic?: Set<string>;
   onOpen: (n: VNote) => void;
   onAddLink?: (a: string, b: string, why: string) => void | Promise<void>;
   onRemoveLink?: (linkId: string) => void;
@@ -32,7 +34,7 @@ class Boundary extends Component<{ children: ReactNode; fallback: ReactNode }, {
 }
 
 /** Every note as a point in 3D space, joined by the links you wrote and by connections found automatically. */
-export default function VaultGraph3D({ notes, links, folders = [], focusId, showAuto = true, onOpen, onAddLink, onRemoveLink, onStats }: Props) {
+export default function VaultGraph3D({ notes, links, folders = [], focusId, showAuto = true, inTopic, onOpen, onAddLink, onRemoveLink, onStats }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const byId = useMemo(() => new Map(notes.map((n) => [n.id, n])), [notes]);
   const folderIndex = useMemo(() => new Map(folders.map((f, i) => [f.id, i])), [folders]);
@@ -94,16 +96,17 @@ export default function VaultGraph3D({ notes, links, folders = [], focusId, show
             if (!p) return null;
             const r = 0.3 + Math.min(0.5, (degree.get(n.id) ?? 0) * 0.08);
             const isSel = n.id === selected, near = neighbours.has(n.id);
-            const dim = !!selected && !isSel && !near;
+            const outside = !!inTopic && !inTopic.has(n.id);
+            const dim = (!!selected && !isSel && !near) || false;
             return (
               <group key={n.id} position={p}>
                 <mesh onClick={(e) => { e.stopPropagation(); setSelected(n.id === selected ? null : n.id); }} onDoubleClick={(e) => { e.stopPropagation(); onOpen(n); }}>
                   <sphereGeometry args={[r, 28, 20]} />
-                  <meshStandardMaterial color={colorOf(n)} emissive={colorOf(n)} emissiveIntensity={isSel ? 0.7 : n.id === focusId ? 0.5 : 0.12} roughness={0.5} transparent opacity={dim ? 0.25 : 1} />
+                  <meshStandardMaterial color={colorOf(n)} emissive={colorOf(n)} emissiveIntensity={isSel ? 0.7 : n.id === focusId ? 0.5 : 0.12} roughness={0.5} transparent opacity={dim ? 0.25 : outside ? 0.55 : 1} />
                 </mesh>
                 <Html center position={[0, -(r + 0.4), 0]}>
                   <button type="button" data-graph-node data-note-id={n.id} aria-pressed={isSel} onClick={() => setSelected(n.id === selected ? null : n.id)} onDoubleClick={() => onOpen(n)}
-                    className={`whitespace-nowrap rounded px-1 text-[12.5px] font-medium text-[#e8e7e3] [text-shadow:0_1px_8px_#000,0_0_2px_#000] hover:bg-white/10 ${dim ? "opacity-30" : ""}`}>{n.title || "Untitled"}</button>
+                    className={`whitespace-nowrap rounded px-1 text-[12.5px] font-medium text-[#e8e7e3] [text-shadow:0_1px_8px_#000,0_0_2px_#000] hover:bg-white/10 ${dim ? "opacity-30" : ""}`}>{outside ? "↗ " : ""}{n.title || "Untitled"}</button>
                 </Html>
               </group>
             );

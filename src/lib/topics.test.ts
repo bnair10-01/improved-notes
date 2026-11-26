@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { excerpt, itemKind, sharedConcepts, topicExport, topicMap } from "./topics";
+import { excerpt, itemKind, outsideLinked, sharedConcepts, topicExport } from "./topics";
 import type { VNote } from "./vault";
 
 const note = (id: string, title: string, markdown: string, extra: Partial<VNote> = {}): VNote => ({
@@ -36,33 +36,17 @@ describe("sharedConcepts", () => {
   });
 });
 
-describe("topicMap", () => {
-  it("puts the topic in the middle and links items that link each other", () => {
-    const notes = [note("1", "One", "x"), note("2", "Two", "y", { pinned: true })];
-    const m = topicMap({ id: "f", name: "Bio" }, notes, [{ from_note_id: "1", to_note_id: "2", label: null as never }, { from_note_id: "1", to_note_id: "ghost", label: "x" }]);
-    expect(m.nodes[0]).toMatchObject({ type: "topic", parent_id: null, label: "Bio" });
-    expect(m.nodes).toHaveLength(3);
-    expect(m.edges.filter((e) => e.kind === "hierarchy")).toHaveLength(2);
-    expect(m.edges.filter((e) => e.kind === "cross_link")).toHaveLength(1);
-    expect(m.nodes.find((n) => n.id === "2")?.importance).toBe(3);
+describe("outsideLinked", () => {
+  const all = [note("1", "Mitochondria", "x", { folder_id: "f" }), note("2", "Photosynthesis", "y", { folder_id: "g" }), note("3", "Feudalism", "z", { folder_id: "h" }), note("4", "Gone", "w", { folder_id: "g", deleted_at: "x" })];
+  it("returns notes from other topics that link in or out, and leaves unrelated notes and trashed ones out", () => {
+    const r = outsideLinked([all[0]!], all, [{ from_note_id: "2", to_note_id: "1" }, { from_note_id: "4", to_note_id: "1" }]);
+    expect(r.map((n) => n.id)).toEqual(["2"]);
   });
-});
-
-describe("topicMap across topics", () => {
-  it("shows notes from other topics that link in, as satellites, and leaves unrelated notes out", () => {
-    const inside = [note("1", "Mitochondria", "ATP")];
-    const outsideNotes = [note("2", "Photosynthesis", "reverse of [[Mitochondria]]", { folder_id: "other" }), note("3", "Feudalism", "lords and vassals", { folder_id: "x" })];
-    const m = topicMap({ id: "f", name: "Cell Biology" }, inside, [{ from_note_id: "2", to_note_id: "1", label: null as never }], outsideNotes);
-    expect(m.nodes.map((n) => n.id)).toEqual(["topic:f", "1", "2"]);
-    const sat = m.nodes.find((n) => n.id === "2")!;
-    expect(sat.label).toBe("↗ Photosynthesis");
-    expect(sat.parent_id).toBe("1");
-    expect(m.edges.find((e) => e.to === "2")).toMatchObject({ from: "1", kind: "hierarchy" });
-    expect(m.nodes.some((n) => n.id === "3")).toBe(false);
+  it("finds links pointing out of the topic as well", () => {
+    expect(outsideLinked([all[0]!], all, [{ from_note_id: "1", to_note_id: "3" }]).map((n) => n.id)).toEqual(["3"]);
   });
-  it("adds a cross link between two items without duplicating the tree edge", () => {
-    const m = topicMap({ id: "f", name: "T" }, [note("1", "A", "x"), note("2", "B", "y")], [{ from_note_id: "1", to_note_id: "2", label: "causes" }, { from_note_id: "2", to_note_id: "1", label: "dup" }]);
-    expect(m.edges.filter((e) => e.kind === "cross_link")).toHaveLength(1);
+  it("ignores links between two notes in the topic", () => {
+    expect(outsideLinked([all[0]!, all[1]!], all, [{ from_note_id: "1", to_note_id: "2" }])).toEqual([]);
   });
 });
 

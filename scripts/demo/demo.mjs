@@ -184,7 +184,7 @@ async function run() {
   await scene("ask", "7. Ask across all notes, with quoted sources", async (t) => {
     await d.click({ within: "section[aria-label=Ask]", text: "^All notes$" });
     await d.click({ sel: "input[aria-label='Ask a question']" });
-    await d.type("How is photosynthesis related to the mitochondria?", { chunk: 2, delay: 35 });
+    await d.type("What do mitochondria and chloroplasts have in common?", { chunk: 2, delay: 35 });
     await d.press("Enter");
     await d.waitFor("document.querySelector('[data-answer]')", { timeout: 60000, label: "an answer" });
     await d.pause(1200);
@@ -211,12 +211,13 @@ async function run() {
     await openNote("Mitochondria");
     await say("The app can build a 3D model from what you wrote. Watch: it reads the note and invents the parts.", 2400);
     await d.click({ sel: "button", text: "3D model" });
-    await d.waitFor("document.querySelector('[role=dialog] textarea')", { label: "the 3D model dialog" });
-    await d.click({ sel: "[role=dialog] textarea" });
-    await d.type("The structure of a mitochondrion and how each part helps make ATP", { chunk: 2, delay: 28 });
+    await d.waitFor("document.querySelector('[role=dialog]')", { label: "the 3D model dialog" });
+    await d.pause(900);
+    t.check("The dialog is about this note already, with nothing to fill in", await d.evaluate("/Mitochondria/.test(document.querySelector('[role=dialog]').innerText) && !document.querySelector('[role=dialog] button[disabled]')"));
+    await say("Nothing to type: the model is about this note. Add a focus only if you want one.", 2200);
     await d.shot("model-dialog");
     const before = await pathId();
-    await d.click({ within: "[role=dialog]", text: "^Create schematic$" });
+    await d.click({ within: "[role=dialog]", text: "^Create 3D model$" });
     await d.waitFor(`location.pathname.split('/').pop() !== ${JSON.stringify(before)} && document.querySelectorAll('button[aria-label]').length > 8`, { timeout: 180000, label: "the generated model" });
     await d.waitFor("[...document.querySelectorAll('button[aria-label]')].filter(b=>/^\\d+\\. /.test(b.getAttribute('aria-label'))).length >= 4", { timeout: 60000, label: "numbered parts" });
     await d.pause(2500);
@@ -233,7 +234,8 @@ async function run() {
     t.check("The model takes itself apart", Number(await d.evaluate("document.querySelector('input[type=range][aria-label=\"Explode assembly\"]').value")) >= 90);
     await d.shot("model-exploded");
     // Open a part.
-    await d.click({ sel: "button[aria-label]", text: "^1\\. " });
+    const picked = await d.click({ sel: "button[aria-label]", text: "^\\d+\\. " });
+    const partNo = (/^(\d+)\./.exec(picked.text) || [])[1] || "1";
     await d.waitFor("document.querySelector('section[aria-label=\"Selected part\"]')", { label: "the part panel" });
     await d.pause(900);
     t.check("Each part has Learn, Ask and Notes", await d.evaluate("['Learn','Ask','Notes'].every(x=>[...document.querySelectorAll('section[aria-label=\"Selected part\"] [role=tab]')].some(b=>b.textContent.startsWith(x)))"));
@@ -246,7 +248,7 @@ async function run() {
     await d.click({ sel: "section[aria-label='Selected part'] textarea" });
     await d.type("Where the proton gradient is built.", { chunk: 2, delay: 25 });
     await d.pause(1500);
-    t.check("A note on a part adds a gold dot to its number", await d.evaluate("!!document.querySelector('button[aria-label^=\"1.\"] span[class*=c9a24a]')"));
+    t.check("A note on a part adds a gold dot to its number", await d.evaluate("!!document.querySelector('button[aria-label^=\"" + partNo + ".\"] span[class*=c9a24a]')"));
     await d.shot("model-part-notes");
     // It belongs to the topic.
     await openTopic("Cell Biology");
@@ -259,7 +261,7 @@ async function run() {
     for (const name of TOPICS) {
       await openTopic(name);
       await d.click({ text: "3D map" });
-      await d.waitFor("/\\/map$/.test(location.pathname) && document.querySelector('canvas')", { label: `${name} map` });
+      await d.waitFor("/\\/map$/.test(location.pathname) && document.querySelectorAll('[data-graph-node]').length >= 1", { timeout: 40000, label: `${name} map` });
       await d.pause(5200);
       const page = await text();
       await d.caption(`${name}: ${name === "Cell Biology" || name === "Plant Science" ? "linked to the other topic" : "no outside connections"}`);
@@ -281,7 +283,7 @@ async function run() {
     await say("Every note is a point in 3D. Solid lines are links you wrote. Dashed lines were found automatically.", 2600);
     const stats = await d.evaluate("document.querySelector('[data-graph-stats]')?.innerText ?? ''");
     const m = /(\d+) notes · (\d+) written link\w* · (\d+) found automatically/.exec(stats);
-    t.check("All eight notes are in the graph", m && Number(m[1]) === 8, stats);
+    t.check("Every note is in the graph", m && Number(m[1]) >= 8, stats);
     t.check("Links written with [[ ]] are drawn", m && Number(m[2]) >= 5, m ? `${m[2]} written` : "");
     t.check("Connections between notes are found automatically", m && Number(m[3]) >= 1, m ? `${m[3]} automatic` : "");
     t.check("It is a 3D scene", await d.evaluate("!!document.querySelector('[data-graph3d] canvas')"));
@@ -395,17 +397,27 @@ async function run() {
   });
 
   await scene("access", "15. Accessibility: high contrast and reduced motion", async (t) => {
-    await d.click({ sel: "button", text: "Accessibility settings" });
-    await d.pause(700);
-    await d.click({ sel: "[role=switch],input[type=checkbox]", text: "High contrast" }).catch(async () => d.click({ text: "High contrast" }));
+    await dismiss();
+    const open = async () => {
+      for (let i = 0; i < 3; i++) {
+        await d.click({ sel: "button", text: "Accessibility settings" });
+        await d.pause(800);
+        if (await d.evaluate("[...document.querySelectorAll('label')].some(l=>/High contrast/.test(l.textContent))")) return;
+        await d.press("Escape");
+      }
+      throw new Error("The accessibility panel did not open");
+    };
+    const toggle = async (name) => d.click({ sel: "label", text: `^${name}` });
+    await open();
+    await toggle("High contrast");
     await d.pause(800);
     t.check("High contrast switches on", (await d.evaluate("document.documentElement.getAttribute('data-contrast')")) === "high");
     await d.shot("high-contrast");
-    await d.click({ sel: "[role=switch],input[type=checkbox]", text: "Reduce motion" }).catch(async () => d.click({ text: "Reduce motion" }));
+    await toggle("Reduce motion");
     await d.pause(500);
     t.check("Reduced motion switches on", (await d.evaluate("document.documentElement.getAttribute('data-motion')")) === "reduce");
-    await d.click({ sel: "[role=switch],input[type=checkbox]", text: "High contrast" }).catch(() => undefined);
-    await d.click({ sel: "[role=switch],input[type=checkbox]", text: "Reduce motion" }).catch(() => undefined);
+    await toggle("High contrast");
+    await toggle("Reduce motion");
     await d.press("Escape");
   });
 

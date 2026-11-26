@@ -68,6 +68,22 @@ npm run doctor           # checks a live Firebase project (Auth, Firestore, Stor
 
 On-device inference needs Chrome with Gemini Nano available (see `chrome://on-device-internals`). Without it the app uses the cloud model automatically.
 
+## Native apps
+
+The same web build is wrapped with Capacitor for Android and iOS (`android/`, `ios/`).
+
+```sh
+npm run android:build    # builds android/app/build/outputs/apk/debug/app-debug.apk (needs JDK 17 or 21, not newer)
+npm run cap:sync         # rebuild the web app and copy it into both native projects
+npx cap open ios         # open in Xcode
+```
+
+- **Android:** the debug APK builds. It has not been run on a device or emulator.
+- **iOS:** the project is generated but has **not been built**: Xcode needs `sudo xcodebuild -runFirstLaunch` once on this machine.
+- **Inside the native apps** the AI uses the cloud model: on-device Gemini Nano (Android) and Apple Foundation Models (iOS) need a native Firebase AI Logic plugin that is **not written yet**.
+- **Sign-in:** email works. Google and Apple sign-in use browser popups, which don't work in a WebView; they need `@capacitor-firebase/authentication`, not added yet. App Check's reCAPTCHA also doesn't work in a WebView, so native builds need a debug token for now.
+- **macOS and Windows:** not started. Tauri needs Rust, which is not installed.
+
 ## Status
 
 Verified (automated, 101 unit tests + 42 emulator tests):
@@ -83,7 +99,7 @@ Not yet verified or not built:
 - **On-device inference (Gemini Nano) has not been exercised.**
 - `scripts/setup-backups.sh`: the Firestore commands match the gcloud docs; the Storage commands are unchecked.
 - Design: the Dark v2 palette and fonts are applied. The new workspace layout (insight column), topics, first-run screens, 3D viewer changes and pen tools are not built.
-- Android, iOS, macOS and Windows apps: not finished. See `SUBMISSION.md`.
+- Android builds as a debug APK (not run on a device); iOS is not built yet; macOS and Windows are not started. See "Native apps" above.
 
 ## License
 

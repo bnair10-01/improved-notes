@@ -34,3 +34,11 @@ dist-ssr
 # Firebase emulator logs
 *-debug.log
 .firebase/
+
+# Native build output
+android/local.properties
+android/.gradle/
+android/app/build/
+android/build/
+ios/App/build/
+ios/DerivedData/

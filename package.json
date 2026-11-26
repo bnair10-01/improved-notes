@@ -15,9 +15,14 @@
     "test:emulators": "firebase emulators:exec --only firestore,storage,auth --project demo-improved-notes \"vitest run -c vitest.rules.config.ts\"",
     "emulators": "firebase emulators:start --only auth,firestore,storage --project demo-improved-notes",
     "doctor": "node scripts/doctor.mjs",
-    "doctor:emulators": "firebase emulators:exec --only auth,firestore,storage --project demo-improved-notes \"node scripts/doctor.mjs --emulators\""
+    "doctor:emulators": "firebase emulators:exec --only auth,firestore,storage --project demo-improved-notes \"node scripts/doctor.mjs --emulators\"",
+    "cap:sync": "npm run build && cap sync",
+    "android:build": "npm run cap:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.3",
+    "@capacitor/core": "^8.6.3",
+    "@capacitor/ios": "^8.6.3",
     "@dagrejs/dagre": "^3.1.3",
     "@excalidraw/excalidraw": "^0.18.1",
     "@hookform/resolvers": "^5.2.2",
@@ -82,6 +87,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.3",
     "@eslint/js": "^9.32.0",
     "@firebase/rules-unit-testing": "^5.0.0",
     "@tailwindcss/vite": "^4.3.5",

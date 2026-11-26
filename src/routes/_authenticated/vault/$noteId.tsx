@@ -21,6 +21,9 @@ import { ReadAloud } from "@/components/shell/ReadAloud";
 import { VersionHistory } from "@/components/vault/VersionHistory";
 import { classifyRemote, conflictCopyTitle } from "@/lib/conflict";
 import { NoteShareMenu } from "@/components/learner/NoteShareMenu";
+import { InsightColumn } from "@/components/vault/InsightColumn";
+import { InferenceBadge } from "@/components/shell/InferenceBadge";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ModelNotePanel } from "@/components/model3d/ModelNotePanel";
 import { NewModelDialog } from "@/components/model3d/NewModelDialog";
 import { parseModelEmbeds } from "@/lib/model3d";
@@ -63,6 +66,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
   const [showGraph, setShowGraph] = useState(false);
   const [confirmTrash, setConfirmTrash] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
+  const [insightOpen, setInsightOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTitle = useRef(note?.title ?? "");
   const baseRev = useRef(note?.rev ?? 0);
@@ -149,7 +153,12 @@ function NoteEditor({ noteId }: { noteId: string }) {
     navigate(hit ? openTarget(hit) : { to: "/vault/$noteId", params: { noteId: id } });
   }
 
+  const words = md.trim() ? md.trim().split(/\s+/).length : 0;
+  const insight = <InsightColumn note={note} vault={vault} markdown={md} onOpenGraph={() => { setShowGraph(true); setInsightOpen(false); }} />;
+
   return (
+    <div className="flex min-h-0 min-w-0 flex-1">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
       <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-5 sm:py-5">
         {conflict && (
@@ -182,6 +191,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
             </DropdownMenuContent>
           </DropdownMenu>
           <GenerateDialog noteIds={[noteId]} trigger={<button className="flex items-center gap-1 rounded-full border border-primary/40 px-2 py-0.5 text-primary">✦ Generate</button>} />
+          <button onClick={() => setInsightOpen(true)} className="flex items-center gap-1 rounded-full border px-2 py-0.5 xl:hidden">Insight</button>
           {note.kind !== "model3d" && <button onClick={() => setModelOpen(true)} className="flex items-center gap-1 rounded-full border px-2 py-0.5">◇ 3D model</button>}
           <Input defaultValue={note.tags.join(", ")} placeholder="Add tags, comma separated" aria-label="Tags" className="h-6 w-full min-w-0 rounded-full sm:w-56 px-2 text-xs"
             onBlur={async (e) => { const tags = [...new Set(e.target.value.split(",").map((s) => s.trim().replace(/^#/, "")).filter(Boolean))]; if (tags.join() !== note.tags.join()) { await updateNote(noteId, { tags }); await refresh(); } }} />
@@ -271,6 +281,18 @@ function NoteEditor({ noteId }: { noteId: string }) {
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={async () => { await updateNote(noteId, { deleted_at: new Date().toISOString() }); await refresh(); navigate({ to: "/vault" }); toast("Moved to Trash"); }}>Move to Trash</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+    <div data-distraction className="flex h-7 shrink-0 items-center gap-4 border-t px-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground" role="status">
+      <span>{status === "saved" ? "✓ Saved" : status === "saving" ? "Saving…" : "Editing…"}</span>
+      <span>{backlinks.length} {backlinks.length === 1 ? "backlink" : "backlinks"}</span>
+      <span>{words} {words === 1 ? "word" : "words"}</span>
+      <InferenceBadge className="ml-auto" />
+    </div>
+    </div>
+    <aside data-distraction className="hidden w-[368px] shrink-0 overflow-y-auto border-l xl:block">{insight}</aside>
+    <Sheet open={insightOpen} onOpenChange={setInsightOpen}>
+      <SheetContent side="right" className="w-[min(92vw,380px)] overflow-y-auto p-0"><SheetTitle className="sr-only">Insight</SheetTitle>{insight}</SheetContent>
+    </Sheet>
     </div>
   );
 }

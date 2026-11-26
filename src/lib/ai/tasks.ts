@@ -319,3 +319,27 @@ export const generateModelSpec = ({ concept, context }: { concept: string; conte
     if (!spec.parts.length) throw new AiFailure("No usable parts returned. Try a more specific concept.");
     return { spec };
   }) as Promise<GenerateModelResponse>;
+
+
+/* ───────────── Ask your notes ───────────── */
+
+export type AskAnswer = { answer: string; sources: string[] };
+export type AskResponse = { ok: true; answer: AskAnswer } | { ok: false; error: string };
+
+const ASK_SCHEMA: JS = wrapObj({ answer: str, sources: strArr });
+
+/** Answer a question from the given notes only. Short context runs on-device first; long context goes to the cloud. */
+export const askNotes = ({ question, context }: { question: string; context: string }): Promise<AskResponse> =>
+  safe("ask", async () => {
+    const q = question.trim();
+    if (!q) throw new AiFailure("Type a question first.");
+    if (!context.trim()) throw new AiFailure("There are no notes to answer from yet.");
+    const { data } = await runJson<Partial<AskAnswer>>({
+      task: "ask", schema: ASK_SCHEMA, chars: context.length + q.length,
+      instructions:
+        "Answer the question using ONLY the notes below. If the notes don't contain the answer, say so plainly and do not guess. " +
+        "Keep it short and clear. In `sources`, list the titles of the notes you used, exactly as written after '# '.\n\n" +
+        `QUESTION: ${q}\n\nNOTES:\n${context}`,
+    });
+    return { answer: { answer: (data.answer ?? "").trim() || "I couldn't find that in your notes.", sources: data.sources ?? [] } };
+  }) as Promise<AskResponse>;

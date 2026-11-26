@@ -20,15 +20,15 @@ function Chips<T extends string>({ value, options, onChange }: { value: T; optio
   );
 }
 
-export function GenerateDialog({ noteIds, focusTopics, trigger }: { noteIds: string[]; focusTopics?: string[]; trigger?: React.ReactNode }) {
+export function GenerateDialog({ noteIds, focusTopics, trigger, initialKind }: { noteIds: string[]; focusTopics?: string[]; trigger?: React.ReactNode; initialKind?: GenKind }) {
   const gen = generateFromNotes;
   const navigate = useNavigate();
   const refresh = useRefreshVault();
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<GenKind>(focusTopics?.length ? "quiz" : "summary");
+  const [kind, setKind] = useState<GenKind>(focusTopics?.length ? "quiz" : initialKind ?? "summary");
   const [style, setStyle] = useState<SummaryStyle>("key_points");
   const [length, setLength] = useState<"brief" | "medium" | "detailed">("medium");
-  const [count, setCount] = useState(12);
+  const [count, setCount] = useState(initialKind === "quiz" || focusTopics?.length ? 8 : 12);
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [speakerNotes, setSpeakerNotes] = useState(false);
   const [busy, setBusy] = useState(false);

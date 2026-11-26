@@ -183,7 +183,7 @@ export async function purgeNote(id: string) {
   await commit(batch.commit());
 }
 
-export async function addLink(from: string, to: string, kind: "manual" | "ai_suggested" = "manual", label?: string) {
+export async function addLink(from: string, to: string, kind: "manual" | "ai_suggested" | "auto" = "manual", label?: string) {
   if (from === to) return;
   await commit(setDoc(userDoc("links", newId()), { from_note_id: from, to_note_id: to, kind, label: label ?? null, created_at: nowIso() }));
 }

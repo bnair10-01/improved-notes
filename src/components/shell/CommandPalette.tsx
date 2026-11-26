@@ -10,6 +10,7 @@ export const openPalette = () => window.dispatchEvent(new Event(EVENT));
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { data: vault } = useVault();
   useEffect(() => {
@@ -21,10 +22,11 @@ export function CommandPalette() {
   }, []);
   const notes = (vault?.notes ?? []).filter((n) => !n.deleted_at);
   const folders = vault?.folders ?? [];
-  const go = (fn: () => void) => { setOpen(false); fn(); };
+  const close = (o: boolean) => { setOpen(o); if (!o) setQuery(""); };
+  const go = (fn: () => void) => { close(false); fn(); };
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search notes, topics and pages…" />
+    <CommandDialog open={open} onOpenChange={close}>
+      <CommandInput value={query} onValueChange={setQuery} placeholder="Search notes, topics and pages…" />
       <CommandList>
         <CommandEmpty>Nothing found.</CommandEmpty>
         <CommandGroup heading="Go to">

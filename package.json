@@ -18,7 +18,8 @@
     "deploy:web": "bash scripts/deploy-web.sh",
     "doctor:emulators": "firebase emulators:exec --only auth,firestore,storage --project demo-improved-notes \"node scripts/doctor.mjs --emulators\"",
     "cap:sync": "npm run build && cap sync",
-    "android:build": "npm run cap:sync && cd android && ./gradlew assembleDebug"
+    "android:build": "npm run cap:sync && cd android && ./gradlew assembleDebug",
+    "demo": "node scripts/demo/demo.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.3",

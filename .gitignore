@@ -47,3 +47,6 @@ ios/DerivedData/
 .env
 .env.*
 !.env.example
+
+# Demo screenshots and reports
+demo-output/

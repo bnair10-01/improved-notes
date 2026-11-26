@@ -31,7 +31,7 @@ import { ModelNotePanel } from "@/components/model3d/ModelNotePanel";
 import { NewModelDialog } from "@/components/model3d/NewModelDialog";
 import { parseModelEmbeds } from "@/lib/model3d";
 
-const VaultGraph = lazy(() => import("@/components/vault/VaultGraph"));
+const VaultGraph = lazy(() => import("@/components/vault/VaultGraph3D"));
 const SlidesView = lazy(() => import("@/components/slides/SlidesView"));
 const AudioView = lazy(() => import("@/components/audio/AudioView"));
 const ModelEmbed = lazy(() => import("@/components/model3d/ModelEmbed"));
@@ -265,11 +265,10 @@ function NoteEditor({ noteId }: { noteId: string }) {
             <div className="paper-sheet h-80 overflow-hidden">
               <ClientOnly fallback={<Skeleton className="h-full w-full" />}>
                 <Suspense fallback={<Skeleton className="h-full w-full" />}>
-                  <VaultGraph notes={live.filter((n) => near.has(n.id))} links={vault.links} focusId={noteId}
+                  <VaultGraph notes={live.filter((n) => near.has(n.id))} links={vault.links} folders={vault.folders} focusId={noteId}
                     onOpen={(n) => navigate(openTarget(n))}
-                    onConnect={async (a, b) => { await addLink(a, b); await refresh(); }}
-                    onDeleteLink={async (id) => { await deleteLink(id); await refresh(); }}
-                    onDeleteNote={async (n) => { await updateNote(n.id, { deleted_at: new Date().toISOString() }); await refresh(); }} />
+                    onAddLink={async (a, b, why) => { await addLink(a, b, "auto", why.slice(0, 60)); await refresh(); }}
+                    onRemoveLink={async (id) => { await deleteLink(id); await refresh(); }} />
                 </Suspense>
               </ClientOnly>
             </div>

@@ -4,10 +4,11 @@ import { Check, Loader2, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { addLink, deleteLink, openTarget, updateNote, useRefreshVault, useVault } from "@/lib/vault";
+import { addLink, deleteLink, openTarget, useRefreshVault, useVault } from "@/lib/vault";
 import { suggestLinks, type LinkSuggestion } from "@/lib/ai/tasks";
+import type { GraphStats } from "@/components/vault/VaultGraph3D";
 
-const VaultGraph = lazy(() => import("@/components/vault/VaultGraph"));
+const VaultGraph = lazy(() => import("@/components/vault/VaultGraph3D"));
 
 export const Route = createFileRoute("/_authenticated/vault/graph")({
   head: () => ({
@@ -35,6 +36,8 @@ function GraphPage() {
   const [kinds, setKinds] = useState<string[]>(KINDS);
   const [busy, setBusy] = useState(false);
   const [ideas, setIdeas] = useState<LinkSuggestion[] | null>(null);
+  const [showAuto, setShowAuto] = useState(true);
+  const [stats, setStats] = useState<GraphStats | null>(null);
   if (!vault) return null;
 
   const live = vault.notes.filter((n) => !n.deleted_at);
@@ -61,7 +64,8 @@ function GraphPage() {
         <div className="flex gap-1">{KINDS.map((k) => (
           <button key={k} onClick={() => setKinds(kinds.includes(k) ? kinds.filter((x) => x !== k) : [...kinds, k])} className={`rounded-full border px-2 py-0.5 text-xs capitalize ${kinds.includes(k) ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{k}</button>
         ))}</div>
-        <Button size="sm" variant="outline" className="ml-auto" onClick={runSuggest} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Sparkles />} Suggest links</Button>
+        <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground"><input type="checkbox" role="switch" checked={showAuto} onChange={(e) => setShowAuto(e.target.checked)} /> Connect notes automatically</label>
+        <Button size="sm" variant="outline" onClick={runSuggest} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Sparkles />} Refine with AI</Button>
       </div>
       {ideas && ideas.length > 0 && (
         <div className="max-h-48 space-y-1 overflow-auto border-b bg-muted/50 px-3 py-2">
@@ -74,15 +78,14 @@ function GraphPage() {
           ))}
         </div>
       )}
-      <p className="px-3 py-1 text-xs text-muted-foreground">Click a note to open it · drag from one note's edge to another to link · click a link to remove it</p>
+      <p className="px-3 py-1 font-mono text-[11px] text-muted-foreground" data-graph-stats aria-live="polite">{stats ? `${stats.notes} notes · ${stats.links} written link${stats.links === 1 ? "" : "s"} · ${stats.auto} found automatically` : "Building the graph…"}</p>
       <div className="min-h-0 flex-1">
         <ClientOnly fallback={<Skeleton className="h-full w-full" />}>
           <Suspense fallback={<Skeleton className="h-full w-full" />}>
-            <VaultGraph notes={shown} links={vault.links}
+            <VaultGraph notes={shown} links={vault.links} folders={vault.folders} showAuto={showAuto} onStats={setStats}
               onOpen={(n) => navigate(openTarget(n))}
-              onConnect={async (a, b) => { await addLink(a, b); await refresh(); }}
-              onDeleteLink={async (id) => { await deleteLink(id); await refresh(); }}
-              onDeleteNote={async (n) => { await updateNote(n.id, { deleted_at: new Date().toISOString() }); await refresh(); }} />
+              onAddLink={async (a, b, why) => { await addLink(a, b, "auto", why.slice(0, 60)); await refresh(); toast.success("Link kept"); }}
+              onRemoveLink={async (id) => { await deleteLink(id); await refresh(); }} />
           </Suspense>
         </ClientOnly>
       </div>

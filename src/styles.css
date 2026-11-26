@@ -196,16 +196,6 @@ body { line-height: calc(1.5 * var(--lh)); padding-bottom: var(--tabbar); }
 .transcript { line-height: calc(1.75 * var(--lh)); }
 html[data-font="readable"] body, html[data-font="readable"] body * { font-family: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif !important; }
 html[data-font="dyslexic"] body, html[data-font="dyslexic"] body * { font-family: "Lexend", ui-sans-serif, system-ui, sans-serif !important; letter-spacing: 0.02em; word-spacing: 0.08em; }
-html[data-contrast="high"] {
-  --background: oklch(1 0 0); --paper: oklch(1 0 0); --foreground: oklch(0 0 0); --muted-foreground: oklch(0.25 0 0);
-  --secondary: oklch(0.92 0 0); --secondary-foreground: oklch(0 0 0); --muted: oklch(0.94 0 0);
-  --border: oklch(0.2 0 0); --input: oklch(0.2 0 0); --primary: oklch(0.32 0.12 var(--p)); --ring: oklch(0 0 0); --wash: none;
-}
-html.dark[data-contrast="high"] {
-  --background: oklch(0 0 0); --paper: oklch(0.08 0 0); --foreground: oklch(1 0 0); --muted-foreground: oklch(0.88 0 0);
-  --secondary: oklch(0.2 0 0); --secondary-foreground: oklch(1 0 0); --muted: oklch(0.15 0 0);
-  --border: oklch(0.85 0 0); --input: oklch(0.85 0 0); --primary: oklch(0.85 0.12 var(--p)); --primary-foreground: oklch(0 0 0); --ring: oklch(1 0 0);
-}
 html[data-contrast="high"] :focus-visible { outline: 3px solid var(--ring) !important; outline-offset: 2px; }
 html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-motion="reduce"] *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 html[data-focus="on"] [data-distraction] { display: none !important; }
@@ -283,3 +273,23 @@ html.dark[data-theme="noir"] .paper-sheet { border: 1px solid #1f1f22; }
   .fold-split { display: grid; grid-template-columns: env(viewport-segment-width 0 0) minmax(0, 1fr); column-gap: calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0)); }
   .fold-split > [data-fold-aside] { display: block; width: auto !important; }
 }
+
+/* High contrast. Placed last and more specific than every theme (including Black & White and Dark v2) so it always wins. */
+html[data-contrast="high"][data-theme] {
+  --background: oklch(1 0 0); --paper: oklch(1 0 0); --card: oklch(1 0 0); --popover: oklch(1 0 0);
+  --foreground: oklch(0 0 0); --card-foreground: oklch(0 0 0); --popover-foreground: oklch(0 0 0);
+  --muted-foreground: oklch(0.25 0 0); --secondary: oklch(0.92 0 0); --secondary-foreground: oklch(0 0 0);
+  --muted: oklch(0.94 0 0); --accent: oklch(0.9 0 0); --accent-foreground: oklch(0 0 0);
+  --border: oklch(0.2 0 0); --input: oklch(0.2 0 0); --primary: oklch(0 0 0); --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0 0 0); --paper-shadow: none; --wash: none;
+}
+html.dark[data-contrast="high"][data-theme] {
+  --background: oklch(0 0 0); --paper: oklch(0.08 0 0); --card: oklch(0.08 0 0); --popover: oklch(0.08 0 0);
+  --foreground: oklch(1 0 0); --card-foreground: oklch(1 0 0); --popover-foreground: oklch(1 0 0);
+  --muted-foreground: oklch(0.9 0 0); --secondary: oklch(0.22 0 0); --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.16 0 0); --accent: oklch(0.26 0 0); --accent-foreground: oklch(1 0 0);
+  --border: oklch(0.85 0 0); --input: oklch(0.85 0 0); --primary: oklch(1 0 0); --primary-foreground: oklch(0 0 0);
+  --ring: oklch(1 0 0); --paper-shadow: none; --wash: none;
+}
+html[data-contrast="high"] .paper-sheet { border: 1px solid var(--border); }
+html[data-contrast="high"] [data-rail], html[data-contrast="high"] header { border-color: var(--border); }

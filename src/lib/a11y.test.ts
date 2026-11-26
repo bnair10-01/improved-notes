@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { a11yAttrs, parseA11y, sentences } from "./a11y";
 
 describe("accessibility settings", () => {
@@ -19,5 +20,27 @@ describe("accessibility settings", () => {
   });
   it("read-aloud splits text into sentences and drops markdown symbols", () => {
     expect(sentences("# Title. Plants grow! Do they?")).toEqual(["Title.", "Plants grow!", "Do they?"]);
+  });
+});
+
+describe("system accessibility preferences", () => {
+  const withMedia = (matches: Record<string, boolean>) => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), clear: () => store.clear() });
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: !!matches[q], media: q }));
+  };
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("starts from the device's reduce-motion and more-contrast settings when nothing is saved", async () => {
+    withMedia({ "(prefers-reduced-motion: reduce)": true, "(prefers-contrast: more)": true });
+    const { readA11y } = await import("./a11y");
+    expect(readA11y()).toMatchObject({ motion: true, contrast: true });
+  });
+
+  it("lets a saved choice win over the device setting", async () => {
+    withMedia({ "(prefers-reduced-motion: reduce)": true });
+    localStorage.setItem("cleanmap-a11y", JSON.stringify({ motion: false }));
+    const { readA11y } = await import("./a11y");
+    expect(readA11y().motion).toBe(false);
   });
 });

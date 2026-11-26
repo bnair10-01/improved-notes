@@ -18,9 +18,9 @@ export function Rail({ initials, avatarUrl }: { initials: string; avatarUrl: str
         const on = isActive(n, pathname);
         return (
           <Link key={n.to} to={n.to} aria-label={n.label} title={n.label} aria-current={on ? "page" : undefined}
-            className={`relative grid h-[34px] w-[34px] place-items-center rounded-lg font-mono text-xs font-medium transition-colors ${on ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-            {n.short}
-            {n.to === "/study" && due > 0 && <span aria-label={`${due} cards due`} className="absolute right-[5px] top-[5px] h-1.5 w-1.5 rounded-full bg-foreground" />}
+            className={`relative grid h-[38px] w-[38px] place-items-center rounded-lg transition-colors ${on ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"}`}>
+            <n.icon className="h-[19px] w-[19px]" strokeWidth={on ? 2 : 1.6} aria-hidden />
+            {n.to === "/study" && due > 0 && <span aria-label={`${due} cards due`} className="absolute right-[6px] top-[6px] h-1.5 w-1.5 rounded-full bg-foreground" />}
           </Link>
         );
       })}

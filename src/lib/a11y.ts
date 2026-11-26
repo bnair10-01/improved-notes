@@ -33,9 +33,17 @@ export function applyA11y(a: A11y) {
   d.style.setProperty("--lh", at.style["--lh"]);
   localStorage.setItem(KEY, JSON.stringify(a));
 }
-export const readA11y = () => parseA11y(typeof localStorage === "undefined" ? null : localStorage.getItem(KEY));
+/** Until someone chooses, follow the device's own "reduce motion" and "more contrast" settings. */
+const fromSystem = (): A11y => {
+  const mq = (q: string) => typeof matchMedia !== "undefined" && matchMedia(q).matches;
+  return { ...A11Y_DEFAULT, motion: mq("(prefers-reduced-motion: reduce)"), contrast: mq("(prefers-contrast: more)") };
+};
+export const readA11y = () => {
+  const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(KEY);
+  return raw === null ? fromSystem() : parseA11y(raw);
+};
 
-export const A11Y_INIT_SCRIPT = `(function(){try{var a=JSON.parse(localStorage.getItem('${KEY}')||'{}'),d=document.documentElement;var S=[90,100,112,125,140];d.setAttribute('data-font',a.font==='readable'||a.font==='dyslexic'?a.font:'default');d.setAttribute('data-contrast',a.contrast?'high':'normal');d.setAttribute('data-motion',a.motion?'reduce':'normal');d.setAttribute('data-focus',a.focus?'on':'off');if(S.indexOf(a.size)>-1)d.style.fontSize=a.size+'%';d.setAttribute('data-size',a.size>=125?'large':'normal');d.style.setProperty('--lh',{relaxed:1.18,loose:1.36}[a.spacing]||1)}catch(e){}})();`;
+export const A11Y_INIT_SCRIPT = `(function(){try{var raw=localStorage.getItem('${KEY}'),a=JSON.parse(raw||'{}'),d=document.documentElement;if(raw===null){a.motion=matchMedia('(prefers-reduced-motion: reduce)').matches;a.contrast=matchMedia('(prefers-contrast: more)').matches}var S=[90,100,112,125,140];d.setAttribute('data-font',a.font==='readable'||a.font==='dyslexic'?a.font:'default');d.setAttribute('data-contrast',a.contrast?'high':'normal');d.setAttribute('data-motion',a.motion?'reduce':'normal');d.setAttribute('data-focus',a.focus?'on':'off');if(S.indexOf(a.size)>-1)d.style.fontSize=a.size+'%';d.setAttribute('data-size',a.size>=125?'large':'normal');d.style.setProperty('--lh',{relaxed:1.18,loose:1.36}[a.spacing]||1)}catch(e){}})();`;
 
 /** Split text into sentences for read-aloud. */
 export function sentences(text: string): string[] {

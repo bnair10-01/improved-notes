@@ -26,7 +26,7 @@ function Fly({ target }: { target: THREE.Vector3 | null }) {
   useFrame((_, delta) => {
     const c = controls as unknown as OrbitImpl | null;
     if (!c || !goal.current) return;
-    const k = 1 - Math.exp(-4 * Math.min(delta, 0.05));
+    const k = document.documentElement.dataset["motion"] === "reduce" ? 1 : 1 - Math.exp(-4 * Math.min(delta, 0.05));
     const offset = camera.position.clone().sub(c.target);
     c.target.lerp(goal.current, k);
     const wanted = goal.current.clone().add(offset.setLength(Math.max(7, Math.min(offset.length(), 14))));

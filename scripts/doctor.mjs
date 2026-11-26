@@ -29,7 +29,7 @@ const fail = (n, why, fix) => { results.push(["FAIL", n, why]); console.log(`  â
 const skip = (n, why) => { results.push(["SKIP", n, why]); console.log(`  - ${n}  (${why})`); };
 const smartFix = (msg, fix) =>
   /prepayment|credits? (are|is) depleted|billing/i.test(msg) ? "the Gemini API has no credit: open https://aistudio.google.com, select this project, and add credits / link a billing account (Billing)"
-  : /app.?check/i.test(msg) ? "App Check is rejecting the request: register a debug token (Console > App Check > Apps > Manage debug tokens) and set VITE_APPCHECK_DEBUG_TOKEN"
+  : /app.?check/i.test(msg) && !/NOT protected/.test(msg) ? "App Check is rejecting the request: register a debug token (Console > App Check > Apps > Manage debug tokens) and set VITE_APPCHECK_DEBUG_TOKEN"
   : /not.found|404/i.test(msg) && /model/i.test(msg) ? "the model name isn't available: set VITE_AI_MODEL to a current model from https://firebase.google.com/docs/ai-logic/models"
   : fix;
 const step = async (n, fix, fn) => { try { const d = await fn(); pass(n, d ?? ""); } catch (e) { const msg = (e?.message ?? e).toString(); fail(n, (e?.code ? e.code + ": " : "") + msg.split("\n")[0].slice(0, 220), smartFix(msg, fix)); } };
@@ -65,7 +65,8 @@ if (!emu && debugToken) {
     provider: new CustomProvider({
       getToken: async () => {
         const r = await fetch(`https://firebaseappcheck.googleapis.com/v1/projects/${config.projectId}/apps/${config.appId}:exchangeDebugToken?key=${config.apiKey}`, {
-          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ debug_token: debugToken }),
+          // limited_use: single-use tokens, which AI Logic requires once replay protection is on.
+          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ debug_token: debugToken, limited_use: true }),
         });
         if (!r.ok) throw new Error(`debug token rejected (${r.status}). Register it in Firebase console > App Check > Apps > Debug tokens.`);
         const j = await r.json();
@@ -119,6 +120,15 @@ if (emu) {
     const model = getGenerativeModel(getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: !emu }), { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams: { model: env.VITE_AI_MODEL || "gemini-3.8-flash" } });
     const r = await model.generateContent("Reply with exactly: OK");
     return `model said "${r.response.text().trim().slice(0, 20)}" (ran ${r.response.inferenceSource ?? "in_cloud"})`;
+  });
+  // The important security check: a client with NO App Check token must be refused, otherwise
+  // anyone who copies the public API key from the website can spend your AI credits.
+  await step("App Check enforced (a request with no token is refused)", "Console > App Check > APIs > Firebase AI Logic > Enforce (with replay protection). Enforcement can take a few minutes.", async () => {
+    const bare = initializeApp(config, "no-app-check");
+    const bareModel = getGenerativeModel(getAI(bare, { backend: new GoogleAIBackend() }), { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams: { model: env.VITE_AI_MODEL || "gemini-3.8-flash" } });
+    try { await bareModel.generateContent("Reply with exactly: OK"); }
+    catch (e) { if (/app.?check|401|403|permission|unauthenticated/i.test(String(e?.message))) return "refused as expected"; throw e; }
+    throw new Error("the model answered without any App Check token. AI Logic is NOT protected: anyone with your public API key can use your credits");
   });
   skip("On-device (Gemini Nano)", "needs Chrome with the on-device model; open the app in Chrome and check the badge");
 }

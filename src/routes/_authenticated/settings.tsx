@@ -11,6 +11,8 @@ import { isLearningStyle, saveLearningStyle, STYLES, STYLE_LABELS, useLearningSt
 import { buildExportEntries, downloadBlob } from "@/lib/export";
 import { setShareEnabled, useShareLinks } from "@/lib/sharing";
 import { useVault } from "@/lib/vault";
+import { buildBackup, restoreBackup } from "@/lib/backup";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Settings — Improved Notes" }, { name: "description", content: "Personalize your learning preferences and manage exports and sharing." }] }),
@@ -36,6 +38,24 @@ export function SettingsPage() {
     catch { setMessage("We couldn't finish that. Please try again."); }
     finally { setBusy(false); }
   };
+  const [progress, setProgress] = useState("");
+  async function exportEverything() {
+    setBusy(true); setProgress("Starting…");
+    try {
+      const bytes = await buildBackup(setProgress);
+      downloadBlob(new Blob([bytes as BlobPart], { type: "application/zip" }), `improved-notes-backup-${new Date().toISOString().slice(0, 10)}.zip`);
+      toast.success("Backup downloaded. Keep it somewhere safe.");
+    } catch { toast.error("Couldn't build the backup. Please try again."); } finally { setBusy(false); setProgress(""); }
+  }
+  async function importBackup(file: File | undefined) {
+    if (!file) return;
+    setBusy(true); setProgress("Reading backup…");
+    try {
+      const r = await restoreBackup(await file.arrayBuffer(), setProgress);
+      await client.invalidateQueries();
+      toast.success(`Restored ${r.added} item${r.added === 1 ? "" : "s"}, ${r.files} file${r.files === 1 ? "" : "s"} and ${r.versions} earlier version${r.versions === 1 ? "" : "s"}.${r.skipped ? ` ${r.skipped} already existed and were left as they are.` : ""}`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Couldn't restore that backup."); } finally { setBusy(false); setProgress(""); }
+  }
   const field = "mt-1 min-h-11 w-full rounded-md border border-input bg-background px-3 text-foreground";
   return <div className="min-h-[calc(100dvh-var(--tabbar))] bg-background text-foreground">
     <AppHeader />
@@ -64,6 +84,17 @@ export function SettingsPage() {
         </select></label>
         {([['contrast', 'High contrast'], ['motion', 'Reduce motion'], ['focus', 'Reading focus']] as const).map(([key, label]) => <label key={key} className="flex min-h-11 items-center justify-between gap-4 text-sm">{label}<Switch checked={a11y[key]} onCheckedChange={(checked) => update({ [key]: checked })} aria-label={label} /></label>)}
         <Button variant="outline" onClick={() => update(A11Y_DEFAULT)}>Reset accessibility</Button>
+      </section>
+      <section aria-labelledby="backup-heading" className="paper-sheet space-y-3 p-4 sm:p-6">
+        <h2 id="backup-heading" className="text-lg font-semibold">Back up everything</h2>
+        <p className="text-sm text-muted-foreground">Your notes are saved to your account and kept on every device you sign in on. This makes a copy that is entirely yours: every note (including Trash), version history, study cards, photos, audio and slides, plus readable Markdown.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button disabled={busy} onClick={() => void exportEverything()}>Download full backup</Button>
+          <label className="inline-flex"><span className="sr-only">Restore from a backup file</span>
+            <input type="file" accept=".zip,application/zip" disabled={busy} className="max-w-64 text-sm" onChange={(e) => { void importBackup(e.target.files?.[0]); e.target.value = ""; }} /></label>
+        </div>
+        <p className="text-xs text-muted-foreground">Restoring adds what's missing. It never overwrites or deletes anything you already have.</p>
+        {progress && <p role="status" className="text-sm">{progress}</p>}
       </section>
       <section aria-labelledby="export-heading" className="paper-sheet space-y-3 p-4 sm:p-6">
         <h2 id="export-heading" className="text-lg font-semibold">Your notes, to keep</h2>

@@ -18,6 +18,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { GenerateDialog } from "@/components/study/GenerateDialog";
 import { StudyPanel } from "@/components/study/StudyPanel";
 import { ReadAloud } from "@/components/shell/ReadAloud";
+import { VersionHistory } from "@/components/vault/VersionHistory";
+import { classifyRemote, conflictCopyTitle } from "@/lib/conflict";
 import { NoteShareMenu } from "@/components/learner/NoteShareMenu";
 import { ModelNotePanel } from "@/components/model3d/ModelNotePanel";
 import { NewModelDialog } from "@/components/model3d/NewModelDialog";
@@ -63,6 +65,43 @@ function NoteEditor({ noteId }: { noteId: string }) {
   const [modelOpen, setModelOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTitle = useRef(note?.title ?? "");
+  const baseRev = useRef(note?.rev ?? 0);
+  const seeded = useRef(!!note);
+  const conflictRef = useRef(false);
+  const [conflict, setConflict] = useState<{ title: string; markdown: string; rev: number } | null>(null);
+
+  // Changes made on another device arrive live. Apply them if there's nothing unsaved,
+  // otherwise ask, so nobody's writing is silently overwritten.
+  useEffect(() => {
+    if (!note) return;
+    if (!seeded.current) {
+      seeded.current = true; baseRev.current = note.rev ?? 0;
+      setMd(note.markdown); setTitle(note.title); savedTitle.current = note.title; setTab(note.markdown ? "preview" : "edit");
+      return;
+    }
+    const kind = classifyRemote({ remoteRev: note.rev ?? 0, remoteEditor: note.last_editor, baseRev: baseRev.current, dirty: status !== "saved" });
+    if (kind === "own") baseRev.current = note.rev ?? 0;
+    else if (kind === "apply") {
+      baseRev.current = note.rev ?? 0;
+      setMd(note.markdown); setTitle(note.title); savedTitle.current = note.title;
+    } else if (kind === "conflict") { conflictRef.current = true; setConflict({ title: note.title, markdown: note.markdown, rev: note.rev ?? 0 }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note?.rev, note?.last_editor]);
+
+  function takeTheirs() {
+    if (!conflict) return;
+    if (timer.current) clearTimeout(timer.current);
+    baseRev.current = conflict.rev; conflictRef.current = false;
+    setMd(conflict.markdown); setTitle(conflict.title); savedTitle.current = conflict.title; setStatus("saved"); setConflict(null);
+  }
+  function keepMine() {
+    if (!conflict) return;
+    baseRev.current = conflict.rev; conflictRef.current = false; setConflict(null); scheduleSave(md);
+  }
+  async function keepBoth() {
+    try { await createNote({ title: conflictCopyTitle(title), markdown: md }); toast.success("Your version was saved as a separate note."); takeTheirs(); }
+    catch { toast.error("Couldn't save a copy. Nothing was changed."); }
+  }
 
   useEffect(() => { if (note && note.kind === "handwritten") navigate({ ...openTarget(note), replace: true }); }, [note, navigate]);
 
@@ -70,6 +109,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
     setStatus("dirty");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
+      if (conflictRef.current) return; // wait for the person to choose
       setStatus("saving");
       try {
         await updateNote(noteId, { markdown: nextMd });
@@ -112,11 +152,23 @@ function NoteEditor({ noteId }: { noteId: string }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
       <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-5 sm:py-5">
+        {conflict && (
+          <div role="alert" className="mb-3 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+            <p className="font-medium">This note was changed on another device while you were editing.</p>
+            <p className="mt-0.5 text-muted-foreground">Nothing has been overwritten. Choose what to keep.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button size="sm" onClick={keepMine}>Keep mine</Button>
+              <Button size="sm" variant="outline" onClick={takeTheirs}>Take theirs</Button>
+              <Button size="sm" variant="outline" onClick={keepBoth}>Keep both</Button>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={commitTitle} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} aria-label="Title"
             className="h-auto min-w-0 flex-1 border-transparent bg-transparent px-0 font-serif text-2xl font-semibold shadow-none focus-visible:border-input focus-visible:px-2 md:text-2xl" />
           <span className="whitespace-nowrap text-xs text-muted-foreground" aria-live="polite">{status === "saving" ? <Loader2 className="inline h-3 w-3 animate-spin" /> : status === "saved" ? <><Check className="inline h-3 w-3" /> Saved</> : "Editing…"}</span>
           <Button variant="ghost" size="icon" aria-label={note.pinned ? "Unpin" : "Pin"} onClick={async () => { await updateNote(noteId, { pinned: !note.pinned }); await refresh(); }}><Pin className={note.pinned ? "fill-current text-primary" : ""} /></Button>
+          <VersionHistory noteId={noteId} title={title} markdown={md} onRestored={(v) => { setMd(v.markdown); setTitle(v.title); savedTitle.current = v.title; setStatus("saved"); }} />
           <NoteShareMenu noteId={noteId} title={title} markdown={md} />
           <Button variant="ghost" size="icon" aria-label="Move to Trash" onClick={() => setConfirmTrash(true)}><Trash2 /></Button>
         </div>

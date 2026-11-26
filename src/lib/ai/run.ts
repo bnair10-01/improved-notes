@@ -1,5 +1,5 @@
 import { AIError, getAI, getGenerativeModel, GoogleAIBackend, type Part } from "firebase/ai";
-import { app } from "../firebase";
+import { app, getAppCheck, USE_EMULATORS } from "../firebase";
 import { loadAiConfig } from "./config";
 import { route, type AiTask } from "./route";
 import { toSchema, type JS } from "./schema";
@@ -48,7 +48,16 @@ export function explain(err: unknown): AiFailure {
 
 const stripFences = (t: string) => t.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
 
+let warnedAppCheck = false;
+/** Firebase AI Logic needs App Check. Say so loudly instead of failing with an opaque 403. */
+function checkAppCheck() {
+  if (USE_EMULATORS || getAppCheck() || warnedAppCheck) return;
+  warnedAppCheck = true;
+  console.warn("Firebase App Check is not initialised. Set VITE_APPCHECK_SITE_KEY (or VITE_APPCHECK_DEBUG_TOKEN for local/judging use); AI Logic will reject unverified requests.");
+}
+
 export async function runModel(opts: RunOptions): Promise<{ text: string; source: InferenceSource }> {
+  checkAppCheck();
   await loadAiConfig();
   const chars = opts.chars ?? opts.instructions.length;
   const r = route(opts.task, chars, opts.hasImages ? { hasImages: true } : {});

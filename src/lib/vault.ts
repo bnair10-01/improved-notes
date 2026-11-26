@@ -19,13 +19,14 @@ import {
 import { auth, db } from "./firebase";
 import { useAuth } from "./auth";
 import { commit, newId, noteVersions, nowIso, requireUid, userCol, userDoc } from "./db";
+import { EDITOR_ID } from "./conflict";
 import { linkFirstMention, parseWikilinks, renameWikilinks } from "./wikilinks";
 
 export type NoteKind = "handwritten" | "text" | "concept" | "generated" | "slides" | "audio" | "model3d";
 export type VNote = {
   id: string; title: string; markdown: string; kind: string; folder_id: string | null;
   tags: string[]; pinned: boolean; deleted_at: string | null; updated_at: string; created_at: string; source_note_ids: string[];
-  rev?: number;
+  rev?: number; last_editor?: string | null;
 };
 export type VFolder = { id: string; name: string; parent_id: string | null };
 export type VLink = { id: string; from_note_id: string; to_note_id: string; kind: string; label: string | null };
@@ -122,7 +123,7 @@ export async function restoreVersion(noteId: string, v: NoteVersion, current: { 
 }
 
 export async function updateNote(id: string, patch: Partial<Pick<VNote, "title" | "markdown" | "folder_id" | "tags" | "pinned" | "deleted_at">>) {
-  await commit(updateDoc(userDoc("notes", id), { ...patch, updated_at: nowIso(), rev: increment(1) }));
+  await commit(updateDoc(userDoc("notes", id), { ...patch, updated_at: nowIso(), rev: increment(1), last_editor: EDITOR_ID }));
   if (patch.markdown !== undefined) {
     snapshotVersion(id, patch.title ?? "", patch.markdown).catch((e) => console.warn("Version snapshot failed", e));
   }

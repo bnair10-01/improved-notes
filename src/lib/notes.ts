@@ -1,6 +1,7 @@
 import { deleteDoc, increment, setDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "./firebase";
+import { EDITOR_ID } from "./conflict";
 import { commit, newId, nowIso, requireUid, userDoc } from "./db";
 import { dataUrlToBlob } from "./image";
 import type { MindMap } from "./mindmap-types";
@@ -44,7 +45,7 @@ export async function saveNote(
     updated_at: nowIso(),
   };
   if (noteId) {
-    await commit(updateDoc(userDoc("notes", id), { ...fields, rev: increment(1) }));
+    await commit(updateDoc(userDoc("notes", id), { ...fields, rev: increment(1), last_editor: EDITOR_ID }));
     return id;
   }
   await commit(setDoc(userDoc("notes", id), {

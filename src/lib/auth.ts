@@ -17,7 +17,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth } from "./firebase";
-import { migrateAccountData } from "./account";
+import { carryGuestData } from "./account";
 
 const PENDING = "ink-next-path";
 
@@ -78,10 +78,8 @@ async function linkOrSignIn(provider: AuthProvider): Promise<User> {
       const credential =
         GoogleAuthProvider.credentialFromError(e as never) ?? OAuthProvider.credentialFromError(e as never);
       if (!credential) throw e;
-      const guestUid = guest.uid;
-      const result = await signInWithCredential(auth, credential);
-      await migrateAccountData(guestUid, result.user.uid);
-      return result.user;
+      // Still the guest here, so their data is read first and then carried into the existing account.
+      return carryGuestData(guest.uid, () => signInWithCredential(auth, credential).then((r) => r.user));
     }
     throw e;
   }
@@ -106,10 +104,8 @@ export async function signUpWithEmail(email: string, password: string): Promise<
 
 export async function signInWithEmail(email: string, password: string): Promise<User> {
   const guest = auth.currentUser?.isAnonymous ? auth.currentUser : null;
-  const guestUid = guest?.uid;
-  const result = await signInWithEmailAndPassword(auth, email, password);
-  if (guestUid && guestUid !== result.user.uid) await migrateAccountData(guestUid, result.user.uid);
-  return result.user;
+  const signIn = () => signInWithEmailAndPassword(auth, email, password).then((r) => r.user);
+  return guest ? carryGuestData(guest.uid, signIn) : signIn();
 }
 
 /** Which sign-in methods an email already has, used to explain "account exists" errors. */

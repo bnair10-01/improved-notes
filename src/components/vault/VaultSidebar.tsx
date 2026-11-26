@@ -16,7 +16,8 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
   const [showTrash, setShowTrash] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{ title: string; body: string; act: () => Promise<void> } | null>(null);
+  const [confirm, setConfirm] = useState<{ title: string; body: string; act: () => Promise<void>; typed?: string } | null>(null);
+  const [typedText, setTypedText] = useState("");
   const [dropOn, setDropOn] = useState<string | null>(null);
 
   const live = vault.notes.filter((n) => !n.deleted_at);
@@ -121,13 +122,14 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
       <div className="min-h-0 flex-1 space-y-4 overflow-auto">
         {showTrash ? (
           <section>
-            <h3 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Trash · kept 30 days</h3>
+            <h3 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Trash · kept until you empty it</h3>
             {!trash.length && <p className="px-2 text-sm text-muted-foreground">Trash is empty.</p>}
+            {trash.length > 0 && <Button size="sm" variant="ghost" className="mb-1 w-full justify-start text-destructive" onClick={() => { setTypedText(""); setConfirm({ title: `Empty Trash (${trash.length} note${trash.length > 1 ? "s" : ""})?`, body: "These notes, their version history and links will be deleted for good. This can't be undone.", typed: "delete", act: async () => { for (const n of trash) await purgeNote(n.id); } }); }}>Empty Trash…</Button>}
             {trash.map((n) => (
               <div key={n.id} className="flex items-center gap-1 rounded-md px-2 py-1 text-sm">
                 <span className="flex-1 truncate">{n.title}</span>
                 <Button size="icon" variant="ghost" aria-label={`Restore ${n.title}`} onClick={() => run(updateNote(n.id, { deleted_at: null }), "Restored")}><Undo2 /></Button>
-                <Button size="icon" variant="ghost" aria-label={`Delete ${n.title} forever`} onClick={() => setConfirm({ title: `Delete "${n.title}" forever?`, body: "This can't be undone.", act: () => purgeNote(n.id) })}><Trash2 /></Button>
+                <Button size="icon" variant="ghost" aria-label={`Delete ${n.title} forever`} onClick={() => { setTypedText(""); setConfirm({ title: `Delete "${n.title}" forever?`, body: "Its version history and links go too. This can't be undone.", typed: "delete", act: () => purgeNote(n.id) }); }}><Trash2 /></Button>
               </div>
             ))}
           </section>
@@ -164,7 +166,8 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
       <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{confirm?.title}</AlertDialogTitle><AlertDialogDescription>{confirm?.body}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { if (confirm) void run(confirm.act()); setConfirm(null); }}>Delete</AlertDialogAction></AlertDialogFooter>
+          {confirm?.typed && <label className="grid gap-1 text-sm">Type <b>{confirm.typed}</b> to confirm<Input value={typedText} onChange={(e) => setTypedText(e.target.value)} autoFocus aria-label="Type delete to confirm" /></label>}
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction disabled={!!confirm?.typed && typedText.trim().toLowerCase() !== confirm.typed} onClick={() => { if (confirm) void run(confirm.act()); setConfirm(null); }}>Delete</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

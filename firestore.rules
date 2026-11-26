@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// Everything a person owns lives under users/{uid}. Only that person can touch it.
+// A note can only be deleted for good once it is in Trash, so a stray delete,
+// a bug or a compromised client can't silently destroy notes.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    match /users/{uid} {
+
+      // Notes
+      match /notes/{noteId} {
+        allow read: if isOwner(uid);
+        // Anyone with a live share link can read just that one note (get, never list).
+        allow get: if resource.data.get('shared_token', null) is string
+                   && exists(/databases/$(database)/documents/shares/$(resource.data.shared_token))
+                   && get(/databases/$(database)/documents/shares/$(resource.data.shared_token)).data.enabled == true
+                   && get(/databases/$(database)/documents/shares/$(resource.data.shared_token)).data.user_id == uid
+                   && get(/databases/$(database)/documents/shares/$(resource.data.shared_token)).data.note_id == noteId
+                   && resource.data.get('deleted_at', null) == null;
+        allow create, update: if isOwner(uid);
+        // Permanent delete only from Trash.
+        allow delete: if isOwner(uid) && resource.data.get('deleted_at', null) != null;
+
+        // Version history is kept until the note itself is permanently deleted.
+        match /versions/{versionId} {
+          allow read, create: if isOwner(uid);
+          allow update: if false;
+          allow delete: if isOwner(uid) && (
+            !exists(/databases/$(database)/documents/users/$(uid)/notes/$(noteId))
+            || get(/databases/$(database)/documents/users/$(uid)/notes/$(noteId)).data.get('deleted_at', null) != null);
+        }
+      }
+
+      // Everything else the person owns (folders, links, study cards, quizzes,
+      // attempts, attachments, settings).
+      match /{collection}/{docId} {
+        allow read, write: if isOwner(uid) && collection != 'notes';
+      }
+    }
+
+    // Share links: world-readable by token (no listing), writable only by their owner.
+    match /shares/{token} {
+      allow get: if true;
+      allow list: if signedIn() && resource.data.user_id == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.user_id == request.auth.uid
+                    && exists(/databases/$(database)/documents/users/$(request.auth.uid)/notes/$(request.resource.data.note_id));
+      allow update: if signedIn() && resource.data.user_id == request.auth.uid
+                    && request.resource.data.user_id == resource.data.user_id
+                    && request.resource.data.note_id == resource.data.note_id;
+      allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

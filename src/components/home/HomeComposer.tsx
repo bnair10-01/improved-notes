@@ -8,7 +8,8 @@ import { SplitPreview } from "@/components/split/SplitPreview";
 import { askNotes, importFromUrl, type UrlImport } from "@/lib/ai/tasks";
 import type { Citation } from "@/lib/ai/cite";
 import { openDialog } from "@/lib/dialogs";
-import { homeIntent, toNote, type HomeIntent } from "@/lib/home-intent";
+import { couldBeSubject, forceMode, homeIntent, questionSubject, toNote, type HomeIntent, type HomeMode } from "@/lib/home-intent";
+import { ResearchPanel } from "./ResearchPanel";
 import { prepareImage } from "@/lib/image";
 import { rankNotes } from "@/lib/retrieve";
 import { setSession } from "@/lib/session";
@@ -21,6 +22,7 @@ const HINT: Record<HomeIntent["kind"], string> = {
   empty: "",
   note: "Enter starts a note with this",
   ask: "Enter asks your notes. Answers cite them",
+  learn: "Enter looks this up on Wikipedia and YouTube and builds notes",
   youtube: "Enter reads this video and divides it into notes",
   website: "Enter reads this page and divides it into notes",
 };
@@ -50,15 +52,21 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [imported, setImported] = useState<UrlImport | null>(null);
   const [menu, setMenu] = useState(false);
+  const [mode, setMode] = useState<HomeMode>("auto");
+  const [researching, setResearching] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
 
   const withText = useMemo(() => notes.filter((n) => n.markdown.trim()), [notes]);
-  const intent = homeIntent(text, withText.length > 0);
+  const base = homeIntent(text, withText.length > 0);
+  // A question none of your notes touch is looked up instead of asked, so it never answers from thin air.
+  const noneRelevant = base.kind === "ask" && rankNotes(withText, base.question, 1).length === 0;
+  const detected: HomeIntent = noneRelevant && base.kind === "ask" ? { kind: "learn", subject: questionSubject(base.question) } : base;
+  const intent = forceMode(mode, text, detected);
   const found = useMemo(() => (intent.kind === "youtube" || intent.kind === "website" ? { notes: [], folders: [] } : matches(notes, folders, text)), [notes, folders, text, intent.kind]);
 
   // Typing a note's or topic's exact name opens it rather than making a duplicate.
-  const exact = intent.kind === "note" || intent.kind === "ask"
+  const exact = mode === "auto" && (intent.kind === "note" || intent.kind === "ask")
     ? (() => { const q = text.trim().toLowerCase(); const n = notes.find((x) => x.title.trim().toLowerCase() === q); const f = folders.find((x) => x.name.trim().toLowerCase() === q); return n ? { label: n.title, go: () => navigate(openTarget(n)) } : f ? { label: f.name, go: () => navigate({ to: "/topics/$folderId", params: { folderId: f.id } }) } : null; })()
     : null;
   const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
@@ -113,11 +121,14 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
     } catch { toast.error("Couldn't save the answer."); setBusy(null); }
   }
 
+  function research(subject: string) { setAnswer(null); setResearching(subject); setText(""); }
+
   function submit() {
     if (busy) return;
     if (exact) exact.go();
     else if (intent.kind === "note") void startNote();
     else if (intent.kind === "ask") void ask(intent.question);
+    else if (intent.kind === "learn") research(intent.subject);
     else if (intent.kind === "youtube" || intent.kind === "website") void readLink(intent.url);
   }
 
@@ -153,7 +164,9 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
     } else toast.error("That file type isn't supported. Try a photo, a PDF or slides, audio, or a text file.");
   }
 
-  const alt = exact ? { label: "Start a new note instead", run: () => void startNote() }
+  const alt = mode !== "auto" ? null : exact ? { label: "Start a new note instead", run: () => void startNote() }
+    : intent.kind === "learn" ? { label: "Just write a note", run: () => void startNote() }
+    : intent.kind === "note" && couldBeSubject(text) ? { label: "Look it up instead", run: () => research(text.trim()) }
     : intent.kind === "note" && withText.length ? { label: "Ask your notes instead", run: () => void ask() }
     : intent.kind === "ask" ? { label: "Start a note instead", run: () => void startNote() } : null;
   const item = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm hover:bg-secondary";
@@ -192,6 +205,12 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
               <button className={item} onClick={pick(() => picker.current?.click())}><Paperclip className="h-4 w-4" /> Upload a file…</button>
             </PopoverContent>
           </Popover>
+          <div role="group" aria-label="What Enter does" className="flex shrink-0 rounded-full border p-0.5 text-xs" data-home-mode>
+            {([["auto", "Auto", "Decide from what you type"], ["research", "Research", "Always look it up on Wikipedia and YouTube"], ["note", "Note", "Always start a note with what you type"]] as const).map(([m, name, tip]) => (
+              <button key={m} type="button" title={tip} aria-pressed={mode === m} onClick={() => setMode(m)}
+                className={`rounded-full px-2.5 py-1 transition-colors ${mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{name}</button>
+            ))}
+          </div>
           <input ref={picker} type="file" multiple accept={ACCEPT} className="hidden" onChange={(e) => { void bringIn(e.target.files); e.target.value = ""; }} />
           <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground" aria-live="polite" data-home-hint>
             {busy === "link" ? "Reading… this runs in the cloud" : busy === "ask" ? "Looking through your notes…" : exact ? `Enter opens “${exact.label}”` : text.trim() ? HINT[intent.kind] : touch ? "Tap + to scan, record or import a file" : "Or drop a photo, PDF, slides or a recording here"}
@@ -220,6 +239,8 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
           ))}
         </div>
       )}
+
+      {researching && <ResearchPanel subject={researching} onClose={() => setResearching(null)} />}
 
       {answer && (
         <div className="mt-3">

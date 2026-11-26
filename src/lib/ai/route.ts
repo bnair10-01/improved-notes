@@ -3,10 +3,10 @@ import { aiConfig } from "./config";
 
 export type AiTask =
   | "transcribe" | "mindmap" | "summary" | "flashcards" | "quiz" | "slides" | "diagrams"
-  | "links" | "import" | "split" | "audio" | "cleanup" | "model3d" | "topic" | "ask";
+  | "links" | "import" | "split" | "audio" | "cleanup" | "model3d" | "topic" | "ask" | "research";
 
 /** Tasks that must run in the cloud: they need audio, long structured output, or strong vision. */
-const CLOUD_ONLY: ReadonlySet<AiTask> = new Set(["audio", "model3d", "slides", "diagrams", "import"]);
+const CLOUD_ONLY: ReadonlySet<AiTask> = new Set(["audio", "model3d", "slides", "diagrams", "import", "research"]);
 
 export type Route = { mode: InferenceMode; model: string; reason: string };
 

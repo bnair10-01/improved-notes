@@ -42,3 +42,8 @@ android/app/build/
 android/build/
 ios/App/build/
 ios/DerivedData/
+
+# Local secrets and config
+.env
+.env.*
+!.env.example

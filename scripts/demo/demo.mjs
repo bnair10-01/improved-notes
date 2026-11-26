@@ -140,16 +140,16 @@ async function run() {
     await d.shot("welcome");
   });
 
-  await scene("guest", "2. Start writing: a blank page, with every tool in reach", async (t) => {
+  await scene("guest", "2. Start writing: Home is one box for everything", async (t) => {
     await d.click({ text: "^Start writing$" });
-    await d.waitFor("/\\/vault\\/[^/]+$/.test(location.pathname) && document.querySelector('[aria-label=Title]') && document.querySelector('[data-note-tools]')", { label: "a blank note with tools" });
+    await d.waitFor("!!document.querySelector('[data-home-composer]')", { label: "the Home box" });
     await d.pause(1200);
-    await say("No menu of features. You land on a blank page, and everything you can bring in sits right above it.", 2800);
-    const tools = await d.evaluate("document.querySelector('[data-note-tools]')?.innerText ?? ''");
-    for (const tool of ["Scan", "Voice or lecture", "PDF or slides", "Website", "YouTube"]) t.check(`Tool at hand: ${tool}`, tools.includes(tool));
-    t.check("The Insight column is there from the first moment", await d.evaluate("!!document.querySelector('[data-testid=insight-column]')"));
+    await say("You land on Home: one box. Write, ask your notes, paste a link, or drop a file.", 2800);
+    t.check("Stays on Home after starting as a guest", await d.evaluate("location.pathname === '/'"));
     t.check("Signed in as a guest", /Guest/.test(await text()));
-    await d.shot("blank-note-with-tools");
+    t.check("The Home box is there", await d.evaluate("!!document.querySelector('[data-home-composer] textarea')"));
+    t.check("Auto, Research and Note switch", await d.evaluate("(document.querySelector('[data-home-mode]')?.innerText ?? '').replace(/\\s+/g,' ') === 'Auto Research Note'"));
+    await d.shot("home-box");
   });
 
   await scene("topics", "3. Creating topics", async (t) => {

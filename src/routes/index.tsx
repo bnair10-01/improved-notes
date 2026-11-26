@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { BookOpenCheck, Loader2, PenLine, Pin } from "lucide-react";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { IS_NATIVE } from "@/lib/firebase";
 import { authMessage, ensureSignedIn, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
 import { studyOverviewQuery } from "@/lib/study";
-import { createNote, openTarget, useRefreshVault, useVault, type VNote } from "@/lib/vault";
+import { openTarget, useVault, type VNote } from "@/lib/vault";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -49,21 +49,8 @@ function Headline({ line1, line2 }: { line1: string; line2: string }) {
   );
 }
 
-/** Make a blank note and open it. Everything else (scan, voice, websites, slides) is available from inside the note. */
-function useStartWriting() {
-  const navigate = useNavigate();
-  const refresh = useRefreshVault();
-  return async () => {
-    await ensureSignedIn();
-    const id = await createNote({ kind: "text", title: "Untitled" });
-    await refresh();
-    navigate({ to: "/vault/$noteId", params: { noteId: id } });
-  };
-}
-
 function Welcome() {
   const [busy, setBusy] = useState<"google" | "write" | null>(null);
-  const start = useStartWriting();
   async function google() {
     setBusy("google");
     try { rememberNext("/"); await signInWithGoogle(); }
@@ -72,7 +59,8 @@ function Welcome() {
   }
   async function write() {
     setBusy("write");
-    try { await start(); } catch { toast.error("Couldn't open a blank note. Please try again."); } finally { setBusy(null); }
+    // A guest is created here and Home takes over: the box is where writing, asking and importing start.
+    try { await ensureSignedIn(); } catch { toast.error("Couldn't get started. Please try again."); } finally { setBusy(null); }
   }
   return (
     <Column>

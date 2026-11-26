@@ -11,7 +11,7 @@ import { recordInference, type InferenceSource } from "./status";
  * Models on iOS) when a local model is available, and falls back to the cloud when not.
  */
 let aiInstance: ReturnType<typeof getAI> | null = null;
-const ai = () => (aiInstance ??= getAI(app, { backend: new GoogleAIBackend() }));
+const ai = () => (aiInstance ??= getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: true }));
 
 export type RunOptions = {
   task: AiTask;
@@ -35,6 +35,8 @@ export function explain(err: unknown): AiFailure {
   if (err instanceof AiFailure) return err;
   const msg = err instanceof Error ? err.message : String(err);
   const status = (err instanceof AIError ? (err.customErrorData as { status?: number } | undefined)?.status : undefined) ?? 0;
+  if (/prepayment|credits? (are|is) depleted|billing/i.test(msg))
+    return new AiFailure("This project's AI credits have run out. Add credits or billing in Google AI Studio, then try again.", "quota");
   if (status === 429 || /resource.?exhausted|rate.?limit|too many/i.test(msg))
     return new AiFailure("Too many requests right now. Please wait a moment and try again.", "rate_limit");
   if (/app.?check/i.test(msg))

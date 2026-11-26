@@ -27,7 +27,12 @@ const results = [];
 const pass = (n, d = "") => { results.push(["PASS", n, d]); console.log(`  ✔ ${n}${d ? "  " + d : ""}`); };
 const fail = (n, why, fix) => { results.push(["FAIL", n, why]); console.log(`  ✘ ${n}\n      ${why}${fix ? "\n      fix: " + fix : ""}`); };
 const skip = (n, why) => { results.push(["SKIP", n, why]); console.log(`  - ${n}  (${why})`); };
-const step = async (n, fix, fn) => { try { const d = await fn(); pass(n, d ?? ""); } catch (e) { fail(n, (e?.code ? e.code + ": " : "") + (e?.message ?? e).toString().split("\n")[0].slice(0, 220), fix); } };
+const smartFix = (msg, fix) =>
+  /prepayment|credits? (are|is) depleted|billing/i.test(msg) ? "the Gemini API has no credit: open https://aistudio.google.com, select this project, and add credits / link a billing account (Billing)"
+  : /app.?check/i.test(msg) ? "App Check is rejecting the request: register a debug token (Console > App Check > Apps > Manage debug tokens) and set VITE_APPCHECK_DEBUG_TOKEN"
+  : /not.found|404/i.test(msg) && /model/i.test(msg) ? "the model name isn't available: set VITE_AI_MODEL to a current model from https://firebase.google.com/docs/ai-logic/models"
+  : fix;
+const step = async (n, fix, fn) => { try { const d = await fn(); pass(n, d ?? ""); } catch (e) { const msg = (e?.message ?? e).toString(); fail(n, (e?.code ? e.code + ": " : "") + msg.split("\n")[0].slice(0, 220), smartFix(msg, fix)); } };
 
 console.log(emu ? "Improved Notes doctor (emulators)\n" : "Improved Notes doctor (live project)\n");
 
@@ -105,7 +110,7 @@ if (emu) {
 } else {
   skip("Remote Config", "browser-only SDK; open the app and check the Network tab for firebaseremoteconfig.googleapis.com");
   await step("AI Logic (cloud model answers)", "Firebase console > AI Logic > Get started (Gemini Developer API); enable App Check and use a debug token", async () => {
-    const model = getGenerativeModel(getAI(app, { backend: new GoogleAIBackend() }), { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams: { model: env.VITE_AI_MODEL || "gemini-2.5-flash" } });
+    const model = getGenerativeModel(getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: !emu }), { mode: InferenceMode.ONLY_IN_CLOUD, inCloudParams: { model: env.VITE_AI_MODEL || "gemini-3.8-flash" } });
     const r = await model.generateContent("Reply with exactly: OK");
     return `model said "${r.response.text().trim().slice(0, 20)}" (ran ${r.response.inferenceSource ?? "in_cloud"})`;
   });

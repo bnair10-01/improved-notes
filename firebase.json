@@ -48,5 +48,11 @@
   },
   "remoteconfig": {
     "template": "remoteconfig.template.json"
+  },
+  "auth": {
+    "providers": {
+      "anonymous": true,
+      "emailPassword": true
+    }
   }
 }

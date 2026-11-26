@@ -4,6 +4,7 @@ vi.mock("../firebase", () => ({ app: {}, USE_EMULATORS: false, getAppCheck: () =
 
 import { InferenceMode } from "firebase/ai";
 import { route } from "./route";
+import { explain } from "./run";
 import { AI_DEFAULTS } from "./config";
 
 describe("hybrid routing", () => {
@@ -33,5 +34,17 @@ describe("hybrid routing", () => {
 
   it("uses the lighter cloud model for plain text work", () => {
     expect(route("summary", 500).model).toBe(AI_DEFAULTS.cloud_model);
+  });
+});
+
+describe("error messages", () => {
+  it("says the credits ran out instead of blaming rate limits", () => {
+    const f = explain(new Error("[429 ] Your prepayment credits are depleted. Please go to AI Studio"));
+    expect(f.kind).toBe("quota");
+    expect(f.message).toMatch(/credits have run out/i);
+  });
+  it("still explains real rate limits and App Check failures", () => {
+    expect(explain(new Error("429 too many requests")).kind).toBe("rate_limit");
+    expect(explain(new Error("App Check token invalid")).kind).toBe("app_check");
   });
 });

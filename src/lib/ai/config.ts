@@ -7,9 +7,9 @@ import { app, USE_EMULATORS } from "../firebase";
  */
 export const AI_DEFAULTS = {
   /** Cloud model used when on-device isn't available or isn't suitable. */
-  cloud_model: "gemini-2.5-flash",
+  cloud_model: "gemini-3.8-flash",
   /** Cloud model for heavier jobs: handwriting, diagrams, 3D. */
-  cloud_model_pro: "gemini-2.5-pro",
+  cloud_model_pro: "gemini-4-hydrogen",
   /** Above this many characters, a task goes straight to the cloud instead of trying on-device. */
   on_device_max_chars: 6000,
   /** Force handwriting transcription to the cloud (best accuracy) instead of on-device first. */

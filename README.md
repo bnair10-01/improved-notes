@@ -4,7 +4,7 @@ Turn handwritten notes into a connected, searchable knowledge vault. AI runs **o
 
 Built for the #BuildHybridAI 2026 hackathon.
 
-> **Status: work in progress.** The data layer, sync and backup are built and tested against the Firebase emulators. The app has **not** yet been run against a live Firebase project, and the redesign and the native apps are not started. See [Status](#status).
+> **Status: work in progress.** The data layer, sync, offline queue and backup are built and tested against the Firebase emulators. The app has **not** yet been run against a live Firebase project. The Dark v2 theme is applied; the full redesign and the native apps are not finished. See [Status](#status).
 
 ## How Firebase is used
 
@@ -55,6 +55,7 @@ VITE_USE_EMULATORS=true npm run dev
 npm test                 # unit tests
 npm run test:emulators   # security rules, data layer, two-device sync, backup (starts the emulators itself)
 npm run build            # strict typecheck + production build
+npm run doctor           # checks a live Firebase project (Auth, Firestore, Storage, App Check, AI Logic)
 ```
 
 ### Using a real Firebase project
@@ -69,19 +70,20 @@ On-device inference needs Chrome with Gemini Nano available (see `chrome://on-de
 
 ## Status
 
-Verified (automated):
-- Security rules: owner-only access, delete only from Trash, version retention, share links (24 tests against the Firestore and Storage emulators).
-- Data layer against the emulators: guest to account, migration of guest notes into an existing account, Trash and permanent delete, version history, share links, backup and restore (16 tests).
+Verified (automated, 101 unit tests + 42 emulator tests):
+- Security rules: owner-only access, delete only from Trash, version retention, share links.
+- Data layer against the emulators: guest to account, migration of guest notes into an existing account, Trash and permanent delete, version history, share links, backup and restore.
 - Two devices on one account: live propagation, offline writes syncing on reconnect, conflict detection.
+- Offline uploads: files captured offline are kept on the device and uploaded on reconnect.
 - Routing and schema conversion; a test fails if any AI provider other than Firebase AI Logic appears in the source.
 - The app boots in Chrome against the emulators; guest capture and email sign-up work.
 
 Not yet verified or not built:
-- **Not run against a live Firebase project**: AI Logic calls, App Check, Remote Config fetch, Google/Apple sign-in.
+- **Not run against a live Firebase project**: AI Logic calls, App Check, Remote Config fetch, Google/Apple sign-in. `npm run doctor` checks all of these once a project exists.
 - **On-device inference (Gemini Nano) has not been exercised.**
-- No upload queue yet: photo and audio uploads fail while offline (notes themselves work offline).
 - `scripts/setup-backups.sh`: the Firestore commands match the gcloud docs; the Storage commands are unchecked.
-- New design, Android, iOS, macOS and Windows apps are not started.
+- Design: the Dark v2 palette and fonts are applied. The new workspace layout (insight column), topics, first-run screens, 3D viewer changes and pen tools are not built.
+- Android, iOS, macOS and Windows apps: not finished. See `SUBMISSION.md`.
 
 ## License
 

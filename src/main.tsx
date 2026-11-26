@@ -3,8 +3,11 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import "./styles.css";
 import { getRouter } from "./router";
+import { startUploadQueue } from "./lib/upload-queue";
+import { uploadPending } from "./lib/notes";
 
 const router = getRouter();
+startUploadQueue(uploadPending);
 
 declare module "@tanstack/react-router" {
   interface Register {

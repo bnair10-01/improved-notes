@@ -10,6 +10,7 @@ import { DialogHost } from "./shell/DialogHost";
 import { OnboardingDialog } from "./learner/OnboardingDialog";
 import { Settings } from "lucide-react";
 import { MobileTabBar } from "./shell/MobileTabBar";
+import { SyncStatus } from "./shell/SyncStatus";
 import { NAV } from "@/lib/nav";
 import { isPermanent, signOut as signOutUser, useAuth } from "@/lib/auth";
 
@@ -49,6 +50,7 @@ export function AppHeader() {
             {NAV.map((n) => <Link key={n.to} to={n.to} className={link} activeProps={active} activeOptions={{ exact: n.exact }}>{n.label}</Link>)}
             <span className="mx-1 h-5 w-px bg-border" aria-hidden />
           </div>}
+          <SyncStatus />
           <HelpDialog />
           <A11yPanel />
           <ThemePicker />

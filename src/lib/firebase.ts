@@ -44,6 +44,8 @@ export const db: Firestore = (() => {
 })();
 
 export const storage: FirebaseStorage = getStorage(app);
+// Fail fast offline so the upload queue can take over (the default waits 10 minutes).
+storage.maxUploadRetryTime = 15_000;
 
 let appCheck: AppCheck | null = null;
 function startAppCheck() {

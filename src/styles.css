@@ -5,8 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-sans: "Instrument Sans", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Newsreader", "Source Serif 4", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-hand: "Caveat", cursive;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -241,3 +243,31 @@ html.dark[data-theme="noir"] {
 /* Buttons never push past the screen; with large text their labels may wrap. */
 button, [role="button"] { max-width: 100%; }
 html[data-size="large"] button { white-space: normal; height: auto; min-height: 2.25rem; }
+
+/* Dark v2: black surfaces, hairline dividers, one type scale. White is the only highlight. */
+html.dark[data-theme="noir"] {
+  --radius: 0.5rem;
+  --background: #050505;
+  --foreground: #e8e7e3;
+  --paper: #0b0b0c;
+  --card: #0b0b0c;
+  --card-foreground: #e8e7e3;
+  --popover: #101012;
+  --popover-foreground: #e8e7e3;
+  --primary: #e8e7e3;
+  --primary-foreground: #050505;
+  --secondary: #1c1c1f;
+  --secondary-foreground: #e8e7e3;
+  --muted: #141416;
+  --muted-foreground: #8a8984;
+  --accent: #1f1f22;
+  --accent-foreground: #e8e7e3;
+  --border: #26262a;
+  --input: #2a2a2e;
+  --ring: #55544f;
+  --paper-shadow: none;
+  --wash: none;
+}
+html.dark[data-theme="noir"] .paper-sheet { border: 1px solid #1f1f22; }
+.font-mono-meta { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.02em; }
+.font-hand { font-family: var(--font-hand); }

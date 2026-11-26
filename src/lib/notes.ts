@@ -1,5 +1,6 @@
 import { deleteDoc, increment, setDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { enqueueUpload, isNetworkError, pendingBlob, type PendingUpload } from "./upload-queue";
 import { storage } from "./firebase";
 import { EDITOR_ID } from "./conflict";
 import { commit, newId, nowIso, requireUid, userDoc } from "./db";
@@ -8,13 +9,34 @@ import type { MindMap } from "./mindmap-types";
 import type { Diagram } from "./diagram-types";
 import type { Page, TranscriptResult } from "./types";
 
-/** Short-lived-style download URLs for files in the signed-in person's storage folder. */
+/** Download URLs for stored files. A file still waiting to upload is shown from the device. */
 export async function signedUrls(paths: string[]): Promise<string[]> {
-  return Promise.all(paths.map((p) => getDownloadURL(ref(storage, p)).catch(() => "")));
+  return Promise.all(paths.map(async (p) => {
+    const local = await pendingBlob(p);
+    if (local) return URL.createObjectURL(local);
+    return getDownloadURL(ref(storage, p)).catch(() => "");
+  }));
 }
 
+/** Send a queued file to Storage (used by the queue when the connection returns). */
+export async function uploadPending(item: PendingUpload) {
+  await uploadBytes(ref(storage, item.path), item.blob, { contentType: item.contentType });
+}
+
+/**
+ * Upload a file. If the network is down it is kept on the device and sent later, so saving
+ * never fails or loses the file because of a bad connection. Real errors (permissions, bad
+ * data) are still thrown.
+ */
 export async function uploadFile(path: string, body: Blob | Uint8Array | ArrayBuffer, contentType: string) {
-  await uploadBytes(ref(storage, path), body, { contentType });
+  const blob = body instanceof Blob ? body : new Blob([body as BlobPart], { type: contentType });
+  try {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) throw new Error("offline");
+    await uploadBytes(ref(storage, path), blob, { contentType });
+  } catch (e) {
+    if (!isNetworkError(e)) throw e;
+    await enqueueUpload(path, blob, contentType);
+  }
 }
 
 export async function saveNote(

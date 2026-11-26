@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { studyOverviewQuery } from "@/lib/study";
 import { ChevronRight, FilePlus2, Folder, FolderPlus, Lightbulb, MoreHorizontal, Network, NotebookPen, Pin, Search, Tag, Trash2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,8 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
   const [confirm, setConfirm] = useState<{ title: string; body: string; act: () => Promise<void>; typed?: string } | null>(null);
   const [typedText, setTypedText] = useState("");
   const [dropOn, setDropOn] = useState<string | null>(null);
+  const { data: study } = useQuery(studyOverviewQuery);
+  const due = study?.dueTotal ?? 0;
 
   const live = vault.notes.filter((n) => !n.deleted_at);
   const trash = vault.notes.filter((n) => n.deleted_at);
@@ -88,7 +92,8 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
             <Folder className="h-3.5 w-3.5 text-muted-foreground" />
             {editing === f.id ? (
               <Input autoFocus defaultValue={f.name} className="h-6 px-1 text-sm" onBlur={(e) => { setEditing(null); if (e.target.value.trim() && e.target.value !== f.name) void run(renameFolder(f.id, e.target.value.trim())); }} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} />
-            ) : <span className="flex-1 truncate font-medium">{f.name}</span>}
+            ) : <Link to="/topics/$folderId" params={{ folderId: f.id }} onClick={onNavigate} className="flex-1 truncate font-medium hover:underline" title="Open topic page">{f.name}</Link>}
+            {editing !== f.id && <span className="font-mono text-[11px] text-muted-foreground">{live.filter((n) => n.folder_id === f.id).length}</span>}
             <DropdownMenu>
               <DropdownMenuTrigger asChild><button aria-label={`Folder ${f.name} options`} className="opacity-60 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -112,17 +117,21 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search notes" className="pl-8" aria-label="Search notes" />
       </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        <Button size="sm" onClick={() => newNote("text")}><FilePlus2 /> Note</Button>
-        <Button size="sm" variant="outline" onClick={() => newNote("concept")}><Lightbulb /> Concept</Button>
-        <Button size="sm" variant="outline" onClick={() => run(createFolder("New folder"))}><FolderPlus /> Folder</Button>
+      <div className="grid grid-cols-3 gap-1 text-center text-[12px]">
+        <Link to="/capture" onClick={onNavigate} className="rounded-lg border bg-card py-2 hover:bg-secondary">Scan</Link>
+        <button onClick={() => void newNote("text")} className="rounded-lg border bg-card py-2 hover:bg-secondary">Write</button>
+        <Link to="/capture" onClick={onNavigate} className="rounded-lg border bg-card py-2 hover:bg-secondary">Import</Link>
       </div>
-      <Button asChild variant="ghost" size="sm" className="justify-start"><Link to="/vault/graph" onClick={onNavigate}><Network /> Graph view</Link></Button>
+      <div className="flex gap-1 text-xs text-muted-foreground">
+        <button onClick={() => void newNote("concept")} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><Lightbulb className="h-3 w-3" /> Concept</button>
+        <button onClick={() => void run(createFolder("New topic"))} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><FolderPlus className="h-3 w-3" /> Topic</button>
+        <Link to="/vault/graph" onClick={onNavigate} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><Network className="h-3 w-3" /> Graph</Link>
+      </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-auto">
         {showTrash ? (
           <section>
-            <h3 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Trash · kept until you empty it</h3>
+            <h3 className="mb-1 px-2 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Trash · kept until you empty it</h3>
             {!trash.length && <p className="px-2 text-sm text-muted-foreground">Trash is empty.</p>}
             {trash.length > 0 && <Button size="sm" variant="ghost" className="mb-1 w-full justify-start text-destructive" onClick={() => { setTypedText(""); setConfirm({ title: `Empty Trash (${trash.length} note${trash.length > 1 ? "s" : ""})?`, body: "These notes, their version history and links will be deleted for good. This can't be undone.", typed: "delete", act: async () => { for (const n of trash) await purgeNote(n.id); } }); }}>Empty Trash…</Button>}
             {trash.map((n) => (
@@ -138,10 +147,10 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
         ) : (
           <>
             {live.some((n) => n.pinned) && (
-              <section><h3 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pinned</h3>{live.filter((n) => n.pinned).map((n) => <NoteRow key={n.id} n={n} />)}</section>
+              <section><h3 className="mb-1 px-2 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Pinned</h3>{live.filter((n) => n.pinned).map((n) => <NoteRow key={n.id} n={n} />)}</section>
             )}
             <section>
-              <h3 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Folders</h3>
+              <h3 className="mb-1 px-2 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Folders</h3>
               {vault.folders.filter((f) => !f.parent_id).map((f) => <FolderNode key={f.id} f={f} depth={0} />)}
               <div {...dropZone(null)}>
                 <p className="px-2 pt-2 text-xs text-muted-foreground">Not in a folder</p>
@@ -152,7 +161,7 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
         )}
         {tags.length > 0 && !showTrash && (
           <section>
-            <h3 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tags</h3>
+            <h3 className="mb-1 px-2 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Tags</h3>
             <div className="flex flex-wrap gap-1 px-2">
               {tags.map((t) => (
                 <button key={t} onClick={() => setTag(tag === t ? null : t)} className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${tag === t ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground"}`}><Tag className="h-3 w-3" />{t}</button>
@@ -161,6 +170,13 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
           </section>
         )}
       </div>
+      {due > 0 && (
+        <Link to="/study" onClick={onNavigate} className="flex items-center gap-2.5 rounded-xl border p-2.5">
+          <span className="font-serif text-[22px] leading-none">{due}</span>
+          <span className="flex-1 text-xs leading-tight text-muted-foreground">cards due<br />about {Math.max(1, Math.round(due / 2))} min</span>
+          <span className="rounded-md bg-foreground px-2.5 py-1 text-xs font-medium text-background">Study</span>
+        </Link>
+      )}
       <Button variant="ghost" size="sm" className="justify-start" onClick={() => setShowTrash(!showTrash)}><Trash2 /> {showTrash ? "Back to notes" : `Trash${trash.length ? ` (${trash.length})` : ""}`}</Button>
 
       <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>

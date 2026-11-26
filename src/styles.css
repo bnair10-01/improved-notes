@@ -271,3 +271,7 @@ html.dark[data-theme="noir"] {
 html.dark[data-theme="noir"] .paper-sheet { border: 1px solid #1f1f22; }
 .font-mono-meta { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.02em; }
 .font-hand { font-family: var(--font-hand); }
+
+/* Room for the icon rail on laptops and tablets. */
+/* On #root, not body: dialogs lock body scrolling and reset its padding. */
+@media (min-width: 768px) { #root { padding-left: 52px; } }

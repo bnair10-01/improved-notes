@@ -1,6 +1,6 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut } from "lucide-react";
+import { LogOut, Plus, Search } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -12,7 +12,11 @@ import { OnboardingDialog } from "./learner/OnboardingDialog";
 import { Settings } from "lucide-react";
 import { MobileTabBar } from "./shell/MobileTabBar";
 import { SyncStatus } from "./shell/SyncStatus";
-import { NAV } from "@/lib/nav";
+import { sectionName } from "@/lib/nav";
+import { Rail } from "./shell/Rail";
+import { CommandPalette, openPalette } from "./shell/CommandPalette";
+import { NewActionGrid } from "./shell/NewActions";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { signOut as signOutUser, useAuth } from "@/lib/auth";
 import { resetSession } from "@/lib/session";
 
@@ -20,6 +24,8 @@ export function AppHeader() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+  const section = sectionName(pathname);
 
   const avatarUrl = user?.photoURL ?? null;
   const displayName = user?.displayName || user?.email?.split("@")[0] || (user?.isAnonymous ? "Guest" : "Account");
@@ -29,8 +35,6 @@ export function AppHeader() {
     .slice(0, 2)
     .map((w) => w[0]!.toUpperCase())
     .join("");
-  const link = "rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground";
-  const active = { className: "rounded-md px-2.5 py-1.5 text-sm bg-secondary text-foreground" };
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -43,16 +47,26 @@ export function AppHeader() {
   return (
     <>
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/70 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:px-5 sm:py-3">
-        <Link to="/" className="flex min-w-0 items-center gap-2 whitespace-nowrap font-serif text-lg font-semibold">
-          <BrandMark className="h-6 w-6" />
-          <span data-brand-name className="truncate">Improved Notes</span>
-        </Link>
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:px-5 md:min-h-[46px] md:grid-cols-[minmax(0,1fr)_minmax(0,340px)_auto] md:py-1.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link to="/" className="flex min-w-0 items-center gap-2 whitespace-nowrap font-serif text-lg font-semibold md:hidden">
+            <BrandMark className="h-6 w-6" />
+            <span data-brand-name className="truncate">Improved Notes</span>
+          </Link>
+          {section && <span data-section className="hidden truncate text-[13px] text-foreground md:block">{section}</span>}
+        </div>
+        {user ? (
+          <button onClick={openPalette} className="hidden items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5 text-left text-[13px] text-muted-foreground md:flex" aria-label="Search, jump, or ask anything">
+            <Search className="h-3.5 w-3.5" /><span className="flex-1 truncate">Search and jump</span><kbd className="rounded border px-1.5 font-mono text-[10.5px]">⌘K</kbd>
+          </button>
+        ) : <span className="hidden md:block" />}
         <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          {user && <div data-header-links className="hidden items-center gap-1 md:flex">
-            {NAV.map((n) => <Link key={n.to} to={n.to} className={link} activeProps={active} activeOptions={{ exact: n.exact }}>{n.label}</Link>)}
-            <span className="mx-1 h-5 w-px bg-border" aria-hidden />
-          </div>}
+          {user && (
+            <Popover>
+              <PopoverTrigger asChild><button className="mr-1 hidden items-center gap-1 rounded-lg bg-foreground px-3 py-1.5 text-[13px] font-medium text-background md:flex" aria-label="New"><Plus className="h-3.5 w-3.5" /> New</button></PopoverTrigger>
+              <PopoverContent align="end" className="w-[min(92vw,640px)]"><NewActionGrid compact /></PopoverContent>
+            </Popover>
+          )}
           <SyncStatus />
           <HelpDialog />
           <A11yPanel />
@@ -80,7 +94,8 @@ export function AppHeader() {
         </nav>
       </div>
     </header>
-    {user && <><MobileTabBar /><DialogHost /><OnboardingDialog /></>}
+    <Rail initials={initials} avatarUrl={avatarUrl} />
+    {user && <><MobileTabBar /><DialogHost /><OnboardingDialog /><CommandPalette /></>}
     </>
   );
 }

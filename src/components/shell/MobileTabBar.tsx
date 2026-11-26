@@ -7,7 +7,8 @@ import { NewActionGrid } from "./NewActions";
 
 export function MobileTabBar() {
   const [open, setOpen] = useState(false);
-  const items = [NAV[0], NAV[1], null, NAV[2], NAV[3]];
+  const by = (to: string) => NAV.find((n) => n.to === to)!;
+  const items = [by("/"), by("/vault"), null, by("/study"), by("/topics")];
   return (
     <>
       <nav data-tabbar aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-background/95 backdrop-blur-md md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>

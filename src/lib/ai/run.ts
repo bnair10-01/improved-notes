@@ -1,4 +1,4 @@
-import { AIError, getAI, getGenerativeModel, GoogleAIBackend, type Part } from "firebase/ai";
+import { AIError, getAI, getGenerativeModel, GoogleAIBackend, type Part, type Tool } from "firebase/ai";
 import { app, getAppCheck, USE_EMULATORS } from "../firebase";
 import { loadAiConfig } from "./config";
 import { route, type AiTask } from "./route";
@@ -23,6 +23,8 @@ export type RunOptions = {
   /** Size of the input in characters, used to decide on-device vs cloud. */
   chars?: number;
   hasImages?: boolean;
+  /** Extra model tools, such as reading a web page from its URL. */
+  tools?: Tool[];
 };
 
 export class AiFailure extends Error {
@@ -71,6 +73,7 @@ export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Pro
     ...(opts.schema ? { onDeviceParams: { promptOptions: { responseConstraint: opts.schema } } } : {}),
     inCloudParams: {
       model: r.model,
+      ...(opts.tools ? { tools: opts.tools } : {}),
       generationConfig: {
         ...(thinks ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
         ...(opts.schema ? { responseMimeType: "application/json", responseSchema: toSchema(opts.schema) } : {}),

@@ -189,8 +189,10 @@ export async function deleteLink(id: string) {
   await commit(deleteDoc(userDoc("links", id)));
 }
 
-export async function createFolder(name: string, parent_id: string | null = null) {
-  await commit(setDoc(userDoc("folders", newId()), { name, parent_id, created_at: nowIso() }));
+export async function createFolder(name: string, parent_id: string | null = null): Promise<string> {
+  const id = newId();
+  await commit(setDoc(userDoc("folders", id), { name, parent_id, created_at: nowIso() }));
+  return id;
 }
 export async function renameFolder(id: string, name: string) {
   await commit(updateDoc(userDoc("folders", id), { name }));

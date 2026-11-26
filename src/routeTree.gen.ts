@@ -19,9 +19,12 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedStudyRouteImport } from './routes/_authenticated/study'
 import { Route as AuthenticatedVaultRouteRouteImport } from './routes/_authenticated/vault/route'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as AuthenticatedTopicsIndexRouteImport } from './routes/_authenticated/topics/index'
 import { Route as AuthenticatedVaultIndexRouteImport } from './routes/_authenticated/vault/index'
 import { Route as AuthenticatedVaultNoteIdRouteImport } from './routes/_authenticated/vault/$noteId'
 import { Route as AuthenticatedVaultGraphRouteImport } from './routes/_authenticated/vault/graph'
+import { Route as AuthenticatedTopicsFolderIdIndexRouteImport } from './routes/_authenticated/topics/$folderId/index'
+import { Route as AuthenticatedTopicsFolderIdMapRouteImport } from './routes/_authenticated/topics/$folderId/map'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -72,6 +75,12 @@ const STokenRoute = STokenRouteImport.update({
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedTopicsIndexRoute =
+  AuthenticatedTopicsIndexRouteImport.update({
+    id: '/topics/',
+    path: '/topics/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedVaultIndexRoute = AuthenticatedVaultIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -88,6 +97,18 @@ const AuthenticatedVaultGraphRoute = AuthenticatedVaultGraphRouteImport.update({
   path: '/graph',
   getParentRoute: () => AuthenticatedVaultRouteRoute,
 } as any)
+const AuthenticatedTopicsFolderIdIndexRoute =
+  AuthenticatedTopicsFolderIdIndexRouteImport.update({
+    id: '/topics/$folderId/',
+    path: '/topics/$folderId/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTopicsFolderIdMapRoute =
+  AuthenticatedTopicsFolderIdMapRouteImport.update({
+    id: '/topics/$folderId/map',
+    path: '/topics/$folderId/map',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -101,7 +122,10 @@ export interface FileRoutesByFullPath {
   '/s/$token': typeof STokenRoute
   '/vault/$noteId': typeof AuthenticatedVaultNoteIdRoute
   '/vault/graph': typeof AuthenticatedVaultGraphRoute
+  '/topics/': typeof AuthenticatedTopicsIndexRoute
   '/vault/': typeof AuthenticatedVaultIndexRoute
+  '/topics/$folderId/map': typeof AuthenticatedTopicsFolderIdMapRoute
+  '/topics/$folderId/': typeof AuthenticatedTopicsFolderIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -114,7 +138,10 @@ export interface FileRoutesByTo {
   '/s/$token': typeof STokenRoute
   '/vault/$noteId': typeof AuthenticatedVaultNoteIdRoute
   '/vault/graph': typeof AuthenticatedVaultGraphRoute
+  '/topics': typeof AuthenticatedTopicsIndexRoute
   '/vault': typeof AuthenticatedVaultIndexRoute
+  '/topics/$folderId/map': typeof AuthenticatedTopicsFolderIdMapRoute
+  '/topics/$folderId': typeof AuthenticatedTopicsFolderIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,7 +157,10 @@ export interface FileRoutesById {
   '/s/$token': typeof STokenRoute
   '/_authenticated/vault/$noteId': typeof AuthenticatedVaultNoteIdRoute
   '/_authenticated/vault/graph': typeof AuthenticatedVaultGraphRoute
+  '/_authenticated/topics/': typeof AuthenticatedTopicsIndexRoute
   '/_authenticated/vault/': typeof AuthenticatedVaultIndexRoute
+  '/_authenticated/topics/$folderId/map': typeof AuthenticatedTopicsFolderIdMapRoute
+  '/_authenticated/topics/$folderId/': typeof AuthenticatedTopicsFolderIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -146,7 +176,10 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/vault/$noteId'
     | '/vault/graph'
+    | '/topics/'
     | '/vault/'
+    | '/topics/$folderId/map'
+    | '/topics/$folderId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -159,7 +192,10 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/vault/$noteId'
     | '/vault/graph'
+    | '/topics'
     | '/vault'
+    | '/topics/$folderId/map'
+    | '/topics/$folderId'
   id:
     | '__root__'
     | '/'
@@ -174,7 +210,10 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/_authenticated/vault/$noteId'
     | '/_authenticated/vault/graph'
+    | '/_authenticated/topics/'
     | '/_authenticated/vault/'
+    | '/_authenticated/topics/$folderId/map'
+    | '/_authenticated/topics/$folderId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -258,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/topics/': {
+      id: '/_authenticated/topics/'
+      path: '/topics'
+      fullPath: '/topics/'
+      preLoaderRoute: typeof AuthenticatedTopicsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/vault/': {
       id: '/_authenticated/vault/'
       path: '/'
@@ -278,6 +324,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/vault/graph'
       preLoaderRoute: typeof AuthenticatedVaultGraphRouteImport
       parentRoute: typeof AuthenticatedVaultRouteRoute
+    }
+    '/_authenticated/topics/$folderId/': {
+      id: '/_authenticated/topics/$folderId/'
+      path: '/topics/$folderId'
+      fullPath: '/topics/$folderId/'
+      preLoaderRoute: typeof AuthenticatedTopicsFolderIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/topics/$folderId/map': {
+      id: '/_authenticated/topics/$folderId/map'
+      path: '/topics/$folderId/map'
+      fullPath: '/topics/$folderId/map'
+      preLoaderRoute: typeof AuthenticatedTopicsFolderIdMapRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
@@ -305,6 +365,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStudyRoute: typeof AuthenticatedStudyRoute
+  AuthenticatedTopicsIndexRoute: typeof AuthenticatedTopicsIndexRoute
+  AuthenticatedTopicsFolderIdMapRoute: typeof AuthenticatedTopicsFolderIdMapRoute
+  AuthenticatedTopicsFolderIdIndexRoute: typeof AuthenticatedTopicsFolderIdIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -312,6 +375,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStudyRoute: AuthenticatedStudyRoute,
+  AuthenticatedTopicsIndexRoute: AuthenticatedTopicsIndexRoute,
+  AuthenticatedTopicsFolderIdMapRoute: AuthenticatedTopicsFolderIdMapRoute,
+  AuthenticatedTopicsFolderIdIndexRoute: AuthenticatedTopicsFolderIdIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

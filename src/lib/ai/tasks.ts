@@ -358,3 +358,35 @@ export async function summariseStream(
   });
   return out.trim();
 }
+
+
+/* ───────────── Websites and YouTube ───────────── */
+
+export type UrlImport = { title: string; markdown: string; kind: "website" | "youtube"; url: string };
+export type UrlImportResponse = { ok: true; item: UrlImport } | { ok: false; error: string };
+
+const isYouTube = (h: string) => /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(h);
+
+/** Turn a web page or YouTube video into faithful study notes. Runs in the cloud (the page or video has to be fetched). */
+export const importFromUrl = ({ url }: { url: string }): Promise<UrlImportResponse> =>
+  safe("import-url", async () => {
+    let u: URL;
+    try { u = new URL(url.trim()); } catch { throw new AiFailure("That doesn't look like a web address. Paste a full link starting with https://"); }
+    if (!/^https?:$/.test(u.protocol)) throw new AiFailure("Only http and https links are supported.");
+    const youtube = isYouTube(u.hostname);
+    const what = youtube ? "video" : "web page";
+    const { text } = await runModel({
+      task: "import", chars: 8000,
+      ...(youtube ? { parts: [{ fileData: { mimeType: "video/mp4", fileUri: u.toString() } }] } : { tools: [{ urlContext: {} }] }),
+      instructions:
+        `Write study notes from this ${what}${youtube ? "" : `: ${u.toString()}`}. Use ONLY what it actually contains and never invent details. ` +
+        "Start with a single first line '# ' followed by a short descriptive title. Then clear Markdown: a one-paragraph overview, the key ideas as bullets or short sections, and any definitions, steps or numbers worth remembering" +
+        `${youtube ? ", with approximate timestamps where useful" : ""}. If you cannot read the ${what}, reply with exactly: UNREADABLE`,
+    });
+    const body = text.trim();
+    if (!body || /^UNREADABLE\b/.test(body)) throw new AiFailure(`I couldn't read that ${what}. It may be private, blocked, or empty.`);
+    const m = /^#\s+(.+)$/m.exec(body);
+    const title = (m?.[1] ?? u.hostname).trim().slice(0, 120);
+    const markdown = `${body.replace(/^#\s+.+\n?/m, "").trim()}\n\n---\nSource: [${u.hostname}](${u.toString()})\n`;
+    return { item: { title, markdown, kind: youtube ? "youtube" : "website", url: u.toString() } satisfies UrlImport };
+  }) as Promise<UrlImportResponse>;

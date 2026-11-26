@@ -9,10 +9,25 @@ import { prepareImage, rotateDataUrl } from "@/lib/image";
 import { getSession, resetSession, setSession, useSession } from "@/lib/session";
 import { transcribeNotes } from "@/lib/ai/tasks";
 import { ensureSignedIn, useAuth } from "@/lib/auth";
+import { UrlCapture } from "@/components/capture/UrlCapture";
+import { openDialog } from "@/lib/dialogs";
+import { createNote, useRefreshVault, useVault } from "@/lib/vault";
 
 export const Route = createFileRoute("/capture")({
   component: CapturePage,
 });
+
+type Method = "scan" | "write" | "voice" | "lecture" | "website" | "pdf" | "slides" | "youtube";
+const METHODS: { id: Method; label: string; hint: string }[] = [
+  { id: "scan", label: "Scan or photo", hint: "Handwriting becomes text" },
+  { id: "write", label: "Write", hint: "Type a note" },
+  { id: "voice", label: "Voice memo", hint: "Record or upload" },
+  { id: "lecture", label: "Lecture", hint: "A long recording" },
+  { id: "website", label: "Website", hint: "Paste a link" },
+  { id: "pdf", label: "PDF", hint: "Pages become notes" },
+  { id: "slides", label: "Slides", hint: "PowerPoint or PDF" },
+  { id: "youtube", label: "YouTube", hint: "Paste a link" },
+];
 
 function CapturePage() {
   const { pages, mode = "text" } = useSession();
@@ -23,6 +38,23 @@ function CapturePage() {
   const transcribe = transcribeNotes;
   const navigate = useNavigate();
   const { user, ready } = useAuth();
+  const [method, setMethod] = useState<Method>("scan");
+  const [folderId, setFolderId] = useState<string>("");
+  const { data: vault } = useVault();
+  const refresh = useRefreshVault();
+
+  async function choose(m: Method) {
+    setMethod(m);
+    if (m === "voice" || m === "lecture") openDialog("audio");
+    else if (m === "pdf" || m === "slides") openDialog("slides");
+    else if (m === "write") {
+      try {
+        const id = await createNote({ kind: "text", title: "Untitled", folder_id: folderId || null });
+        await refresh();
+        navigate({ to: "/vault/$noteId", params: { noteId: id } });
+      } catch { toast.error("Couldn't create the note."); }
+    }
+  }
 
   // Opening Capture after a note was already transcribed starts a new scan, not the old photos.
   useEffect(() => { if (getSession().result) resetSession(); }, []);
@@ -79,10 +111,29 @@ function CapturePage() {
     <div className="min-h-screen">
       <AppHeader />
       <main className="mx-auto max-w-4xl px-4 pb-28 pt-5 sm:py-10">
-        <h1 className="font-serif text-2xl font-semibold sm:text-3xl">Scan handwritten notes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Snap or pick your pages, put them in order, then transcribe. Nothing is invented; unclear words are flagged.</p>
-        <div className="mt-4"><Hint id="capture">Tip: shoot pages flat in good light. Use the arrows to fix the order before you transcribe.</Hint></div>
-        {ready && user && (
+        <h1 className="font-serif text-3xl font-normal tracking-tight sm:text-4xl">Capture</h1>
+        <p className="mt-1 text-sm text-muted-foreground">One place for everything you want to remember. Pick how, and a topic if you like.</p>
+        <div role="radiogroup" aria-label="Capture method" className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {METHODS.map((m, i) => (
+            <button key={m.id} type="button" role="radio" aria-checked={method === m.id} onClick={() => void choose(m.id)}
+              className={`flex flex-col gap-4 rounded-xl border p-3 text-left transition-colors hover:bg-card/70 ${method === m.id ? "border-foreground bg-card" : ""}`}>
+              <span className="font-mono text-[10px] tracking-[0.08em] text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+              <span><span className="block text-sm font-medium">{m.label}</span><span className="block text-xs text-muted-foreground">{m.hint}</span></span>
+            </button>
+          ))}
+        </div>
+        <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+          Topic <span className="text-xs">(optional)</span>
+          <select value={folderId} onChange={(e) => setFolderId(e.target.value)} className="rounded-md border bg-background px-2 py-1.5 text-sm text-foreground" aria-label="Topic">
+            <option value="">None. I'll file it later</option>
+            {(vault?.folders ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </label>
+        {(method === "voice" || method === "lecture") && <div className="paper-sheet mt-5 p-4 text-sm"><p className="text-muted-foreground">Recordings are transcribed in the cloud.</p><Button className="mt-3" onClick={() => openDialog("audio")}>Open the recorder</Button></div>}
+        {(method === "pdf" || method === "slides") && <div className="paper-sheet mt-5 p-4 text-sm"><p className="text-muted-foreground">Each page or slide becomes part of one note.</p><Button className="mt-3" onClick={() => openDialog("slides")}>Choose a file</Button></div>}
+        {(method === "website" || method === "youtube") && <UrlCapture kind={method} folderId={folderId || null} />}
+        {method === "scan" && <div className="mt-4"><Hint id="capture">Tip: shoot pages flat in good light. Use the arrows to fix the order before you transcribe.</Hint></div>}
+        {method === "scan" && ready && user && (
         <>
 
         <div

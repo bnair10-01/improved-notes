@@ -15,6 +15,7 @@
     "test:emulators": "firebase emulators:exec --only firestore,storage,auth --project demo-improved-notes \"vitest run -c vitest.rules.config.ts\"",
     "emulators": "firebase emulators:start --only auth,firestore,storage --project demo-improved-notes",
     "doctor": "node scripts/doctor.mjs",
+    "deploy:web": "bash scripts/deploy-web.sh",
     "doctor:emulators": "firebase emulators:exec --only auth,firestore,storage --project demo-improved-notes \"node scripts/doctor.mjs --emulators\"",
     "cap:sync": "npm run build && cap sync",
     "android:build": "npm run cap:sync && cd android && ./gradlew assembleDebug"

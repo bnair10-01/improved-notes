@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useVault } from "@/lib/vault";
 import { QUESTIONS, saveLearningStyle, scoreStyle, useLearningStyle, type LearningStyle } from "@/lib/learning";
 
 export function LearningQuiz({ onComplete, onSkip }: { onComplete: () => void; onSkip: () => void }) {
@@ -44,6 +45,9 @@ export function LearningQuiz({ onComplete, onSkip }: { onComplete: () => void; o
 }
 export function OnboardingDialog() {
   const profile = useLearningStyle();
+  const { data: vault } = useVault();
+  // First-run stays clean: ask about learning preferences only once there is something to learn from.
+  const hasNotes = !!vault?.notes.some((n) => !n.deleted_at);
   const [skip, setSkip] = useState<{ userId: string; skipped: boolean } | null>(null);
   const [dismissed, setDismissed] = useState<string | null>(null);
   useEffect(() => {
@@ -57,7 +61,7 @@ export function OnboardingDialog() {
     try { localStorage.setItem(`learner-skipped:${profile.userId}`, "1"); } catch { /* still dismiss for this session */ }
     setDismissed(profile.userId);
   };
-  const open = !!profile.userId && profile.isSuccess && profile.data === null && skip?.userId === profile.userId && !skip.skipped && dismissed !== profile.userId;
+  const open = hasNotes && !!profile.userId && profile.isSuccess && profile.data === null && skip?.userId === profile.userId && !skip.skipped && dismissed !== profile.userId;
   return <Dialog open={open} onOpenChange={(value) => { if (!value) dismiss(); }}>
     <DialogContent className="max-h-[90dvh] overflow-y-auto">
       <DialogHeader><DialogTitle>Make this space yours</DialogTitle><DialogDescription>Five quick questions about what you enjoy. These are preferences, not fixed abilities—you can change them anytime in Settings.</DialogDescription></DialogHeader>

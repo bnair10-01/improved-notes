@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, NotebookPen } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ThemePicker } from "./ThemePicker";
@@ -42,7 +43,7 @@ export function AppHeader() {
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/70 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:px-5 sm:py-3">
         <Link to="/" className="flex min-w-0 items-center gap-2 whitespace-nowrap font-serif text-lg font-semibold">
-          <NotebookPen className="h-5 w-5 shrink-0 text-primary" />
+          <BrandMark className="h-6 w-6" />
           <span data-brand-name className="truncate">Improved Notes</span>
         </Link>
         <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1">

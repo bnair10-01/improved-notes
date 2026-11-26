@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MarkdownEditor } from "@/components/vault/MarkdownEditor";
 import { remarkUncertain } from "@/lib/remark-uncertain";
+import { remarkHighlight } from "@/lib/remark-highlight";
 import { mentionsTitle, wikilinksToMarkdown } from "@/lib/wikilinks";
 import { addLink, createNote, deleteLink, findByTitle, linkMention, neighborhood, openTarget, renameNote, syncWikilinks, updateNote, useRefreshVault, useVault, vaultQuery } from "@/lib/vault";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,6 +23,8 @@ import { VersionHistory } from "@/components/vault/VersionHistory";
 import { classifyRemote, conflictCopyTitle } from "@/lib/conflict";
 import { NoteShareMenu } from "@/components/learner/NoteShareMenu";
 import { InsightColumn } from "@/components/vault/InsightColumn";
+import { ResizableInsight } from "@/components/vault/ResizableInsight";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { InferenceBadge } from "@/components/shell/InferenceBadge";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ModelNotePanel } from "@/components/model3d/ModelNotePanel";
@@ -67,6 +70,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
   const [confirmTrash, setConfirmTrash] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
   const [insightOpen, setInsightOpen] = useState(false);
+  const isMobile = useIsMobile();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTitle = useRef(note?.title ?? "");
   const baseRev = useRef(note?.rev ?? 0);
@@ -157,7 +161,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
   const insight = <InsightColumn note={note} vault={vault} markdown={md} onOpenGraph={() => { setShowGraph(true); setInsightOpen(false); }} />;
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1">
+    <div className="fold-split flex min-h-0 min-w-0 flex-1">
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
       <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-5 sm:py-5">
@@ -191,7 +195,6 @@ function NoteEditor({ noteId }: { noteId: string }) {
             </DropdownMenuContent>
           </DropdownMenu>
           <GenerateDialog noteIds={[noteId]} trigger={<button className="flex items-center gap-1 rounded-full border border-primary/40 px-2 py-0.5 text-primary">✦ Generate</button>} />
-          <button onClick={() => setInsightOpen(true)} className="flex items-center gap-1 rounded-full border px-2 py-0.5 lg:hidden">Insight</button>
           {note.kind !== "model3d" && <button onClick={() => setModelOpen(true)} className="flex items-center gap-1 rounded-full border px-2 py-0.5">◇ 3D model</button>}
           <Input defaultValue={note.tags.join(", ")} placeholder="Add tags, comma separated" aria-label="Tags" className="h-6 w-full min-w-0 rounded-full sm:w-56 px-2 text-xs"
             onBlur={async (e) => { const tags = [...new Set(e.target.value.split(",").map((s) => s.trim().replace(/^#/, "")).filter(Boolean))]; if (tags.join() !== note.tags.join()) { await updateNote(noteId, { tags }); await refresh(); } }} />
@@ -215,7 +218,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
             <TabsContent value="preview" className={`m-0 px-5 py-4 ${note.kind === "generated" ? "" : "min-h-[45vh]"}`}>
               <div className="mb-3"><ReadAloud text={md} /></div>
               <article className="transcript">
-                <ReactMarkdown remarkPlugins={[remarkGfm, remarkUncertain]}
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkUncertain, remarkHighlight]}
                   components={{ a: ({ href, children }) => href?.startsWith("#wl:")
                     ? <a href={href} className="wikilink" onClick={(e) => { e.preventDefault(); void openWiki(decodeURIComponent(href.slice(4))); }}>{children}</a>
                     : <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>
@@ -228,7 +231,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
               </article>
             </TabsContent>
             <TabsContent value="edit" className="m-0 h-[55vh]">
-              <MarkdownEditor value={md} notes={live} onChange={(v) => { setMd(v); scheduleSave(v); }} />
+              <MarkdownEditor value={md} notes={live} ink={note.ink} onInkChange={(v) => { void updateNote(noteId, { ink: v }); }} onChange={(v) => { setMd(v); scheduleSave(v); }} />
             </TabsContent>
           </Tabs>
         </div>
@@ -289,9 +292,11 @@ function NoteEditor({ noteId }: { noteId: string }) {
       <InferenceBadge className="ml-auto" />
     </div>
     </div>
-    <aside data-distraction className="hidden w-[320px] shrink-0 overflow-y-auto border-l lg:block xl:w-[368px]">{insight}</aside>
+    <ResizableInsight>{insight}</ResizableInsight>
+    <button onClick={() => setInsightOpen(true)} aria-label="Ask or open Insight" data-distraction
+      className="fixed bottom-[calc(var(--tabbar)+0.75rem)] right-4 z-20 flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-lg md:hidden">✦ Ask</button>
     <Sheet open={insightOpen} onOpenChange={setInsightOpen}>
-      <SheetContent side="right" className="w-[min(92vw,380px)] overflow-y-auto p-0"><SheetTitle className="sr-only">Insight</SheetTitle>{insight}</SheetContent>
+      <SheetContent side={isMobile ? "bottom" : "right"} className={isMobile ? "max-h-[85dvh] overflow-y-auto rounded-t-2xl p-0" : "w-[min(92vw,380px)] overflow-y-auto p-0"}><SheetTitle className="sr-only">Insight</SheetTitle>{insight}</SheetContent>
     </Sheet>
     </div>
   );

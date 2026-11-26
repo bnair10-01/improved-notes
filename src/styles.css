@@ -275,3 +275,11 @@ html.dark[data-theme="noir"] .paper-sheet { border: 1px solid #1f1f22; }
 /* Room for the icon rail on laptops and tablets. */
 /* On #root, not body: dialogs lock body scrolling and reset its padding. */
 @media (min-width: 768px) { #root { padding-left: 52px; } }
+
+.transcript mark.hl-mark, .hl-mark { background: color-mix(in oklab, #c9a24a 40%, transparent); color: inherit; border-radius: 2px; padding: 0 0.1em; }
+
+/* Foldables: when the screen is split by a hinge, put the note on one side and Insight on the other. */
+@media (horizontal-viewport-segments: 2) {
+  .fold-split { display: grid; grid-template-columns: env(viewport-segment-width 0 0) minmax(0, 1fr); column-gap: calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0)); }
+  .fold-split > [data-fold-aside] { display: block; width: auto !important; }
+}

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { explodeOffset, findPath, validateSpec, type Part, type Spec, type Vec3 } from '@/lib/model3d';
 import { generateModelSpec } from '@/lib/ai/tasks';
+import { PartTabs } from './PartTabs';
 export type ModelViewerProps = { spec: Spec; onSpecChange?: (spec: Spec) => void; glbUrl?: string; focusPartId?: string; compact?: boolean };
 type Loaded = { parts: Part[]; geometry: Map<string, BufferGeometry> };
 const reduced = () => document.documentElement.dataset["motion"] === 'reduce';
@@ -32,8 +33,8 @@ class CanvasBoundary extends Component<{ children: ReactNode; fallback: ReactNod
   static getDerivedStateFromError() { return { failed: true }; }
   override render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
-function Piece({ part, geometry, t, selected, dim, labels, select, focus }: {
-  part: Part; geometry?: BufferGeometry; t: number; selected: boolean; dim: boolean; labels: boolean; select: () => void; focus: () => void;
+function Piece({ part, geometry, t, selected, dim, labels, select, focus, n, hasNote }: {
+  part: Part; geometry?: BufferGeometry; t: number; selected: boolean; dim: boolean; labels: boolean; select: () => void; focus: () => void; n: number; hasNote: boolean;
 }) {
   const mesh = useRef<Mesh>(null);
   const generated = useMemo(() => geometry ? null : geometryFor(part), [part.shape, part.size.join(','), geometry]);
@@ -48,7 +49,7 @@ function Piece({ part, geometry, t, selected, dim, labels, select, focus }: {
   return <mesh ref={mesh} geometry={geometry ?? generated!} dispose={null} position={part.position} rotation={part.rotation}
     onClick={e => { e.stopPropagation(); select(); }} onDoubleClick={e => { e.stopPropagation(); focus(); }}>
     <meshStandardMaterial color={part.color} transparent={dim} opacity={dim ? 0.2 : 1} emissive={part.color} emissiveIntensity={selected ? 0.35 : 0} roughness={0.6} />
-    {labels && <Html center distanceFactor={12}><button className="rounded border bg-background px-2 py-1 text-xs text-foreground shadow" onClick={select}>{part.name}</button></Html>}
+    <Html center distanceFactor={12}><div className="flex items-center gap-1.5"><button onClick={select} aria-label={`${n}. ${part.name}`} className="relative grid h-6 w-6 place-items-center rounded-full border bg-background/80 font-mono text-[11px] text-foreground shadow backdrop-blur">{n}{hasNote && <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[#c9a24a]" />}</button>{(labels || selected) && <span className="whitespace-nowrap text-xs text-foreground [text-shadow:0_1px_6px_#000]">{part.name}</span>}</div></Html>
   </mesh>;
 }
 function Camera({ target, reset, rotate, radius }: { target: Vec3; reset: number; rotate: boolean; radius: number }) {
@@ -65,6 +66,14 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
   const [loaded, setLoaded] = useState<Loaded | null>(null), [error, setError] = useState('');
   const [selectedId, setSelected] = useState<string | null>(focusPartId ?? null), [hidden, setHidden] = useState<Set<string>>(new Set());
   const [isolate, setIsolate] = useState<string | null>(null), [search, setSearch] = useState('');
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if ((e.key === 'e' || e.key === 'E') && !e.metaKey && !e.ctrlKey && !/input|textarea|select/i.test(t?.tagName ?? '') && !t?.isContentEditable) setExplode(v => (v > 0.5 ? 0 : 1));
+    };
+    window.addEventListener('keydown', on);
+    return () => window.removeEventListener('keydown', on);
+  }, []);
   const [explode, setExplode] = useState(0), [labels, setLabels] = useState(false), [rotate, setRotate] = useState(false);
   const [focus, setFocus] = useState<Vec3>([0, 0, 0]), [radius, setRadius] = useState(8), [reset, setReset] = useState(0);
   const [tour, setTour] = useState<number | null>(null), [busy, setBusy] = useState(false), [webgl, setWebgl] = useState(true);
@@ -181,7 +190,7 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
       <Canvas camera={{ position: [8, 6, 8], near: 0.01, far: 1000 }} gl={{ preserveDrawingBuffer: true }} onCreated={({ gl }) => { canvas.current = gl.domElement; }} onPointerMissed={() => setSelected(null)}>
         <ambientLight intensity={0.8} /><directionalLight position={[5, 8, 5]} intensity={2} />
         <Environment resolution={128}><Lightformer position={[0, 5, -4]} scale={[10, 10, 1]} intensity={2} /></Environment>
-        <group ref={group}>{parts.filter(p => !hidden.has(p.id) && (!isolate || isolate === p.id)).map(p => <Piece key={`${path.join('/')}/${p.id}`} part={p} {...(loaded?.geometry.get(p.id) ? { geometry: loaded.geometry.get(p.id)! } : {})} t={parts.length < 2 ? 0 : explode} selected={p.id === selectedId} dim={!!selectedId && p.id !== selectedId} labels={labels} select={() => setSelected(p.id)} focus={() => framePart(p)} />)}</group>
+        <group ref={group}>{parts.filter(p => !hidden.has(p.id) && (!isolate || isolate === p.id)).map(p => <Piece n={parts.indexOf(p) + 1} hasNote={!!p.note} key={`${path.join('/')}/${p.id}`} part={p} {...(loaded?.geometry.get(p.id) ? { geometry: loaded.geometry.get(p.id)! } : {})} t={parts.length < 2 ? 0 : explode} selected={p.id === selectedId} dim={!!selectedId && p.id !== selectedId} labels={labels} select={() => setSelected(p.id)} focus={() => framePart(p)} />)}</group>
         <Camera target={focus} reset={reset} radius={radius} rotate={rotate} />
       </Canvas></div></CanvasBoundary> : fallback}
     <div className="flex flex-wrap gap-2">
@@ -205,8 +214,8 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
     <div className="grid gap-4 sm:grid-cols-2">{checklist}{selected && <section aria-label="Selected part" className="space-y-2 rounded-lg border p-3">
       <h4 className="font-medium">{selected.name}</h4><p className="text-sm text-muted-foreground">{selected.description || 'Uploaded mesh; description not provided.'}</p>
       <Button variant="outline" size="sm" onClick={() => framePart(selected)}>Zoom to part</Button>
-      {editable ? <><label className="block text-sm">Part note<textarea className="mt-1 w-full rounded border bg-background p-2" value={selected.note ?? ''} onChange={e => edit({ note: e.target.value })} /></label>
-        <label className="block text-sm">Name<input className="mt-1 w-full rounded border bg-background p-2" value={selected.name} maxLength={160} onChange={e => edit({ name: e.target.value })} /></label>
+      <PartTabs part={selected} modelTitle={root.title} editable={editable} onNote={v => edit({ note: v })} />
+      {editable ? <><label className="block text-sm">Name<input className="mt-1 w-full rounded border bg-background p-2" value={selected.name} maxLength={160} onChange={e => edit({ name: e.target.value })} /></label>
         <label className="flex items-center gap-2 text-sm">Color<input type="color" value={selected.color} onChange={e => edit({ color: e.target.value })} /></label>
         <Button variant="destructive" size="sm" onClick={() => { replaceCurrent({ ...current, parts: parts.filter(p => p.id !== selected.id) }); setSelected(null); }}>Delete part</Button>
         {selected.children_model && <Button variant="outline" size="sm" onClick={() => navigate([...path, selected.id])}>Break this down</Button>}

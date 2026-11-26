@@ -32,7 +32,7 @@ export function UrlCapture({ kind, folderId, folderName }: { kind: "website" | "
         <label className="block text-sm font-medium" htmlFor="capture-url">Paste a {label} link</label>
         <input id="capture-url" value={url} onChange={(e) => setUrl(e.target.value)} inputMode="url" autoComplete="off"
           placeholder={kind === "youtube" ? "https://www.youtube.com/watch?v=…" : "https://…"}
-          className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          className="w-full rounded-lg border bg-background px-3 py-2.5 text-base outline-none sm:text-sm focus-visible:ring-2 focus-visible:ring-ring" />
         <p className="text-xs text-muted-foreground">
           Gemini reads the {label} and divides it into separate notes, one per idea. You'll see them and name the topic before anything is saved. This runs in the cloud, so the link's contents are sent to Google.
         </p>

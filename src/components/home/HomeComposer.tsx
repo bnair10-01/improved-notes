@@ -192,12 +192,12 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
           disabled={!!busy}
           aria-label="Write, ask your notes, search, or paste a link"
           placeholder={dragging ? "Drop it here" : "Write something, ask your notes, or paste a link…"}
-          className="block w-full resize-none bg-transparent px-4 pb-1 pt-4 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-70"
+          className="block w-full resize-none bg-transparent px-4 pb-1 pt-4 text-[16px] leading-relaxed sm:text-[15px] outline-none placeholder:text-muted-foreground disabled:opacity-70"
         />
         <div className="flex items-center gap-2 px-2.5 pb-2.5">
           <Popover open={menu} onOpenChange={setMenu}>
             <PopoverTrigger asChild>
-              <button type="button" aria-label="Add a scan, recording, PDF or file" className="grid h-8 w-8 shrink-0 place-items-center rounded-full border text-muted-foreground hover:bg-secondary hover:text-foreground"><Plus className="h-4 w-4" /></button>
+              <button type="button" aria-label="Add a scan, recording, PDF or file" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-8 sm:w-8"><Plus className="h-4 w-4" /></button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-60 p-1.5">
               <button className={item} onClick={pick(() => navigate({ to: "/capture" }))}><Camera className="h-4 w-4" /> Scan handwriting</button>
@@ -209,7 +209,7 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
           <div role="group" aria-label="What Enter does" className="flex shrink-0 rounded-full border p-0.5 text-xs" data-home-mode>
             {([["auto", "Auto", "Decide from what you type"], ["research", "Research", "Always look it up on Wikipedia and YouTube"], ["note", "Note", "Always start a note with what you type"]] as const).map(([m, name, tip]) => (
               <button key={m} type="button" title={tip} aria-pressed={mode === m} onClick={() => setMode(m)}
-                className={`rounded-full px-2.5 py-1 transition-colors ${mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{name}</button>
+                className={`rounded-full px-3 py-2 transition-colors sm:px-2.5 sm:py-1 ${mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{name}</button>
             ))}
           </div>
           <input ref={picker} type="file" multiple accept={ACCEPT} className="hidden" onChange={(e) => { void bringIn(e.target.files); e.target.value = ""; }} />
@@ -218,12 +218,12 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
           </p>
           {alt && !busy && <button type="button" onClick={alt.run} className="hidden shrink-0 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:block">{alt.label}</button>}
           <button type="button" onClick={submit} disabled={!!busy || intent.kind === "empty"} aria-label={exact ? `Open ${exact.label}` : HINT[intent.kind] || "Send"}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-foreground text-background transition-opacity disabled:opacity-30">
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-foreground text-background transition-opacity disabled:opacity-30 sm:h-8 sm:w-8">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
           </button>
         </div>
       </div>
-      {alt && !busy && <button type="button" onClick={alt.run} className="mt-2 px-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:hidden">{alt.label}</button>}
+      {alt && !busy && <button type="button" onClick={alt.run} className="mt-1 px-1 py-2 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:hidden">{alt.label}</button>}
 
       {(found.notes.length > 0 || found.folders.length > 0) && (
         <div className="mt-3 rounded-xl border bg-card/60 p-1.5" data-home-matches>
@@ -246,9 +246,9 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
       {answer && (
         <div className="mt-3">
           <AnswerCard question={answer.q} text={answer.text} citations={answer.citations} />
-          <div className="mt-1.5 flex gap-3 px-1 text-xs">
-            <button onClick={() => void keepAnswer(answer)} disabled={!!busy} className="text-muted-foreground hover:text-foreground">Keep as a note</button>
-            <button onClick={() => setAnswer(null)} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /> Dismiss</button>
+          <div className="mt-1 flex gap-4 px-1 text-sm sm:text-xs">
+            <button onClick={() => void keepAnswer(answer)} disabled={!!busy} className="py-2 text-muted-foreground hover:text-foreground">Keep as a note</button>
+            <button onClick={() => setAnswer(null)} className="inline-flex items-center gap-1 py-2 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /> Dismiss</button>
           </div>
         </div>
       )}

@@ -27,6 +27,9 @@ export function ResearchPanel({ subject, onClose }: { subject: string; onClose: 
   const [building, setBuilding] = useState(false);
   const [material, setMaterial] = useState<SplitMaterial | null>(null);
   const ran = useRef<string | null>(null);
+  const panel = useRef<HTMLElement>(null);
+  // On a phone the panel opens below the box and the bottom bar; bring it into view.
+  useEffect(() => { panel.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [found, error]);
 
   useEffect(() => {
     if (ran.current === subject) return;
@@ -88,10 +91,10 @@ export function ResearchPanel({ subject, onClose }: { subject: string; onClose: 
     : status[k] === "failed" ? <span className="text-xs text-destructive">Couldn't read</span> : null;
 
   return (
-    <section className="mt-3 rounded-2xl border bg-card/60 p-3.5" aria-label={`Researching ${subject}`} data-research>
+    <section ref={panel} className="mt-3 scroll-mb-28 rounded-2xl border bg-card/60 p-3.5" aria-label={`Researching ${subject}`} data-research>
       <div className="mb-2.5 flex items-center justify-between">
         <span className={label}>Learning · {titleCase(subject)}</span>
-        <button onClick={onClose} disabled={building} aria-label="Close" className="text-muted-foreground hover:text-foreground disabled:opacity-40"><X className="h-4 w-4" /></button>
+        <button onClick={onClose} disabled={building} aria-label="Close" className="-m-2 p-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><X className="h-4 w-4" /></button>
       </div>
 
       {!found && !error && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Looking up Wikipedia and finding videos…</p>}
@@ -117,8 +120,8 @@ export function ResearchPanel({ subject, onClose }: { subject: string; onClose: 
           ))}
           {!found.wiki && <p className="px-1 text-xs text-muted-foreground">No Wikipedia article matched “{found.subject}”.</p>}
           {!found.videos.length && <p className="px-1 text-xs text-muted-foreground">No videos could be confirmed for “{found.subject}”.</p>}
-          <div className="flex items-center gap-3 pt-1.5">
-            <Button size="sm" onClick={() => void build()} disabled={building || !picked.size}>
+          <div className="sticky bottom-[calc(var(--tabbar,0px)+0.5rem)] z-10 -mx-1 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-card/95 p-1 pt-2 backdrop-blur sm:static sm:mx-0 sm:p-0 sm:pt-1.5 sm:backdrop-blur-none">
+            <Button size="sm" className="h-10 sm:h-8" onClick={() => void build()} disabled={building || !picked.size}>
               {building ? <><Loader2 className="animate-spin" /> Reading and dividing…</> : `Build notes from ${picked.size} source${picked.size === 1 ? "" : "s"}`}
             </Button>
             <p className="text-xs text-muted-foreground">You'll name the topic and choose notes before anything is saved. Reading runs in the cloud.</p>

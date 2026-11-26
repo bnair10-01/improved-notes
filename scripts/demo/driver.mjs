@@ -28,13 +28,14 @@ const KEYS = {
   k: { code: "KeyK", vk: 75 }, a: { code: "KeyA", vk: 65 }, p: { code: "KeyP", vk: 80 }, e: { code: "KeyE", vk: 69 },
 };
 
-export async function launch({ headed = true, width = 1440, height = 900, chrome, outDir, speed = 1 }) {
+/** `attachPort`: drive a page that is already running (for example an Android WebView forwarded with `adb forward`) instead of starting Chrome. */
+export async function launch({ headed = true, width = 1440, height = 900, chrome, outDir, speed = 1, attachPort }) {
   const bin = chrome || process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-  if (!existsSync(bin)) throw new Error(`Chrome not found at ${bin}. Set CHROME_PATH.`);
+  if (!attachPort && !existsSync(bin)) throw new Error(`Chrome not found at ${bin}. Set CHROME_PATH.`);
   mkdirSync(outDir, { recursive: true });
   const profile = mkdtempSync(join(tmpdir(), "demo-chrome-"));
-  const port = 9600 + Math.floor(Math.random() * 300);
-  const proc = spawn(bin, [
+  const port = attachPort ?? 9600 + Math.floor(Math.random() * 300);
+  const proc = attachPort ? null : spawn(bin, [
     `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, `--window-size=${width},${height + 90}`, "--window-position=30,20",
     "--no-first-run", "--no-default-browser-check", "--autoplay-policy=no-user-gesture-required", "--disable-popup-blocking",
     ...(headed ? [] : ["--headless=new"]), "about:blank",
@@ -43,7 +44,7 @@ export async function launch({ headed = true, width = 1440, height = 900, chrome
   let targets;
   for (let i = 0; i < 60; i++) { try { targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); break; } catch { await sleep(250); } }
   const page = targets?.find((t) => t.type === "page");
-  if (!page) { proc.kill(); throw new Error("Could not connect to Chrome."); }
+  if (!page) { proc?.kill(); throw new Error("Could not connect to Chrome."); }
   const ws = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
 
@@ -152,7 +153,7 @@ export async function launch({ headed = true, width = 1440, height = 900, chrome
       writeFileSync(join(d._rec.dir, "frames.json"), JSON.stringify(d._rec.frames));
       return { dir: d._rec.dir, count: d._rec.frames.length };
     },
-    async close() { try { ws.close(); } catch { /* closed */ } proc.kill(); },
+    async close() { try { ws.close(); } catch { /* closed */ } proc?.kill(); },
   };
 
   handlers.push((m) => {

@@ -103,10 +103,11 @@ npm run cap:sync         # rebuild the web app and copy it into both native proj
 npx cap open ios         # open in Xcode
 ```
 
-- **Android:** the debug APK builds. It has not been run on a device or emulator.
-- **iOS:** builds for the simulator and launches there (the interface renders and loads). Not run on a physical iPhone. The first build on a new machine needs `sudo xcodebuild -runFirstLaunch` once.
-- **Inside the native apps** the AI uses the cloud model: on-device Gemini Nano (Android) and Apple Foundation Models (iOS) need a native Firebase AI Logic plugin that is **not written yet**.
-- **Sign-in:** email only inside the apps. Google sign-in uses a browser popup, which doesn't work in a WebView, so that button is hidden there until `@capacitor-firebase/authentication` is added. App Check's reCAPTCHA also doesn't work in a WebView, so native builds need a debug token for now.
+- **Android:** the debug APK builds (JDK 17 or 21) and runs on the Android emulator: guest start, Home, research and cited answers all work inside the app. Camera and microphone permissions are declared. Not yet run on a physical Android phone.
+- **iOS:** builds and runs on the iOS 17.5 simulator with the same checks passing. Camera, microphone and photo permissions are declared. A build for a physical iPhone needs your Apple ID signed in to Xcode and Developer Mode on the phone.
+- **AI inside the native apps:** every call still goes through Firebase AI Logic (the same web SDK in the WebView), with App Check. On-device Gemini Nano (Android) and Apple's on-device model (iOS) need the native Firebase AI Logic hybrid SDKs behind a Capacitor plugin that is **not written yet**, so inside the apps AI runs in the cloud and the badge says Cloud. On-device inference is demonstrated in Chrome on the web.
+- **Native test build:** `VITE_NATIVE_SELFTEST=1 npm run cap:sync` adds a launch-time panel that signs in as a guest, makes a real AI call and reports whether it ran on-device or in the cloud. It is not in normal builds.
+- **Sign-in:** email only inside the apps. Google sign-in uses a browser popup, which doesn't work in a WebView, so that button is hidden there until `@capacitor-firebase/authentication` is added. App Check's reCAPTCHA also doesn't work in a WebView, so native builds use the debug token from `.env` (local test builds only; never distribute them).
 - **macOS and Windows:** not started. Tauri needs Rust, which is not installed.
 
 ## Status
@@ -127,7 +128,7 @@ Not yet verified or not built:
 - **On-device inference:** Gemini Nano answers from the Chrome console, but the in-app On-device badge on a short text task has not been confirmed yet. Without Nano the app uses the cloud model.
 - Slides and audio imports are not split into notes automatically; press **Split into notes** afterwards.
 - `scripts/setup-backups.sh`: the Firestore commands match the gcloud docs; the Storage commands are unchecked.
-- Android builds as a debug APK (not run on a device or emulator, not rebuilt with the new icon); iOS builds and launches on the simulator; macOS and Windows are not started. See "Native apps" above.
+- Android and iOS run in their emulator and simulator (cloud AI only); not yet on physical devices. macOS and Windows are not started. See "Native apps" above.
 
 ## For judges: App Check
 

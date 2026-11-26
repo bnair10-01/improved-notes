@@ -43,13 +43,19 @@
       </array>
     </dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Improved Notes uses the camera to scan handwritten pages into notes.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Improved Notes uses the microphone to record voice memos and lectures.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Improved Notes reads photos you choose so they can be turned into notes.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

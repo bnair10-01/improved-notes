@@ -20,3 +20,5 @@ createRoot(document.getElementById("root")!).render(
     <RouterProvider router={router} />
   </StrictMode>,
 );
+
+if (import.meta.env["VITE_NATIVE_SELFTEST"]) void import("./lib/selftest").then((m) => m.runSelfTest());

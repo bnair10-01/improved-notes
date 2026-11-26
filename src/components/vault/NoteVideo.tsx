@@ -96,7 +96,7 @@ export function NoteVideo({ videos, onAddNote }: { videos: Video[]; onAddNote: (
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         {!failed && (
-          <button onClick={stamp} disabled={!ready} className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs hover:bg-secondary disabled:opacity-50">
+          <button onClick={stamp} disabled={!ready} className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm hover:bg-secondary disabled:opacity-50 sm:min-h-0 sm:w-auto sm:justify-start sm:px-2.5 sm:py-1.5 sm:text-xs">
             <NotebookPen className="h-3.5 w-3.5" /> Add my note at this moment
           </button>
         )}

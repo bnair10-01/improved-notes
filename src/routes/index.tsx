@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { BookOpenCheck, Loader2, PenLine, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/AppHeader";
 import { GoogleMark } from "@/components/GoogleMark";
+import { HomeComposer } from "@/components/home/HomeComposer";
 import { Button } from "@/components/ui/button";
 import { IS_NATIVE } from "@/lib/firebase";
 import { authMessage, ensureSignedIn, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
@@ -95,67 +96,84 @@ function Welcome() {
   );
 }
 
+function greeting() {
+  const h = new Date().getHours();
+  return h < 5 ? "Working late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+
+/** A note counts as started once it has a real title or any text; empty "Untitled" pages stay out of the way. */
+const started = (n: VNote) => !!n.markdown.trim() || (!!n.title.trim() && n.title !== "Untitled");
+
+function when(iso: string) {
+  const d = new Date(iso), days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+  return days < 1 ? d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : days < 7 ? d.toLocaleDateString(undefined, { weekday: "short" }) : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+/**
+ * Home is one box: write, ask your notes, search, paste a link, or drop a file. Below it, only what helps you
+ * pick up again (recent notes, topics, cards due), and nothing at all when there is nothing yet.
+ */
 function Home({ name }: { name: string }) {
   const { data: vault, isLoading } = useVault();
-  const start = useStartWriting();
-  const navigate = useNavigate();
-  const refresh = useRefreshVault();
-  const opened = useRef(false);
-  const live = vault?.notes.filter((n) => !n.deleted_at) ?? [];
-
-  // A brand new person lands on a blank page, ready to write, with the tools one click away.
-  useEffect(() => {
-    if (isLoading || !vault || live.length || opened.current) return;
-    opened.current = true;
-    void (async () => {
-      try {
-        const id = await createNote({ kind: "text", title: "Untitled" });
-        await refresh();
-        navigate({ to: "/vault/$noteId", params: { noteId: id }, replace: true });
-      } catch { opened.current = false; toast.error("Couldn't open a blank note. Please try again."); }
-    })();
-  }, [isLoading, vault, live.length, navigate, refresh]);
-
-  if (isLoading || !vault || !live.length) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Opening a blank note" /></div>;
-  return <div className="mx-auto max-w-5xl px-4 pb-10 pt-5 sm:pt-10"><Dashboard name={name} notes={live} onNew={() => void start()} /></div>;
-}
-
-function NoteRow({ n }: { n: VNote }) {
-  return (
-    <Link {...openTarget(n)} className="paper-sheet flex min-h-14 items-center gap-3 p-3 hover:ring-2 hover:ring-primary/30">
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{n.title || "Untitled"}</span>
-        <span className="block text-xs capitalize text-muted-foreground">{n.kind} · {new Date(n.updated_at).toLocaleDateString()}</span>
-      </span>
-      {n.pinned && <Pin className="h-3.5 w-3.5 fill-current text-primary" aria-label="Pinned" />}
-    </Link>
-  );
-}
-
-function Dashboard({ name, notes, onNew }: { name: string; notes: VNote[]; onNew: () => void }) {
   const { data: study } = useQuery(studyOverviewQuery);
-  const pinned = notes.filter((n) => n.pinned).slice(0, 6);
-  const recent = [...notes].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 6);
+  if (isLoading || !vault) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading your notes" /></div>;
+
+  const live = vault.notes.filter((n) => !n.deleted_at);
+  const recent = live.filter(started).sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5);
+  const fresh = recent.length === 0;
+  const topics = vault.folders.slice(0, 8);
+  const due = study?.dueTotal ?? 0;
+
   return (
-    <>
+    <div className={`mx-auto flex w-full max-w-[720px] flex-col px-4 sm:px-6 ${fresh ? "min-h-[calc(100dvh-8rem)] justify-center pb-24" : "pb-16 pt-10 sm:pt-20"}`}>
       <div className={mono}>{today()}</div>
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-serif text-4xl font-normal tracking-tight sm:text-5xl">Welcome back{name ? `, ${name}` : ""}.</h1>
-        <Button size="lg" onClick={onNew}><PenLine /> New note</Button>
-      </div>
+      <h1 className="mb-6 mt-2 font-serif text-[32px] font-normal leading-tight tracking-[-0.01em] sm:text-[40px]">
+        {greeting()}{name ? `, ${name}` : ""}.
+        {fresh && <span className="block text-muted-foreground">What are you learning today?</span>}
+      </h1>
 
-      <Link to="/study" className="paper-sheet mt-6 flex items-center gap-3 p-4 hover:ring-2 hover:ring-primary/30">
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-primary-foreground"><BookOpenCheck className="h-5 w-5" /></span>
-        <span className="flex-1">
-          <span className="block font-medium">{study?.dueTotal ? `${study.dueTotal} flashcard${study.dueTotal > 1 ? "s" : ""} due` : "Study"}</span>
-          <span className="block text-xs text-muted-foreground">{study?.dueTotal ? "A few minutes keeps them fresh." : study && (study.decks.length || study.quizzes.length) ? "All caught up. Retake a quiz anytime." : "Make flashcards or quizzes from any note with ✦ Generate."}</span>
-        </span>
-      </Link>
+      <HomeComposer notes={live} folders={vault.folders} autoFocus />
 
-      <section className="mt-6"><h2 className="mb-2 text-sm font-semibold">Pick up where you left off</h2><div className="grid gap-2 md:grid-cols-2">{recent.map((n) => <NoteRow key={n.id} n={n} />)}</div></section>
-      {pinned.length > 0 && (
-        <section className="mt-6"><h2 className="mb-2 text-sm font-semibold">Pinned</h2><div className="grid gap-2 md:grid-cols-2">{pinned.map((n) => <NoteRow key={n.id} n={n} />)}</div></section>
+      {fresh ? (
+        <p className="mt-4 px-1 text-xs leading-relaxed text-muted-foreground">
+          Type to start a note. Paste a YouTube or web link and it's divided into notes, one per idea. Press + to scan handwriting, record a lecture or import slides.
+        </p>
+      ) : (
+        <div className="mt-10 space-y-8">
+          {due > 0 && (
+            <Link to="/study" className="flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm hover:bg-secondary" data-home-due>
+              <BookOpenCheck className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1">{due} flashcard{due > 1 ? "s" : ""} due</span>
+              <span className="text-xs text-muted-foreground">Study →</span>
+            </Link>
+          )}
+          <section aria-labelledby="home-recent">
+            <div className="mb-1.5 flex items-baseline justify-between px-1">
+              <h2 id="home-recent" className={mono}>Recent</h2>
+              <Link to="/vault" className="text-xs text-muted-foreground hover:text-foreground">All notes</Link>
+            </div>
+            <ul className="divide-y rounded-xl border">
+              {recent.map((n) => (
+                <li key={n.id}>
+                  <Link {...openTarget(n)} className="flex items-center gap-3 px-3.5 py-2.5 hover:bg-secondary/60">
+                    <span className="min-w-0 flex-1 truncate text-sm">{n.title || "Untitled"}</span>
+                    {n.pinned && <Pin className="h-3 w-3 shrink-0 fill-current text-muted-foreground" aria-label="Pinned" />}
+                    <span className="shrink-0 text-xs text-muted-foreground">{when(n.updated_at)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+          {topics.length > 0 && (
+            <section aria-labelledby="home-topics">
+              <h2 id="home-topics" className={`${mono} mb-2 px-1`}>Topics</h2>
+              <div className="flex flex-wrap gap-1.5">
+                {topics.map((f) => <Link key={f.id} to="/topics/$folderId" params={{ folderId: f.id }} className="rounded-full border px-3 py-1 text-xs hover:bg-secondary">{f.name}</Link>)}
+              </div>
+            </section>
+          )}
+        </div>
       )}
-    </>
+    </div>
   );
 }

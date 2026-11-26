@@ -26,6 +26,8 @@ export function AppHeader() {
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (st) => st.location.pathname });
   const section = sectionName(pathname);
+  // Home's own box already searches and creates, so the top bar stays quiet there.
+  const onHome = pathname === "/";
 
   const avatarUrl = user?.photoURL ?? null;
   const displayName = user?.displayName || user?.email?.split("@")[0] || (user?.isAnonymous ? "Guest" : "Account");
@@ -55,13 +57,13 @@ export function AppHeader() {
           </Link>
           {section && <span data-section className="hidden truncate text-[13px] text-foreground md:block">{section}</span>}
         </div>
-        {user ? (
+        {user && !onHome ? (
           <button onClick={openPalette} className="hidden items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5 text-left text-[13px] text-muted-foreground md:flex" aria-label="Search, jump, or ask anything">
             <Search className="h-3.5 w-3.5" /><span className="flex-1 truncate">Search and jump</span><kbd className="rounded border px-1.5 font-mono text-[10.5px]">⌘K</kbd>
           </button>
         ) : <span className="hidden md:block" />}
         <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          {user && (
+          {user && !onHome && (
             <Popover>
               <PopoverTrigger asChild><button className="mr-1 hidden items-center gap-1 rounded-lg bg-foreground px-3 py-1.5 text-[13px] font-medium text-background md:flex" aria-label="New"><Plus className="h-3.5 w-3.5" /> New</button></PopoverTrigger>
               <PopoverContent align="end" className="w-[min(92vw,640px)]"><NewActionGrid compact /></PopoverContent>

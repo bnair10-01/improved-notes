@@ -1,4 +1,5 @@
 import { takeCaptureTopic } from "@/lib/capture-context";
+import { dialogFile } from "@/lib/dialogs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -50,6 +51,8 @@ export function AddAudioDialog({ open, onOpenChange }: { open: boolean; onOpenCh
     }, 250);
     return () => window.clearInterval(id);
   }, [state]);
+  // A file dropped or picked on Home arrives already chosen.
+  useEffect(() => { const f = dialogFile(); if (open && f) void selectFile(f); }, [open]);
   async function selectFile(next: File | undefined) {
     if (!next) return;
     const id = ++generation.current;

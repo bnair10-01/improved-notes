@@ -1,4 +1,5 @@
 import { takeCaptureTopic } from "@/lib/capture-context";
+import { dialogFile } from "@/lib/dialogs";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { slidesToMarkdown, validateDeckFile } from "@/lib/slides";
 export function ImportSlidesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const navigate = useNavigate(), query = useQueryClient();
-  const [file, setFile] = useState<File | null>(null), [busy, setBusy] = useState(false), [status, setStatus] = useState("");
+  const [file, setFile] = useState<File | null>(() => { const f = dialogFile(); return f && !validateDeckFile(f) ? f : null; }), [busy, setBusy] = useState(false), [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
   async function run() {
     if (!file || busy) return;
@@ -54,6 +55,7 @@ export function ImportSlidesDialog({ open, onOpenChange }: { open: boolean; onOp
     <DialogHeader><DialogTitle>Import presentation</DialogTitle></DialogHeader>
     <p className="text-sm text-muted-foreground">PDF or PPTX · up to 50 MB and 100 slides.</p>
     <label className="grid gap-2 text-sm">Presentation file<input type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" disabled={busy} onChange={(e) => { const next = e.target.files?.[0] ?? null; if (next) { const error = validateDeckFile(next); if (error) { toast.error(error); e.target.value = ""; setFile(null); return; } } setFile(next); }} className="min-w-0 w-full rounded-md border p-2 file:mr-2" /></label>
+    {file && <p className="break-all text-sm" data-chosen-file>{file.name}</p>}
     <p className="text-sm text-muted-foreground">Complex layouts may not match — export to PDF for full fidelity. PPTX imports retain text and the first embedded image on each slide.</p>
     {busy && <div className="space-y-2" role="status" aria-live="polite"><p className="text-sm">{status}</p><progress className="w-full accent-primary" max={100} value={progress} aria-label="Import progress" /></div>}
     <Button disabled={!file || busy} onClick={run}>{busy ? "Importing…" : "Import slides"}</Button>

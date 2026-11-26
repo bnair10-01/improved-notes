@@ -54,6 +54,7 @@ export const storage: FirebaseStorage = getStorage(app);
 storage.maxUploadRetryTime = 15_000;
 
 let appCheck: AppCheck | null = null;
+let appCheckProvider: ReCaptchaEnterpriseProvider | null = null;
 function startAppCheck() {
   if (USE_EMULATORS || typeof window === "undefined") return;
   const debug = env.VITE_APPCHECK_DEBUG_TOKEN;
@@ -64,7 +65,7 @@ function startAppCheck() {
   const siteKey = env.VITE_APPCHECK_SITE_KEY;
   if (!siteKey && !debug) return;
   appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider(siteKey || "debug"),
+    provider: (appCheckProvider = new ReCaptchaEnterpriseProvider(siteKey || "debug")),
     isTokenAutoRefreshEnabled: true,
   });
 }
@@ -79,3 +80,14 @@ if (USE_EMULATORS) {
 }
 
 export const getAppCheck = () => appCheck;
+
+/**
+ * After one failed token exchange the SDK refuses every request for 24 hours, but only in memory, until the page
+ * reloads. Clearing that lets the app try again at once instead of leaving a person locked out of AI for a day.
+ */
+export function resetAppCheckThrottle(): boolean {
+  const p = appCheckProvider as unknown as { _throttleData?: unknown } | null;
+  if (!p || !("_throttleData" in p)) return false;
+  p._throttleData = null;
+  return true;
+}

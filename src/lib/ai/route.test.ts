@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../firebase", () => ({ app: {}, USE_EMULATORS: false, getAppCheck: () => null }));
+const { resetAppCheckThrottle } = vi.hoisted(() => ({ resetAppCheckThrottle: vi.fn(() => true) }));
+vi.mock("../firebase", () => ({ app: {}, USE_EMULATORS: false, getAppCheck: () => null, resetAppCheckThrottle }));
 
 import { InferenceMode } from "firebase/ai";
 import { route } from "./route";

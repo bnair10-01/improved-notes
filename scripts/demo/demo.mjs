@@ -117,6 +117,7 @@ async function writeNote({ title, body, topic }) {
 async function run() {
   d = await launch({ headed: HEADED, outDir: OUT, speed: SPEED });
   if (RECORD) await d.startRecording();
+  if (!HEADED) log("  note:    headless Chrome is treated as a bot by reCAPTCHA, so the AI scenes will be refused. Use the visible window for those.");
   log(`Improved Notes demo\n  site:    ${BASE}\n  window:  ${HEADED ? "visible Chrome" : "headless"}\n  output:  ${OUT}`);
 
   await scene("welcome", "1. The welcome page, before signing in", async (t) => {

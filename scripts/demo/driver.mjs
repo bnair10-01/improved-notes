@@ -158,7 +158,7 @@ export async function launch({ headed = true, width = 1440, height = 900, chrome
   handlers.push((m) => {
     if (m.method === "Page.javascriptDialogOpening") send("Page.handleJavaScriptDialog", { accept: true, promptText: d.promptText }).catch(() => undefined);
     if (m.method === "Runtime.exceptionThrown") consoleErrors.push(m.params.exceptionDetails.exception?.description?.split("\n")[0] ?? m.params.exceptionDetails.text);
-    if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") consoleErrors.push(m.params.args.map((a) => a.value ?? a.description ?? "").join(" ").slice(0, 200));
+    if (m.method === "Runtime.consoleAPICalled" && (m.params.type === "error" || m.params.type === "warning")) consoleErrors.push(m.params.args.map((a) => a.value ?? a.description ?? "").join(" ").slice(0, 200));
   });
   await send("Page.enable"); await send("Runtime.enable");
   // Behave as if the window is focused even when it is not, so menus stay open if you use other windows meanwhile.

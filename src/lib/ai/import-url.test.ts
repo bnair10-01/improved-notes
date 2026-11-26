@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../firebase", () => ({ app: {}, USE_EMULATORS: true, getAppCheck: () => null }));
+const { resetAppCheckThrottle } = vi.hoisted(() => ({ resetAppCheckThrottle: vi.fn(() => true) }));
+vi.mock("../firebase", () => ({ app: {}, USE_EMULATORS: true, getAppCheck: () => null, resetAppCheckThrottle }));
 
 const calls: { params: Record<string, unknown>; input: unknown }[] = [];
 let answer = "";

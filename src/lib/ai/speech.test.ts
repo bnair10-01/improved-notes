@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../firebase", () => ({ app: {}, USE_EMULATORS: true, getAppCheck: () => null }));
+const { resetAppCheckThrottle } = vi.hoisted(() => ({ resetAppCheckThrottle: vi.fn(() => true) }));
+vi.mock("../firebase", () => ({ app: {}, USE_EMULATORS: true, getAppCheck: () => null, resetAppCheckThrottle }));
 
 import { bestDeviceVoice, passages } from "./speech";
 

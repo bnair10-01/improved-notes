@@ -1,5 +1,5 @@
 import { AIError, getAI, getGenerativeModel, GoogleAIBackend, type Part, type Tool } from "firebase/ai";
-import { app, getAppCheck, USE_EMULATORS } from "../firebase";
+import { app, getAppCheck, resetAppCheckThrottle, USE_EMULATORS } from "../firebase";
 import { loadAiConfig } from "./config";
 import { route, type AiTask } from "./route";
 import { toSchema, type JS } from "./schema";
@@ -41,6 +41,8 @@ export function explain(err: unknown): AiFailure {
     return new AiFailure("This project's AI credits have run out. Add credits or billing in Google AI Studio, then try again.", "quota");
   if (status === 429 || /resource.?exhausted|rate.?limit|too many/i.test(msg))
     return new AiFailure("Too many requests right now. Please wait a moment and try again.", "rate_limit");
+  if (/throttled/i.test(msg))
+    return new AiFailure("The security check paused after a failed attempt. Reload the page to try again.", "app_check");
   if (/app.?check/i.test(msg))
     return new AiFailure("This device couldn't be verified (App Check). Reload the page and try again.", "app_check");
   if (status === 403 || /quota|billing/i.test(msg))
@@ -55,6 +57,8 @@ async function withAppCheckRetry<T>(call: () => Promise<T>): Promise<T> {
   try { return await call(); }
   catch (e) {
     if (explain(e).kind !== "app_check") throw e;
+    // A throttled SDK would refuse again at once, so clear its 24 hour pause before trying with a fresh token.
+    if (/throttled/i.test(String((e as Error)?.message ?? ""))) resetAppCheckThrottle();
     await new Promise((r) => setTimeout(r, 1500));
     return call();
   }
@@ -76,7 +80,8 @@ export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Pro
   const chars = opts.chars ?? opts.instructions.length;
   const r = route(opts.task, chars, { hasImages: !!opts.hasImages, forceCloud: !!opts.forceCloud });
   // Simple tasks don't need the model to "think" first (it adds seconds). Hard ones (photos, drawings, 3D) keep it.
-  const thinks = opts.task === "transcribe" || opts.task === "diagrams" || opts.task === "model3d" || !!opts.hasImages;
+  // (3D models are long structured answers; with thinking on, the model sometimes returned a single part.)
+  const thinks = opts.task === "transcribe" || opts.task === "diagrams" || !!opts.hasImages;
   const model = getGenerativeModel(ai(), {
     mode: r.mode,
     // Tell the on-device model the JSON shape too, otherwise it answers in free text.
@@ -96,6 +101,7 @@ export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Pro
     recordInference(source, opts.task);
     return { text: result.response.text(), source };
   } catch (e) {
+    console.warn(`AI call failed (${opts.task}):`, e instanceof Error ? e.message : e);
     throw explain(e);
   }
 }
@@ -157,7 +163,7 @@ export async function safe<T extends object>(label: string, fn: () => Promise<T>
     return { ok: true, ...(await fn()) };
   } catch (e) {
     const f = explain(e);
-    if (f.kind === "other") console.error(`${label} failed`, e);
+    console.error(`${label} failed (${f.kind})`, e); // keep the real reason visible for debugging, whatever the person is told
     return { ok: false, error: f.message };
   }
 }

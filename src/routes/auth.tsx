@@ -8,6 +8,7 @@ import {
   authMessage, isPermanent, rememberNext, signInWithApple, signInWithEmail, signInWithGoogle, signUpWithEmail, takeNext, useAuth,
 } from "@/lib/auth";
 import { GoogleMark } from "@/components/GoogleMark";
+import { IS_NATIVE } from "@/lib/firebase";
 
 function safePath(p: unknown) {
   return typeof p === "string" && p.startsWith("/") && !p.startsWith("//") ? p : "/history";
@@ -52,24 +53,26 @@ function AuthPage() {
           One account on every device. Anything you captured as a guest comes with you.
         </p>
 
-        <div className="mt-6 space-y-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }}
-            onClick={() => run(signInWithGoogle)}
-            disabled={busy}
-          >
-            <GoogleMark />
-            Continue with Google
-          </Button>
-          <Button type="button" variant="outline" className="w-full" onClick={() => run(signInWithApple)} disabled={busy}>
-            Continue with Apple
-          </Button>
-        </div>
+        {!IS_NATIVE && (
+          <div className="mt-6 space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }}
+              onClick={() => run(signInWithGoogle)}
+              disabled={busy}
+            >
+              <GoogleMark />
+              Continue with Google
+            </Button>
+            <Button type="button" variant="outline" className="w-full" onClick={() => run(signInWithApple)} disabled={busy}>
+              Continue with Apple
+            </Button>
+          </div>
+        )}
 
-        <div className="my-4 text-center text-xs text-muted-foreground">or with email</div>
+        <div className="my-4 text-center text-xs text-muted-foreground">{IS_NATIVE ? "Sign in with email" : "or with email"}</div>
 
         <form
           onSubmit={(e) => { e.preventDefault(); run(() => (mode === "in" ? signInWithEmail(email, password) : signUpWithEmail(email, password))); }}

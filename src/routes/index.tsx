@@ -8,6 +8,7 @@ import { GoogleMark } from "@/components/GoogleMark";
 import { NewActionGrid } from "@/components/shell/NewActions";
 import { Hint } from "@/components/shell/Hint";
 import { Button } from "@/components/ui/button";
+import { IS_NATIVE } from "@/lib/firebase";
 import { authMessage, isPermanent, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
 import { studyOverviewQuery } from "@/lib/study";
 import { openTarget, useVault, type VNote } from "@/lib/vault";
@@ -49,9 +50,9 @@ function Welcome() {
         <h1 className="mt-4 font-serif text-3xl font-semibold leading-tight sm:text-5xl">Take notes. See the <span className="italic text-primary">map</span>. Learn it.</h1>
         <p className="mt-3 text-muted-foreground">Scan handwriting or type, link ideas together, and study with flashcards and quizzes made only from what you wrote.</p>
         <div className="mt-6 max-w-sm">
-          <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={google} disabled={busy}>
+          {!IS_NATIVE && <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={google} disabled={busy}>
             {busy ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
-          </Button>
+          </Button>}
           <Button asChild variant="ghost" size="sm" className="mt-1 w-full text-muted-foreground"><Link to="/auth" search={{ redirect: "/" }}>Use email instead</Link></Button>
           <Button asChild variant="ghost" size="sm" className="w-full text-muted-foreground"><Link to="/capture">Try it without an account</Link></Button>
         </div>

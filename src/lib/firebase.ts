@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
+import { Capacitor } from "@capacitor/core";
+import { browserLocalPersistence, connectAuthEmulator, getAuth, indexedDBLocalPersistence, initializeAuth, type Auth } from "firebase/auth";
 import {
   connectFirestoreEmulator,
   initializeFirestore,
@@ -28,7 +29,12 @@ export const firebaseConfigured = Boolean(env.VITE_FIREBASE_API_KEY) || USE_EMUL
 
 export const app: FirebaseApp = getApps().length ? getApp() : initializeApp(config);
 
-export const auth: Auth = getAuth(app);
+// Inside the Android/iOS apps the default web setup (popup/redirect resolvers) can hang in the
+// WebView, so use plain persistence there. Browser sign-in popups are not available in the app.
+export const IS_NATIVE = Capacitor.isNativePlatform();
+export const auth: Auth = IS_NATIVE
+  ? initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] })
+  : getAuth(app);
 
 // Offline-first: a full local replica, shared across tabs, so notes stay readable
 // and editable without a connection and sync when it returns.

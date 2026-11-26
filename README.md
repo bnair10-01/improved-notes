@@ -79,9 +79,9 @@ npx cap open ios         # open in Xcode
 ```
 
 - **Android:** the debug APK builds. It has not been run on a device or emulator.
-- **iOS:** the project is generated but has **not been built**: Xcode needs `sudo xcodebuild -runFirstLaunch` once on this machine.
+- **iOS:** builds for the simulator and launches there (the interface renders and loads). Not run on a physical iPhone. The first build on a new machine needs `sudo xcodebuild -runFirstLaunch` once.
 - **Inside the native apps** the AI uses the cloud model: on-device Gemini Nano (Android) and Apple Foundation Models (iOS) need a native Firebase AI Logic plugin that is **not written yet**.
-- **Sign-in:** email works. Google and Apple sign-in use browser popups, which don't work in a WebView; they need `@capacitor-firebase/authentication`, not added yet. App Check's reCAPTCHA also doesn't work in a WebView, so native builds need a debug token for now.
+- **Sign-in:** email only inside the apps. Google and Apple sign-in use browser popups, which don't work in a WebView, so those buttons are hidden there until `@capacitor-firebase/authentication` is added. App Check's reCAPTCHA also doesn't work in a WebView, so native builds need a debug token for now.
 - **macOS and Windows:** not started. Tauri needs Rust, which is not installed.
 
 ## Status
@@ -99,7 +99,7 @@ Not yet verified or not built:
 - **On-device inference (Gemini Nano) has not been exercised.**
 - `scripts/setup-backups.sh`: the Firestore commands match the gcloud docs; the Storage commands are unchecked.
 - Design: the Dark v2 palette and fonts are applied. The new workspace layout (insight column), topics, first-run screens, 3D viewer changes and pen tools are not built.
-- Android builds as a debug APK (not run on a device); iOS is not built yet; macOS and Windows are not started. See "Native apps" above.
+- Android builds as a debug APK (not run on a device or emulator); iOS builds and launches on the simulator; macOS and Windows are not started. See "Native apps" above.
 
 ## License
 

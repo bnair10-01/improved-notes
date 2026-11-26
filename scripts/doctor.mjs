@@ -74,7 +74,13 @@ if (!emu && debugToken) {
     }),
     isTokenAutoRefreshEnabled: false,
   });
-  pass("App Check", "debug token configured");
+  await step("App Check (debug token accepted by Google)", "register the token: Console > App Check > Apps > your web app > Manage debug tokens; the app must also be registered with the reCAPTCHA Enterprise provider", async () => {
+    const r = await fetch(`https://firebaseappcheck.googleapis.com/v1/projects/${config.projectId}/apps/${config.appId}:exchangeDebugToken?key=${config.apiKey}`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ debug_token: debugToken }),
+    });
+    if (!r.ok) throw new Error(`exchange failed (${r.status}): ${(await r.text()).slice(0, 160).replace(/\s+/g, " ")}`);
+    return "token exchanged for an App Check token";
+  });
 } else if (!emu) {
   skip("App Check", "no VITE_APPCHECK_DEBUG_TOKEN; AI Logic will fail if App Check is enforced");
 }

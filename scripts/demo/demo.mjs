@@ -127,21 +127,25 @@ async function run() {
   await scene("welcome", "1. The welcome page, before signing in", async (t) => {
     await d.goto(BASE);
     await d.waitFor("document.querySelector('h1') && /Take notes/.test(document.querySelector('h1').innerText)", { label: "headline" });
-    await say("Welcome. Sign in with Google or email, or try it with no account.");
+    await say("Welcome. Start writing right away, or sign in with Google or email.");
     t.check("Headline shows", /Take notes/.test(await text()));
+    t.check("One clear way to begin: Start writing", /Start writing/.test(await text()));
     t.check("Google sign-in offered", /Continue with Google/.test(await text()));
+    t.check("The home page is not a list of features", !/Scan a page|Add a source|Write or draw/.test(await text()));
     t.check("No Apple sign-in", !/Apple/.test(await text()));
     await d.shot("welcome");
   });
 
-  await scene("guest", "2. Try it without an account, then the Capture hub", async (t) => {
-    await d.click({ text: "Try it without an account" });
-    await d.waitFor("/\\/capture/.test(location.pathname)", { label: "capture page" });
-    await d.waitFor("document.querySelectorAll('[role=radio]').length >= 8", { label: "capture methods" });
-    await say("One place to capture anything: scan, write, voice, lectures, websites, PDFs, slides, YouTube.", 2200);
-    t.check("Eight capture methods", (await d.evaluate("document.querySelectorAll('[role=radio]').length")) === 8);
-    t.check("Guest banner or guest avatar present", /Guest/.test(await text()));
-    await d.shot("capture-hub");
+  await scene("guest", "2. Start writing: a blank page, with every tool in reach", async (t) => {
+    await d.click({ text: "^Start writing$" });
+    await d.waitFor("/\\/vault\\/[^/]+$/.test(location.pathname) && document.querySelector('[aria-label=Title]') && document.querySelector('[data-note-tools]')", { label: "a blank note with tools" });
+    await d.pause(1200);
+    await say("No menu of features. You land on a blank page, and everything you can bring in sits right above it.", 2800);
+    const tools = await d.evaluate("document.querySelector('[data-note-tools]')?.innerText ?? ''");
+    for (const tool of ["Scan", "Voice or lecture", "PDF or slides", "Website", "YouTube"]) t.check(`Tool at hand: ${tool}`, tools.includes(tool));
+    t.check("The Insight column is there from the first moment", await d.evaluate("!!document.querySelector('[data-testid=insight-column]')"));
+    t.check("Signed in as a guest", /Guest/.test(await text()));
+    await d.shot("blank-note-with-tools");
   });
 
   await scene("topics", "3. Creating topics", async (t) => {
@@ -222,14 +226,14 @@ async function run() {
     await d.shot("model-dialog");
     const before = await pathId();
     await d.click({ within: "[role=dialog]", text: "^Create 3D model$" });
-    await d.waitFor(`location.pathname.split('/').pop() !== ${JSON.stringify(before)} && document.querySelectorAll('button[aria-label]').length > 8`, { timeout: 180000, label: "the generated model" });
-    await d.waitFor("[...document.querySelectorAll('button[aria-label]')].filter(b=>/^\\d+\\. /.test(b.getAttribute('aria-label'))).length >= 4", { timeout: 60000, label: "numbered parts" });
+    await d.waitFor(`location.pathname.split('/').pop() !== ${JSON.stringify(before)} && document.querySelectorAll('ul[aria-label=Parts] li').length >= 4`, { timeout: 180000, label: "the generated model" });
     await d.pause(2500);
-    const parts = await d.evaluate("[...document.querySelectorAll('button[aria-label]')].filter(b=>/^\\d+\\. /.test(b.getAttribute('aria-label'))).length");
-    t.check("A 3D model was generated from the note", parts >= 4, `${parts} numbered parts`);
+    const parts = await d.evaluate("document.querySelectorAll('ul[aria-label=Parts] li').length");
+    t.check("A 3D model was generated from the note", parts >= 4, `${parts} parts`);
+    t.check("The model is not cluttered with labels", parts <= 14 && (await d.evaluate("document.querySelectorAll('button[aria-label]:not([aria-label*=Show])').length")) < 60);
     t.check("The model is a 3D scene", await d.evaluate("!!document.querySelector('canvas')"));
     t.check("The model note links back to the note it came from", /Mitochondria/.test(await text()));
-    await say("Every part is numbered. Drag to orbit, scroll to zoom.", 1500);
+    await say("A clean model. Drag to orbit, scroll to zoom, hover a part to see what it is.", 2200);
     await d.shot("model-3d");
     // Take it apart with the slider.
     await d.evaluate("(()=>{const r=document.querySelector('input[type=range][aria-label=\"Explode assembly\"]');const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(r,'100');r.dispatchEvent(new Event('input',{bubbles:true}));r.dispatchEvent(new Event('change',{bubbles:true}))})()");
@@ -238,8 +242,7 @@ async function run() {
     t.check("The model takes itself apart", Number(await d.evaluate("document.querySelector('input[type=range][aria-label=\"Explode assembly\"]').value")) >= 90);
     await d.shot("model-exploded");
     // Open a part.
-    const picked = await d.click({ sel: "button[aria-label]", text: "^\\d+\\. " });
-    const partNo = (/^(\d+)\./.exec(picked.text) || [])[1] || "1";
+    await d.click({ sel: "ul[aria-label=Parts] li button[class*='flex-1']", nth: 1 });
     await d.waitFor("document.querySelector('section[aria-label=\"Selected part\"]')", { label: "the part panel" });
     await d.pause(900);
     t.check("Each part has Learn, Ask and Notes", await d.evaluate("['Learn','Ask','Notes'].every(x=>[...document.querySelectorAll('section[aria-label=\"Selected part\"] [role=tab]')].some(b=>b.textContent.startsWith(x)))"));
@@ -253,7 +256,12 @@ async function run() {
     await d.type("Where the proton gradient is built.", { chunk: 2, delay: 25 });
     t.check("What was typed arrives intact", (await d.evaluate("document.querySelector('section[aria-label=\"Selected part\"] textarea').value")) === "Where the proton gradient is built.");
     await d.pause(2200);
-    t.check("A note on a part adds a gold dot to its number", await d.evaluate("!!document.querySelector('button[aria-label^=\"" + partNo + ".\"] span[class*=c9a24a]')"));
+    t.check("A note on a part adds a gold dot to its Notes tab", await d.evaluate("!!document.querySelector('section[aria-label=\"Selected part\"] [role=tab] span[aria-label=\"has notes\"]')"));
+    await d.click({ sel: "button", text: "^Numbers$" });
+    await d.pause(900);
+    t.check("Numbers can be switched on when wanted", (await d.evaluate("[...document.querySelectorAll('button[aria-label]')].filter(b=>/^\\d+\\. /.test(b.getAttribute('aria-label'))).length")) >= 3);
+    await d.shot("model-numbers");
+    await d.click({ sel: "button", text: "^Numbers$" });
     await d.shot("model-part-notes");
     // It belongs to the topic.
     await openTopic("Cell Biology");
@@ -309,32 +317,92 @@ async function run() {
     await d.shot("graph-ai-refine");
   });
 
-  await scene("newtopic", "11. A new topic, filled from a web page", async (t) => {
+  await scene("newtopic", "11. A website, divided into notes under a topic you name", async (t) => {
     await rail("Topics");
     await newTopic("Astronomy");
-    await d.press("k", { meta: true });
-    await d.waitFor("document.querySelector('[cmdk-input]')", { label: "palette" });
-    await d.type("Capture", { chunk: 1, delay: 70 });
-    await d.pause(500);
-    await d.press("Enter");
-    await d.waitFor("/\\/capture/.test(location.pathname)", { label: "capture" });
-    await say("Capture a website: Gemini reads the page and writes notes, citing the link.", 1600);
-    await d.click({ sel: "[role=radio]", text: "Website" });
-    await d.evaluate("(()=>{const s=document.querySelector('select[aria-label=Topic]');const o=[...s.options].find(o=>o.text==='Astronomy');const set=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;set.call(s,o.value);s.dispatchEvent(new Event('change',{bubbles:true}))})()");
-    await d.pause(500);
+    await rail("Notes");
+    const before = await pathId();
+    await d.click({ text: "^Write$" });
+    await d.waitFor(`/\\/vault\\/[^/]+$/.test(location.pathname) && location.pathname.split('/').pop() !== ${JSON.stringify(before)} && document.querySelector('[data-note-tools]')`, { label: "a blank note" });
+    await say("Bring in a website from the tools above the page. It is read, then divided into notes.", 2400);
+    await d.click({ sel: "[data-note-tools] button", text: "Website" });
+    await d.waitFor("document.querySelector('#capture-url')", { label: "the link box" });
     await d.click({ sel: "#capture-url" });
     await d.type("https://en.wikipedia.org/wiki/Black_hole", { chunk: 2, delay: 20 });
-    await d.shot("capture-website");
-    await d.click({ text: "Make notes" });
-    await d.waitFor("/\\/vault\\/[^/]+$/.test(location.pathname) && document.querySelector('[aria-label=Title]')?.value", { timeout: 120000, label: "imported note" });
+    await d.shot("website-dialog");
+    await d.click({ text: "Read and divide" });
+    await d.waitFor("document.querySelector('[aria-label=\"Notes to create\"]')", { timeout: 150000, label: "the preview of notes" });
     await d.pause(1500);
-    const page = await text();
-    t.check("A note was written from the page", (await d.evaluate("document.querySelector('[aria-label=Title]').value")).length > 2);
-    t.check("The note cites the page it came from", /Source:/.test(page) || /wikipedia/i.test(page));
-    await d.shot("website-note");
+    const parts = await d.evaluate("document.querySelectorAll('[aria-label=\"Notes to create\"] li').length");
+    t.check("The page was divided into several notes, not one", parts >= 3, `${parts} sections`);
+    t.check("Each part says what it covers", await d.evaluate("[...document.querySelectorAll('[aria-label=\"Notes to create\"] li')].every(li=>li.innerText.trim().length>12)"));
+    await say("Each idea gets its own note. You choose the topic, and can drop any part.", 2400);
+    await d.click({ sel: "[aria-label='Topic name']" });
+    await d.evaluate("document.querySelector('[aria-label=\"Topic name\"]').select()");
+    await d.type("Astronomy", { chunk: 1, delay: 45 });
+    await d.shot("split-preview");
+    await d.click({ sel: "button", text: "^Save \\d+ notes" });
+    await d.waitFor("/\\/vault\\/[^/]+$/.test(location.pathname) && /overview/i.test(document.querySelector('[aria-label=Title]')?.value ?? '')", { timeout: 60000, label: "the overview note" });
+    await d.pause(1500);
+    t.check("An overview note links to every part", (await d.evaluate("document.querySelectorAll('article a.wikilink').length")) >= 3);
+    t.check("The notes cite the page they came from", /Source:/.test(await text()) || /wikipedia/i.test(await text()));
+    await d.shot("overview-note");
     await openTopic("Astronomy");
-    t.check("It appears in the Astronomy topic as a website item", /Website/i.test(await text()));
+    const items = await d.evaluate("document.querySelectorAll('main ul li a').length");
+    t.check("They all sit together in the Astronomy topic", items >= 4, `${items} items`);
+    t.check("Each is marked as coming from a website", await d.evaluate("[...document.querySelectorAll('[role=tab]')].some(b=>/website/i.test(b.textContent))"));
     await d.shot("topic-astronomy");
+  });
+
+  await scene("suggest", "11b. A note with no topic gets one suggested from what it says", async (t) => {
+    await rail("Notes");
+    const before = await pathId();
+    await d.click({ text: "^Write$" });
+    await d.waitFor(`/\\/vault\\/[^/]+$/.test(location.pathname) && location.pathname.split('/').pop() !== ${JSON.stringify(before)}`, { label: "a new note" });
+    await d.click({ sel: "[aria-label=Title]" });
+    await d.evaluate("document.querySelector('[aria-label=Title]').select()");
+    await d.type("Ribosomes", { chunk: 1, delay: 40 });
+    await d.press("Enter");
+    await d.click({ sel: "textarea[aria-label='Note markdown']" });
+    await d.type("Ribosomes build proteins inside the cell. Mitochondria have their own ribosomes, which make some of the ATP machinery used in respiration.", { chunk: 3, delay: 18 });
+    await say("No topic chosen. After a moment, the app notices what the note is about.", 2200);
+    await d.waitFor("document.querySelector('[data-topic-suggestion]')", { timeout: 40000, label: "a topic suggestion" });
+    await d.pause(900);
+    const sug = await d.evaluate("document.querySelector('[data-topic-suggestion]').innerText");
+    t.check("A topic is suggested from the note's own words", /Cell Biology/.test(sug), sug.replace(/\n/g, " "));
+    t.check("Nothing is filed until you say so", /No folder/.test(await text()));
+    await d.shot("topic-suggestion");
+    await d.click({ sel: "[data-topic-suggestion] button", text: "Add to topic" });
+    await d.waitFor("[...document.querySelectorAll('button')].some(b=>/^Cell Biology$/.test(b.textContent.trim()))", { timeout: 15000, label: "the note filed under Cell Biology" });
+    t.check("Accepting files the note under that topic", true);
+    await d.shot("topic-accepted");
+  });
+
+  await scene("split", "11c. A long note split into separate notes, one idea each", async (t) => {
+    await rail("Notes");
+    const before = await pathId();
+    await d.click({ text: "^Write$" });
+    await d.waitFor(`/\\/vault\\/[^/]+$/.test(location.pathname) && location.pathname.split('/').pop() !== ${JSON.stringify(before)}`, { label: "a new note" });
+    await d.click({ sel: "[aria-label=Title]" });
+    await d.evaluate("document.querySelector('[aria-label=Title]').select()");
+    await d.type("Lecture: how photosynthesis works and what limits it", { chunk: 2, delay: 25 });
+    await d.press("Enter");
+    await d.click({ sel: "textarea[aria-label='Note markdown']" });
+    await d.type("Photosynthesis happens in two stages. In the light reactions, chlorophyll in the thylakoid membranes absorbs light and splits water, releasing oxygen and making ATP and NADPH. In the Calvin cycle, which takes place in the stroma, the enzyme rubisco fixes carbon dioxide into sugar using that ATP and NADPH.\n\nThe rate of photosynthesis depends on light intensity, carbon dioxide concentration and temperature. At low light the light reactions limit the rate, while at high light the Calvin cycle becomes the bottleneck.\n\nPlants have adapted in different ways. C4 plants concentrate carbon dioxide around rubisco to avoid photorespiration, and CAM plants open their stomata only at night to save water in dry climates.", { chunk: 6, delay: 12 });
+    await d.waitFor("!/Editing…/.test(document.body.innerText)", { timeout: 20000, label: "autosave" });
+    await d.pause(1500);
+    await say("A long note can be cut into separate notes, one idea each.", 2000);
+    await d.click({ sel: "[data-note-tools] button", text: "Split into notes" });
+    await d.waitFor("document.querySelector('[aria-label=\"Notes to create\"]')", { timeout: 120000, label: "the split preview" });
+    await d.pause(1200);
+    const parts = await d.evaluate("document.querySelectorAll('[aria-label=\"Notes to create\"] li').length");
+    t.check("The note was split into several notes", parts >= 3, `${parts} notes`);
+    await d.shot("split-note-preview");
+    await d.click({ sel: "button", text: "^Save \\d+ notes" });
+    await d.waitFor("/\\/vault\\/[^/]+$/.test(location.pathname) && /overview/i.test(document.querySelector('[aria-label=Title]')?.value ?? '')", { timeout: 60000, label: "the overview note" });
+    await d.pause(1200);
+    t.check("The original note is kept, and linked from the new ones", /Lecture: how photosynthesis/.test(await text()));
+    await d.shot("split-note-overview");
   });
 
   await scene("study", "12. Flashcards from a note, each with its source", async (t) => {

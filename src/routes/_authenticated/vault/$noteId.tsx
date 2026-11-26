@@ -14,7 +14,7 @@ import { MarkdownEditor } from "@/components/vault/MarkdownEditor";
 import { remarkUncertain } from "@/lib/remark-uncertain";
 import { remarkHighlight } from "@/lib/remark-highlight";
 import { mentionsTitle, wikilinksToMarkdown } from "@/lib/wikilinks";
-import { addLink, createNote, deleteLink, findByTitle, linkMention, neighborhood, openTarget, renameNote, syncWikilinks, updateNote, useRefreshVault, useVault, vaultQuery } from "@/lib/vault";
+import { addLink, createNote, purgeNote, deleteLink, findByTitle, linkMention, neighborhood, openTarget, renameNote, syncWikilinks, updateNote, useRefreshVault, useVault, vaultQuery } from "@/lib/vault";
 import { useQueryClient } from "@tanstack/react-query";
 import { GenerateDialog } from "@/components/study/GenerateDialog";
 import { StudyPanel } from "@/components/study/StudyPanel";
@@ -23,6 +23,8 @@ import { VersionHistory } from "@/components/vault/VersionHistory";
 import { classifyRemote, conflictCopyTitle } from "@/lib/conflict";
 import { NoteShareMenu } from "@/components/learner/NoteShareMenu";
 import { InsightColumn } from "@/components/vault/InsightColumn";
+import { NoteTools } from "@/components/vault/NoteTools";
+import { TopicSuggestion } from "@/components/vault/TopicSuggestion";
 import { ResizableInsight } from "@/components/vault/ResizableInsight";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { InferenceBadge } from "@/components/shell/InferenceBadge";
@@ -130,6 +132,15 @@ function NoteEditor({ noteId }: { noteId: string }) {
   }
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
+  // Leaving a page you never wrote on, titled or filed shouldn't leave an empty "Untitled" behind.
+  const draft = useRef({ note, md, title });
+  draft.current = { note, md, title };
+  useEffect(() => () => {
+    const { note: n, md: text, title: t } = draft.current;
+    if (!n || n.kind !== "text" || text.trim() || t.trim() !== "Untitled" || n.folder_id || n.tags.length || n.source_note_ids.length || n.pinned) return;
+    void updateNote(noteId, { deleted_at: new Date().toISOString() }).then(() => purgeNote(noteId)).catch(() => undefined);
+  }, [noteId]);
+
   async function commitTitle() {
     const t = title.trim() || "Untitled";
     if (!vault || t === savedTitle.current) return;
@@ -200,6 +211,8 @@ function NoteEditor({ noteId }: { noteId: string }) {
             onBlur={async (e) => { const tags = [...new Set(e.target.value.split(",").map((s) => s.trim().replace(/^#/, "")).filter(Boolean))]; if (tags.join() !== note.tags.join()) { await updateNote(noteId, { tags }); await refresh(); } }} />
         </div>
 
+        <NoteTools note={note} markdown={md} />
+        <TopicSuggestion note={note} vault={vault} markdown={md} />
         {note.kind === "model3d" && <div className="mt-4"><ModelNotePanel noteId={noteId} /></div>}
         {(note.kind === "slides" || note.kind === "audio") && (
           <div className="mt-4">

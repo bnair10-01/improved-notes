@@ -19,15 +19,17 @@ vi.mock("firebase/ai", async (orig) => {
 import { importFromUrl } from "./tasks";
 
 describe("importFromUrl", () => {
-  beforeEach(() => { calls.length = 0; answer = "# Mitochondria\n\nThe powerhouse.\n\n- ATP"; });
+  beforeEach(() => { calls.length = 0; answer = "# Mitochondria\n\nThe organelle that makes ATP.\n\n## Structure\nTwo membranes.\n\n## Function\nRespiration makes ATP."; });
 
-  it("reads a website through the URL tool and returns titled notes with the source", async () => {
+  it("reads a website through the URL tool and divides it into sections, one idea each", async () => {
     const r = await importFromUrl({ url: "https://example.com/bio" });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.item.title).toBe("Mitochondria");
     expect(r.item.kind).toBe("website");
-    expect(r.item.markdown).toContain("Source: [example.com](https://example.com/bio)");
+    expect(r.item.overview).toBe("The organelle that makes ATP.");
+    expect(r.item.sections.map((x) => x.title)).toEqual(["Structure", "Function"]);
+    expect(r.item.url).toBe("https://example.com/bio");
     expect((calls[0]!.params["inCloudParams"] as { tools?: unknown }).tools).toEqual([{ urlContext: {} }]);
   });
 

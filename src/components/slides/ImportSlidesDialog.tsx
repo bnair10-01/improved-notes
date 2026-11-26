@@ -1,3 +1,4 @@
+import { takeCaptureTopic } from "@/lib/capture-context";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,7 +37,7 @@ export function ImportSlidesDialog({ open, onOpenChange }: { open: boolean; onOp
       }
       // One atomic write: the deck and its image records appear together or not at all.
       const now = nowIso(), batch = writeBatch(db);
-      batch.set(userDoc("notes", noteId), { title: file.name.replace(/\.(pdf|pptx)$/i, ""), markdown: slidesToMarkdown(result.slides.map((s) => s.slide)), kind: "slides", folder_id: null, tags: [], pinned: false, deleted_at: null, source_note_ids: [], created_at: now, updated_at: now, rev: 1 });
+      batch.set(userDoc("notes", noteId), { title: file.name.replace(/\.(pdf|pptx)$/i, ""), markdown: slidesToMarkdown(result.slides.map((s) => s.slide)), kind: "slides", folder_id: takeCaptureTopic(), tags: [], pinned: false, deleted_at: null, source_note_ids: [], created_at: now, updated_at: now, rev: 1 });
       for (const a of attachments) batch.set(userDoc("attachments", a.id), a.data);
       try { await commit(batch.commit()); } catch { throw new Error("Couldn't save this deck."); }
       setProgress(100);

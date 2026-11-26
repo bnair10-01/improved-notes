@@ -33,8 +33,8 @@ class CanvasBoundary extends Component<{ children: ReactNode; fallback: ReactNod
   static getDerivedStateFromError() { return { failed: true }; }
   override render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
-function Piece({ part, geometry, t, selected, dim, labels, select, focus, n, hasNote, showLabel }: {
-  part: Part; geometry?: BufferGeometry; t: number; selected: boolean; dim: boolean; labels: boolean; select: () => void; focus: () => void; n: number; hasNote: boolean; showLabel: boolean;
+function Piece({ part, geometry, t, selected, dim, labels, select, focus, n, hasNote, showLabel, hover, onHover }: {
+  part: Part; geometry?: BufferGeometry; t: number; selected: boolean; dim: boolean; labels: boolean; select: () => void; focus: () => void; n: number; hasNote: boolean; showLabel: boolean; hover: boolean; onHover: (on: boolean) => void;
 }) {
   const op = part.opacity ?? 1;
   const shell = op < 0.5; // see-through shells let clicks reach the parts inside them
@@ -49,8 +49,9 @@ function Piece({ part, geometry, t, selected, dim, labels, select, focus, n, has
     else mesh.current.position.lerp(target, 1 - Math.exp(-12 * dt));
   });
   return <mesh ref={mesh} geometry={geometry ?? generated!} dispose={null} position={part.position} rotation={part.rotation} {...(shell ? { raycast: () => null } : {})}
+    onPointerOver={e => { e.stopPropagation(); onHover(true); }} onPointerOut={() => onHover(false)}
     onClick={e => { e.stopPropagation(); select(); }} onDoubleClick={e => { e.stopPropagation(); focus(); }}>
-    <meshStandardMaterial color={part.color} transparent={dim || op < 1} opacity={dim ? Math.min(0.15, op) : op} depthWrite={op >= 1} emissive={part.color} emissiveIntensity={selected ? 0.35 : shell ? 0.3 : 0} roughness={0.6} />
+    <meshStandardMaterial color={part.color} transparent={dim || op < 1} opacity={dim ? Math.min(0.15, op) : op} depthWrite={op >= 1} emissive={part.color} emissiveIntensity={selected ? 0.4 : hover ? 0.5 : shell ? 0.3 : 0} roughness={0.6} />
     {shell && !dim && <Edges color={part.color} threshold={25} />}
     {showLabel && <Html center distanceFactor={12}><div className="flex items-center gap-1.5"><button onClick={select} aria-label={`${n}. ${part.name}`} className="relative grid h-6 w-6 place-items-center rounded-full border bg-background/80 font-mono text-[11px] text-foreground shadow backdrop-blur">{n}{hasNote && <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[#c9a24a]" />}</button>{(labels || selected) && <span className="whitespace-nowrap text-xs text-foreground [text-shadow:0_1px_6px_#000]">{part.name}</span>}</div></Html>}
   </mesh>;
@@ -77,7 +78,7 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
     window.addEventListener('keydown', on);
     return () => window.removeEventListener('keydown', on);
   }, []);
-  const [explode, setExplode] = useState(0), [labels, setLabels] = useState(false), [rotate, setRotate] = useState(false);
+  const [explode, setExplode] = useState(0), [labels, setLabels] = useState(false), [numbers, setNumbers] = useState(false), [rotate, setRotate] = useState(false), [hoverId, setHoverId] = useState<string | null>(null);
   const [focus, setFocus] = useState<Vec3>([0, 0, 0]), [radius, setRadius] = useState(8), [reset, setReset] = useState(0);
   const [tour, setTour] = useState<number | null>(null), [busy, setBusy] = useState(false), [webgl, setWebgl] = useState(true);
   const container = useRef<HTMLDivElement>(null), group = useRef<Group>(null), canvas = useRef<HTMLCanvasElement | null>(null);
@@ -177,7 +178,7 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
   const editable = !glbUrl;
   const checklist = <div className="space-y-2">
     <label className="block text-sm">Search parts<input className="mt-1 w-full rounded border bg-background p-2" value={search} onChange={e => setSearch(e.target.value)} /></label>
-    <ul className="max-h-72 space-y-1.5 overflow-auto" aria-label="Parts">{primaries.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map(p => { const copies = parts.filter(x => x.instance_of === p.id).length + 1; return <li key={p.id} className={`rounded-lg border p-2 ${selectedId === p.id ? 'border-foreground' : ''}`}>
+    <ul className="max-h-72 space-y-1.5 overflow-auto" aria-label="Parts">{primaries.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map(p => { const copies = parts.filter(x => x.instance_of === p.id).length + 1; return <li key={p.id} onMouseEnter={() => setHoverId(p.id)} onMouseLeave={() => setHoverId(null)} className={`rounded-lg border p-2 ${selectedId === p.id ? 'border-foreground' : ''}`}>
       <div className="flex items-center gap-2">
         <input type="checkbox" aria-label={`Show ${p.name}`} checked={!hidden.has(p.id)} onChange={e => setHidden(old => { const n = new Set(old); if (e.target.checked) n.delete(p.id); else n.add(p.id); return n; })} />
         <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border font-mono text-[10px]">{primaries.indexOf(p) + 1}</span>
@@ -193,18 +194,21 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
     {!!path.length && <nav aria-label="Model breadcrumbs" className="flex flex-wrap gap-2 text-sm"><button onClick={() => navigate([])}>{root.title}</button>{crumbs.map((p, i) => <button key={p.id} onClick={() => navigate(path.slice(0, i + 1))}>/ {p.name}</button>)}</nav>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {glbUrl && !loaded && !error && <p role="status">Loading uploaded model…</p>}
-    {webgl ? <CanvasBoundary fallback={fallback}><div className={compact ? 'h-64' : 'h-80 sm:h-[28rem]'} aria-label="Interactive 3D model. Use the parts list for keyboard navigation.">
+    {webgl ? <CanvasBoundary fallback={fallback}><div className={`relative overflow-hidden rounded-lg bg-[radial-gradient(ellipse_at_50%_40%,#1b1b1e_0%,#0c0c0d_60%,#070708_100%)] ${compact ? 'h-64' : 'h-80 sm:h-[30rem]'}`} aria-label="Interactive 3D model. Use the parts list for keyboard navigation.">
       <Canvas camera={{ position: [8, 6, 8], near: 0.01, far: 1000 }} gl={{ preserveDrawingBuffer: true }} onCreated={({ gl }) => { canvas.current = gl.domElement; }} onPointerMissed={() => setSelected(null)}>
         <ambientLight intensity={0.8} /><directionalLight position={[5, 8, 5]} intensity={2} />
         <Environment resolution={128}><Lightformer position={[0, 5, -4]} scale={[10, 10, 1]} intensity={2} /></Environment>
-        <Html><span aria-hidden /></Html>{/* the first label the 3D library mounts renders empty; this one absorbs that */}
-        <group ref={group}>{parts.filter(p => { const k = p.instance_of ?? p.id; return !hidden.has(k) && (!isolate || isolate === k); }).map(p => { const k = p.instance_of ?? p.id; return <Piece n={primaries.findIndex(x => x.id === k) + 1} showLabel={!p.instance_of} hasNote={!!(p.instance_of ? primaries.find(x => x.id === k)?.note : p.note)} key={`${path.join('/')}/${p.id}`} part={p} {...(loaded?.geometry.get(p.id) ? { geometry: loaded.geometry.get(p.id)! } : {})} t={parts.length < 2 ? 0 : explode} selected={k === selectedId} dim={!!selectedId && k !== selectedId} labels={labels} select={() => setSelected(k)} focus={() => framePart(p)} />; })}</group>
+        {(numbers || labels) && <Html><span aria-hidden /></Html>}{/* the first label the 3D library mounts renders empty; this one absorbs that */}
+        <group ref={group}>{parts.filter(p => { const k = p.instance_of ?? p.id; return !hidden.has(k) && (!isolate || isolate === k); }).map(p => { const k = p.instance_of ?? p.id; return <Piece n={primaries.findIndex(x => x.id === k) + 1} showLabel={!p.instance_of && (numbers || labels)} hover={k === hoverId} onHover={(on: boolean) => setHoverId(on ? k : null)} hasNote={!!(p.instance_of ? primaries.find(x => x.id === k)?.note : p.note)} key={`${path.join('/')}/${p.id}`} part={p} {...(loaded?.geometry.get(p.id) ? { geometry: loaded.geometry.get(p.id)! } : {})} t={parts.length < 2 ? 0 : explode} selected={k === selectedId} dim={!!selectedId && k !== selectedId} labels={labels} select={() => setSelected(k)} focus={() => framePart(p)} />; })}</group>
         <Camera target={focus} reset={reset} radius={radius} rotate={rotate} />
-      </Canvas></div></CanvasBoundary> : fallback}
+      </Canvas>
+      {(hoverId || selectedId) && (() => { const hp = primaries.find(x => x.id === (hoverId ?? selectedId)); return hp ? <div className="pointer-events-none absolute bottom-3 left-3 max-w-[80%] rounded-lg border border-white/10 bg-black/70 px-3 py-1.5 backdrop-blur"><p className="text-sm font-medium text-white">{hp.name}</p>{hp.description && <p className="mt-0.5 line-clamp-2 text-xs text-white/70">{hp.description}</p>}</div> : null; })()}
+      </div></CanvasBoundary> : fallback}
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" size="sm" onClick={() => { setFocus([0, 0, 0]); setRadius(8); setReset(v => v + 1); setHidden(new Set()); setIsolate(null); setSelected(null); setTour(null); setExplode(0); setRotate(false); }}>Reset</Button>
       <Button variant="outline" size="sm" aria-pressed={rotate} disabled={reduced()} onClick={() => setRotate(!rotate)}>Auto-rotate</Button>
-      <Button variant="outline" size="sm" aria-pressed={labels} onClick={() => setLabels(!labels)}>Labels</Button>
+      <Button variant="outline" size="sm" aria-pressed={numbers} onClick={() => setNumbers(!numbers)}>Numbers</Button>
+      <Button variant="outline" size="sm" aria-pressed={labels} onClick={() => setLabels(!labels)}>Names</Button>
       <Button variant="outline" size="sm" onClick={() => { void (document.fullscreenElement ? document.exitFullscreen() : container.current?.requestFullscreen())?.catch(() => setError('Fullscreen is not available in this browser.')); }}>Fullscreen</Button>
       <Button variant="outline" size="sm" onClick={() => { try { canvas.current?.toBlob(b => { if (b) saveBlob(b, 'concept.png'); else setError('Could not capture snapshot.'); }); } catch { setError('Could not capture snapshot.'); } }} disabled={!webgl}>PNG snapshot</Button>
       {editable && <Button variant="outline" size="sm" disabled={!webgl} onClick={async () => { try {

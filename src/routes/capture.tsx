@@ -135,7 +135,7 @@ function CapturePage() {
         <NewTopicDialog open={newTopic} onOpenChange={setNewTopic} onCreated={(id) => setFolderId(id)} />
         {(method === "voice" || method === "lecture") && <div className="paper-sheet mt-5 p-4 text-sm"><p className="text-muted-foreground">Recordings are transcribed in the cloud.</p><Button className="mt-3" onClick={() => openDialog("audio")}>Open the recorder</Button></div>}
         {(method === "pdf" || method === "slides") && <div className="paper-sheet mt-5 p-4 text-sm"><p className="text-muted-foreground">Each page or slide becomes part of one note.</p><Button className="mt-3" onClick={() => openDialog("slides")}>Choose a file</Button></div>}
-        {(method === "website" || method === "youtube") && <UrlCapture kind={method} folderId={folderId || null} />}
+        {(method === "website" || method === "youtube") && <UrlCapture kind={method} folderId={folderId || null} {...(folderId ? { folderName: vault?.folders.find((f) => f.id === folderId)?.name ?? "" } : {})} />}
         {method === "scan" && <div className="mt-4"><Hint id="capture">Tip: shoot pages flat in good light. Use the arrows to fix the order before you transcribe.</Hint></div>}
         {method === "scan" && ready && user && (
         <>

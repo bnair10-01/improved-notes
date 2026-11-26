@@ -12,6 +12,7 @@ import { SHAPES, fitToView, tidyGenerated, validateSpec, verifyPartQuotes, type 
 import { AiFailure, imagePart, runJson, runModel, runStream, safe } from "./run";
 import type { JS } from "./schema";
 import { modelInstructions } from "./model-rules";
+import { parseSections, verifySectionQuotes, type ParsedMaterial } from "../split";
 import { numberSources, verifyCitations, type Citation, type Source, type SourceInput } from "./cite";
 
 const str: JS = { type: "string" };
@@ -385,12 +386,12 @@ export async function summariseStream(
 
 /* ───────────── Websites and YouTube ───────────── */
 
-export type UrlImport = { title: string; markdown: string; kind: "website" | "youtube"; url: string };
+export type UrlImport = ParsedMaterial & { kind: "website" | "youtube"; url: string };
 export type UrlImportResponse = { ok: true; item: UrlImport } | { ok: false; error: string };
 
 const isYouTube = (h: string) => /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(h);
 
-/** Turn a web page or YouTube video into faithful study notes. Runs in the cloud (the page or video has to be fetched). */
+/** Turn a web page or YouTube video into several study notes, one per idea. Runs in the cloud (the page or video has to be fetched). */
 export const importFromUrl = ({ url }: { url: string }): Promise<UrlImportResponse> =>
   safe("import-url", async () => {
     let u: URL;
@@ -403,13 +404,56 @@ export const importFromUrl = ({ url }: { url: string }): Promise<UrlImportRespon
       ...(youtube ? { parts: [{ fileData: { mimeType: "video/mp4", fileUri: u.toString() } }] } : { tools: [{ urlContext: {} }] }),
       instructions:
         `Write study notes from this ${what}${youtube ? "" : `: ${u.toString()}`}. Use ONLY what it actually contains and never invent details. ` +
-        "Start with a single first line '# ' followed by a short descriptive title. Then clear Markdown: a one-paragraph overview, the key ideas as bullets or short sections, and any definitions, steps or numbers worth remembering" +
-        `${youtube ? ", with approximate timestamps where useful" : ""}. If you cannot read the ${what}, reply with exactly: UNREADABLE`,
+        "Format: first a line '# ' and a short descriptive title. Then a two or three sentence overview. " +
+        "Then 4 to 8 sections, each starting with a line '## ' and a short section title, and each one self-contained: it covers ONE idea, explained clearly with the key terms, steps or numbers worth remembering" +
+        `${youtube ? ", with approximate timestamps where useful" : ""}. Do not repeat the overview inside the sections. If you cannot read the ${what}, reply with exactly: UNREADABLE`,
     });
     const body = text.trim();
     if (!body || /^UNREADABLE\b/.test(body)) throw new AiFailure(`I couldn't read that ${what}. It may be private, blocked, or empty.`);
-    const m = /^#\s+(.+)$/m.exec(body);
-    const title = (m?.[1] ?? u.hostname).trim().slice(0, 120);
-    const markdown = `${body.replace(/^#\s+.+\n?/m, "").trim()}\n\n---\nSource: [${u.hostname}](${u.toString()})\n`;
-    return { item: { title, markdown, kind: youtube ? "youtube" : "website", url: u.toString() } satisfies UrlImport };
+    const parsed = parseSections(body);
+    if (!parsed.sections.length) throw new AiFailure(`I couldn't make notes from that ${what}.`);
+    return { item: { ...parsed, title: (parsed.title || u.hostname).slice(0, 120), kind: youtube ? "youtube" : "website", url: u.toString() } satisfies UrlImport };
   }) as Promise<UrlImportResponse>;
+
+/* ───────────── Topic suggestions and splitting long notes ───────────── */
+
+export type TopicNameResponse = { ok: true; topic: string; existing: boolean } | { ok: false; error: string };
+const TOPIC_SCHEMA: JS = wrapObj({ topic: str, matches_existing: { type: "boolean" } });
+
+/** Name the subject a note belongs under. Short input, so this runs on-device first. */
+export const suggestTopicName = ({ title, markdown, topics }: { title: string; markdown: string; topics: string[] }): Promise<TopicNameResponse> =>
+  safe("topic", async () => {
+    const text = markdown.slice(0, 4000);
+    if (!text.trim()) throw new AiFailure("There's nothing to base a topic on yet.");
+    const { data } = await runJson<{ topic?: string; matches_existing?: boolean }>({
+      task: "topic", schema: TOPIC_SCHEMA, chars: text.length,
+      instructions:
+        "Name the subject this note belongs under, as a short topic a student would file it in (1 to 3 words, Title Case, no punctuation). " +
+        `If one of the existing topics fits, return it exactly as written and set matches_existing to true. Existing topics: ${topics.length ? topics.join(", ") : "none"}.\n\nNOTE: ${title}\n${text}`,
+    });
+    const raw = (data.topic ?? "").replace(/["'.]/g, "").trim().slice(0, 40);
+    if (!raw) throw new AiFailure("No topic came back.");
+    const same = topics.find((t) => t.toLowerCase() === raw.toLowerCase());
+    return { topic: same ?? raw, existing: !!same };
+  }) as Promise<TopicNameResponse>;
+
+export type SectioniseResponse = { ok: true; result: ParsedMaterial } | { ok: false; error: string };
+const SECTION_SCHEMA: JS = wrapObj({ title: str, overview: str, sections: { type: "array", items: wrapObj({ title: str, markdown: str, source_quote: str }) } });
+
+/** Cut a long note (a lecture, a deck, a transcript, a page) into several self-contained notes, one idea each. */
+export const sectioniseNote = ({ title, markdown }: { title: string; markdown: string }): Promise<SectioniseResponse> =>
+  safe("split", async () => {
+    const text = markdown.trim().slice(0, 60_000);
+    if (text.split(/\s+/).length < 80) throw new AiFailure("This note is short enough to read as it is.");
+    const { data } = await runJson<{ title?: string; overview?: string; sections?: { title?: string; markdown?: string; source_quote?: string }[] }>({
+      task: "split", schema: SECTION_SCHEMA, chars: text.length,
+      instructions:
+        "Split the material below into 3 to 8 self-contained notes, one idea each, so each is easy to study alone. Use ONLY what the material says; keep its wording and detail, and never add outside facts. " +
+        "Give every note a short clear title and a body in Markdown. Add a two sentence overview of the whole thing. " +
+        "For each note include `source_quote`: a passage of at most 20 words copied EXACTLY from the material that the note is based on.\n\n" +
+        `MATERIAL: ${title}\n${text}`,
+    });
+    const sections = verifySectionQuotes((data.sections ?? []).flatMap((x) => (x.title?.trim() && x.markdown?.trim() ? [{ title: x.title.trim(), markdown: x.markdown.trim(), ...(x.source_quote ? { source_quote: x.source_quote } : {}) }] : [])), text);
+    if (sections.length < 2) throw new AiFailure("I couldn't find separate ideas to split this into.");
+    return { result: { title: (data.title ?? title).trim() || title, overview: (data.overview ?? "").trim(), sections } };
+  }) as Promise<SectioniseResponse>;

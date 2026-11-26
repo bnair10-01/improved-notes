@@ -1,18 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
-import { ArrowUp, BookOpenCheck, Loader2, Pin } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { BookOpenCheck, Loader2, PenLine, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/AppHeader";
 import { GoogleMark } from "@/components/GoogleMark";
-import { NewActionGrid } from "@/components/shell/NewActions";
-import { Hint } from "@/components/shell/Hint";
 import { Button } from "@/components/ui/button";
 import { IS_NATIVE } from "@/lib/firebase";
-import { authMessage, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
-import { openDialog } from "@/lib/dialogs";
-import { prepareImage } from "@/lib/image";
-import { setSession } from "@/lib/session";
+import { authMessage, ensureSignedIn, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
 import { studyOverviewQuery } from "@/lib/study";
 import { createNote, openTarget, useRefreshVault, useVault, type VNote } from "@/lib/vault";
 
@@ -38,8 +33,7 @@ function firstName(displayName?: string | null, email?: string | null) {
 
 const today = () => new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }).toUpperCase();
 
-/** The page content, in one centred column. */
-function Split({ children }: { children: ReactNode }) {
+function Column({ children }: { children: ReactNode }) {
   return <div className="mx-auto flex max-w-[1100px] flex-col gap-7 px-5 pb-12 pt-8 sm:px-10 lg:px-16 lg:pt-16">{children}</div>;
 }
 
@@ -54,138 +48,76 @@ function Headline({ line1, line2 }: { line1: string; line2: string }) {
   );
 }
 
-const STARTS = [
-  { n: "01", title: "Scan a page", body: "Photograph handwritten notes. We transcribe them." },
-  { n: "02", title: "Write or draw", body: "Type, or use a pen on tablet." },
-  { n: "03", title: "Add a source", body: "A PDF, slides or a lecture recording." },
-];
-
-function StartCards({ onPick }: { onPick: (i: number) => void }) {
-  return (
-    <div className="grid max-w-[640px] grid-cols-1 gap-2.5 sm:grid-cols-3">
-      {STARTS.map((c, i) => (
-        <button key={c.n} type="button" onClick={() => onPick(i)} className="flex flex-col gap-6 rounded-xl border p-4 text-left transition-colors hover:bg-card/70 sm:gap-7">
-          <span className="font-mono text-[10px] tracking-[0.08em] text-muted-foreground">{c.n}</span>
-          <span><span className="block text-[14.5px] font-medium">{c.title}</span><span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground">{c.body}</span></span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/** One input that takes anything typed, pasted or dropped. */
-function CaptureBar() {
+/** Make a blank note and open it. Everything else (scan, voice, websites, slides) is available from inside the note. */
+function useStartWriting() {
   const navigate = useNavigate();
   const refresh = useRefreshVault();
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [over, setOver] = useState(false);
-
-  async function submit() {
-    const t = text.trim();
-    if (!t) return;
-    setBusy(true);
-    try {
-      let host = "";
-      try { if (/^https?:\/\/\S+$/i.test(t)) host = new URL(t).hostname; } catch { /* not a link */ }
-      const id = await createNote({ kind: "text", title: host || t.split("\n")[0]!.slice(0, 60), markdown: host ? `[${t}](${t})\n` : t });
-      await refresh();
-      if (host) toast("Saved the link as a note. Reading web pages and YouTube isn't supported yet.");
-      navigate({ to: "/vault/$noteId", params: { noteId: id } });
-    } catch { toast.error("Couldn't save that. Please try again."); }
-    finally { setBusy(false); }
-  }
-
-  async function drop(files: FileList | null) {
-    const list = Array.from(files ?? []);
-    const images = list.filter((f) => f.type.startsWith("image/"));
-    if (images.length) {
-      const added = await Promise.all(images.map(async (f) => ({ id: crypto.randomUUID(), dataUrl: await prepareImage(f) })));
-      setSession({ pages: added, result: null, noteId: null });
-      navigate({ to: "/capture" });
-    } else if (list.some((f) => f.type === "application/pdf" || /\.pptx?$/i.test(f.name))) openDialog("slides");
-    else if (list.length) toast("That file type isn't supported yet. Try a photo, PDF or slides.");
-  }
-
-  return (
-    <form
-      onSubmit={(e) => { e.preventDefault(); void submit(); }}
-      onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
-      onDrop={(e) => { e.preventDefault(); setOver(false); void drop(e.dataTransfer.files); }}
-      className={`flex max-w-[640px] items-center gap-2.5 rounded-2xl border bg-card py-2 pl-4 pr-2 transition-colors ${over ? "border-foreground" : ""}`}
-    >
-      <input value={text} onChange={(e) => setText(e.target.value)} aria-label="Write something, paste a link, or drop a file"
-        placeholder="Write something, paste a link, or drop a file" className="min-w-0 flex-1 bg-transparent py-2 text-[15px] outline-none placeholder:text-muted-foreground" />
-      <kbd className="hidden rounded border px-1.5 py-0.5 font-mono text-[10.5px] text-muted-foreground sm:block">↵</kbd>
-      <button type="submit" disabled={busy || !text.trim()} aria-label="Save" className="grid h-10 w-10 place-items-center rounded-[10px] bg-foreground text-background disabled:opacity-40">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
-      </button>
-    </form>
-  );
+  return async () => {
+    await ensureSignedIn();
+    const id = await createNote({ kind: "text", title: "Untitled" });
+    await refresh();
+    navigate({ to: "/vault/$noteId", params: { noteId: id } });
+  };
 }
 
 function Welcome() {
-  const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
-  async function social(signIn: () => Promise<unknown>) {
-    setBusy(true);
-    try {
-      rememberNext("/");
-      await signIn();
-    } catch (e) { toast.error(authMessage(e)); } finally { setBusy(false); }
+  const [busy, setBusy] = useState<"google" | "write" | null>(null);
+  const start = useStartWriting();
+  async function google() {
+    setBusy("google");
+    try { rememberNext("/"); await signInWithGoogle(); }
+    catch (e) { toast.error(authMessage(e)); }
+    finally { setBusy(null); }
+  }
+  async function write() {
+    setBusy("write");
+    try { await start(); } catch { toast.error("Couldn't open a blank note. Please try again."); } finally { setBusy(null); }
   }
   return (
-    <Split>
+    <Column>
       <Headline line1="Take notes. See the map." line2="Learn it." />
       <p className="max-w-[520px] text-[15px] leading-relaxed text-muted-foreground">
-        Scan handwriting or type, link ideas together, and study with flashcards and quizzes made only from what you wrote. AI runs on your device first.
+        Write, scan handwriting, or bring in a lecture, a website or a video. Everything is divided into notes, linked into topics, and turned into flashcards and quizzes made only from what you wrote. AI runs on your device first.
       </p>
-      <div className="max-w-sm">
+      <div className="max-w-sm space-y-2">
+        <Button className="w-full" size="lg" onClick={() => void write()} disabled={busy !== null}>
+          {busy === "write" ? <Loader2 className="animate-spin" /> : <PenLine />} Start writing
+        </Button>
         {!IS_NATIVE && (
-          <div className="space-y-2">
-            <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={() => void social(signInWithGoogle)} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
-            </Button>
-          </div>
+          <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={() => void google()} disabled={busy !== null}>
+            {busy === "google" ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
+          </Button>
         )}
-        <Button asChild variant="ghost" size="sm" className="mt-1 w-full text-muted-foreground"><Link to="/auth" search={{ redirect: "/" }}>Use email instead</Link></Button>
+        <Button asChild variant="ghost" size="sm" className="w-full text-muted-foreground"><Link to="/auth" search={{ redirect: "/" }}>Sign in with email</Link></Button>
+        <p className="px-1 text-xs text-muted-foreground">Start without an account and sign in later to keep your notes on every device.</p>
       </div>
-      <StartCards onPick={() => navigate({ to: "/capture" })} />
-      <div className="flex flex-wrap items-center gap-4 text-[13px] text-muted-foreground">
-        <span className={mono}>or</span>
-        <Link to="/capture" className="rounded-lg border px-3 py-1.5 text-foreground">Try it without an account</Link>
-      </div>
-    </Split>
+    </Column>
   );
 }
 
 function Home({ name }: { name: string }) {
   const { data: vault, isLoading } = useVault();
+  const start = useStartWriting();
   const navigate = useNavigate();
   const refresh = useRefreshVault();
+  const opened = useRef(false);
   const live = vault?.notes.filter((n) => !n.deleted_at) ?? [];
-  if (isLoading || !vault) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  if (live.length) return <div className="mx-auto max-w-5xl px-4 pb-10 pt-5 sm:pt-10"><Dashboard name={name} /></div>;
 
-  async function writeNote() {
-    try {
-      const id = await createNote({ kind: "text", title: "Untitled" });
-      await refresh();
-      navigate({ to: "/vault/$noteId", params: { noteId: id } });
-    } catch { toast.error("Couldn't create the note."); }
-  }
-  return (
-    <Split>
-      <Headline line1={name ? `Welcome, ${name}.` : "Welcome."} line2="What are you exploring today?" />
-      <CaptureBar />
-      <StartCards onPick={(i) => { if (i === 0) navigate({ to: "/capture" }); else if (i === 1) void writeNote(); else openDialog("slides"); }} />
-      <div className="flex flex-wrap items-center gap-3 text-[13px] text-muted-foreground">
-        <span className={mono}>or</span>
-        <button type="button" onClick={() => openDialog("audio")} className="rounded-lg border px-3 py-1.5 text-foreground">Record audio</button>
-        <Link to="/settings" className="rounded-lg border px-3 py-1.5 text-foreground">Import a backup</Link>
-      </div>
-    </Split>
-  );
+  // A brand new person lands on a blank page, ready to write, with the tools one click away.
+  useEffect(() => {
+    if (isLoading || !vault || live.length || opened.current) return;
+    opened.current = true;
+    void (async () => {
+      try {
+        const id = await createNote({ kind: "text", title: "Untitled" });
+        await refresh();
+        navigate({ to: "/vault/$noteId", params: { noteId: id }, replace: true });
+      } catch { opened.current = false; toast.error("Couldn't open a blank note. Please try again."); }
+    })();
+  }, [isLoading, vault, live.length, navigate, refresh]);
+
+  if (isLoading || !vault || !live.length) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Opening a blank note" /></div>;
+  return <div className="mx-auto max-w-5xl px-4 pb-10 pt-5 sm:pt-10"><Dashboard name={name} notes={live} onNew={() => void start()} /></div>;
 }
 
 function NoteRow({ n }: { n: VNote }) {
@@ -200,27 +132,27 @@ function NoteRow({ n }: { n: VNote }) {
   );
 }
 
-function Dashboard({ name }: { name: string }) {
-  const { data: vault } = useVault();
+function Dashboard({ name, notes, onNew }: { name: string; notes: VNote[]; onNew: () => void }) {
   const { data: study } = useQuery(studyOverviewQuery);
-  const live = vault?.notes.filter((n) => !n.deleted_at) ?? [];
-  const pinned = live.filter((n) => n.pinned).slice(0, 6);
+  const pinned = notes.filter((n) => n.pinned).slice(0, 6);
+  const recent = [...notes].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 6);
   return (
     <>
       <div className={mono}>{today()}</div>
-      <h1 className="mt-2 font-serif text-4xl font-normal tracking-tight sm:text-5xl">Welcome back{name ? `, ${name}` : ""}.</h1>
-      <p className="mt-1 text-sm text-muted-foreground">What would you like to do?</p>
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+        <h1 className="font-serif text-4xl font-normal tracking-tight sm:text-5xl">Welcome back{name ? `, ${name}` : ""}.</h1>
+        <Button size="lg" onClick={onNew}><PenLine /> New note</Button>
+      </div>
 
-      <Link to="/study" className="paper-sheet mt-4 flex items-center gap-3 p-4 hover:ring-2 hover:ring-primary/30">
+      <Link to="/study" className="paper-sheet mt-6 flex items-center gap-3 p-4 hover:ring-2 hover:ring-primary/30">
         <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-primary-foreground"><BookOpenCheck className="h-5 w-5" /></span>
         <span className="flex-1">
           <span className="block font-medium">{study?.dueTotal ? `${study.dueTotal} flashcard${study.dueTotal > 1 ? "s" : ""} due` : "Study"}</span>
-          <span className="block text-xs text-muted-foreground">{study?.dueTotal ? "A few minutes keeps them fresh." : study && (study.decks.length || study.quizzes.length) ? "All caught up — retake a quiz anytime." : "Make flashcards or quizzes from any note with ✦ Generate."}</span>
+          <span className="block text-xs text-muted-foreground">{study?.dueTotal ? "A few minutes keeps them fresh." : study && (study.decks.length || study.quizzes.length) ? "All caught up. Retake a quiz anytime." : "Make flashcards or quizzes from any note with ✦ Generate."}</span>
         </span>
       </Link>
-      <div className="mt-4"><Hint id="home">Tap a card to start. Your notes, folders and sorting live in <b>Notes</b>; the <b>?</b> button at the top has a full guide.</Hint></div>
-      <section className="mt-5" aria-label="Create"><NewActionGrid /></section>
 
+      <section className="mt-6"><h2 className="mb-2 text-sm font-semibold">Pick up where you left off</h2><div className="grid gap-2 md:grid-cols-2">{recent.map((n) => <NoteRow key={n.id} n={n} />)}</div></section>
       {pinned.length > 0 && (
         <section className="mt-6"><h2 className="mb-2 text-sm font-semibold">Pinned</h2><div className="grid gap-2 md:grid-cols-2">{pinned.map((n) => <NoteRow key={n.id} n={n} />)}</div></section>
       )}

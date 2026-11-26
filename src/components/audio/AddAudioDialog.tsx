@@ -1,3 +1,4 @@
+import { takeCaptureTopic } from "@/lib/capture-context";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -115,7 +116,7 @@ export function AddAudioDialog({ open, onOpenChange }: { open: boolean; onOpenCh
       await uploadFile(path, file, file.type || "application/octet-stream");
       // The note and its audio record are written together, so there is never a note without its file.
       const now = nowIso(), batch = writeBatch(db);
-      batch.set(userDoc("notes", noteId), { kind: "audio", title: recorded.current ? `Recording ${new Date().toLocaleString()}` : file.name, markdown: "", tags: [], folder_id: null, pinned: false, deleted_at: null, source_note_ids: [], created_at: now, updated_at: now, rev: 1 });
+      batch.set(userDoc("notes", noteId), { kind: "audio", title: recorded.current ? `Recording ${new Date().toLocaleString()}` : file.name, markdown: "", tags: [], folder_id: takeCaptureTopic(), pinned: false, deleted_at: null, source_note_ids: [], created_at: now, updated_at: now, rev: 1 });
       batch.set(userDoc("attachments", newId()), { note_id: noteId, type: "audio", storage_path: path, position: 0, metadata: { duration, mime: file.type, bookmarks: [] }, created_at: now });
       await commit(batch.commit());
     } catch (e) {

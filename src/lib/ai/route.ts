@@ -3,7 +3,7 @@ import { aiConfig } from "./config";
 
 export type AiTask =
   | "transcribe" | "mindmap" | "summary" | "flashcards" | "quiz" | "slides" | "diagrams"
-  | "links" | "import" | "audio" | "cleanup" | "model3d" | "topic" | "ask";
+  | "links" | "import" | "split" | "audio" | "cleanup" | "model3d" | "topic" | "ask";
 
 /** Tasks that must run in the cloud: they need audio, long structured output, or strong vision. */
 const CLOUD_ONLY: ReadonlySet<AiTask> = new Set(["audio", "model3d", "slides", "diagrams", "import"]);

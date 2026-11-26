@@ -14,6 +14,7 @@ import { SyncStatus } from "./shell/SyncStatus";
 import { sectionName } from "@/lib/nav";
 import { Rail } from "./shell/Rail";
 import { CommandPalette, openPalette } from "./shell/CommandPalette";
+import { SplitHost } from "./split/SplitHost";
 import { NewActionGrid } from "./shell/NewActions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { signOut as signOutUser, useAuth } from "@/lib/auth";
@@ -94,7 +95,7 @@ export function AppHeader() {
       </div>
     </header>
     <Rail initials={initials} avatarUrl={avatarUrl} />
-    {user && <><MobileTabBar /><DialogHost /><CommandPalette /></>}
+    {user && <><MobileTabBar /><DialogHost /><SplitHost /><CommandPalette /></>}
     </>
   );
 }

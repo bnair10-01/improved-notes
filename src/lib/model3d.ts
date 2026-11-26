@@ -157,7 +157,7 @@ export function modelConcept(noteTitle: string, extra = ""): string {
  * Clean up a freshly generated model: drop parts the model listed twice, and if it came back with more distinct parts
  * than can be read at a glance, keep the most meaningful ones (shells, parts backed by the note, the largest).
  */
-export function tidyGenerated(spec: Spec, max = 22): Spec {
+export function tidyGenerated(spec: Spec, max = 14): Spec {
   const key = (p: Part) => `${p.name.trim().toLowerCase()}|${p.description.trim().toLowerCase()}`;
   const seen = new Set<string>();
   const drop = new Set<string>();

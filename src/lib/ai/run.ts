@@ -58,13 +58,15 @@ function checkAppCheck() {
   console.warn("Firebase App Check is not initialised. Set VITE_APPCHECK_SITE_KEY (or VITE_APPCHECK_DEBUG_TOKEN for local/judging use); AI Logic will reject unverified requests.");
 }
 
-export async function runModel(opts: RunOptions): Promise<{ text: string; source: InferenceSource }> {
+export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Promise<{ text: string; source: InferenceSource }> {
   checkAppCheck();
   await loadAiConfig();
   const chars = opts.chars ?? opts.instructions.length;
-  const r = route(opts.task, chars, opts.hasImages ? { hasImages: true } : {});
+  const r = route(opts.task, chars, { hasImages: !!opts.hasImages, forceCloud: !!opts.forceCloud });
   const model = getGenerativeModel(ai(), {
     mode: r.mode,
+    // Tell the on-device model the JSON shape too, otherwise it answers in free text.
+    ...(opts.schema ? { onDeviceParams: { promptOptions: { responseConstraint: opts.schema } } } : {}),
     inCloudParams: {
       model: r.model,
       ...(opts.schema ? { generationConfig: { responseMimeType: "application/json", responseSchema: toSchema(opts.schema) } } : {}),
@@ -82,12 +84,19 @@ export async function runModel(opts: RunOptions): Promise<{ text: string; source
 
 /** Run a prompt and parse the JSON answer. */
 export async function runJson<T = unknown>(opts: RunOptions & { schema: JS }): Promise<{ data: T; source: InferenceSource }> {
-  const { text, source } = await runModel(opts);
-  try {
-    return { data: JSON.parse(stripFences(text)) as T, source };
-  } catch {
-    throw new AiFailure("The AI returned something that couldn't be read. Please try again.");
+  const parse = (text: string): T | undefined => {
+    try { return JSON.parse(stripFences(text)) as T; } catch { return undefined; }
+  };
+  const first = await runModel(opts);
+  const data = parse(first.text);
+  if (data !== undefined) return { data, source: first.source };
+  // A small on-device model sometimes returns text that isn't valid JSON. Retry once in the cloud.
+  if (first.source === "on_device") {
+    const retry = await runModel({ ...opts, forceCloud: true });
+    const again = parse(retry.text);
+    if (again !== undefined) return { data: again, source: retry.source };
   }
+  throw new AiFailure("The AI returned something that couldn't be read. Please try again.");
 }
 
 /** Turn a data: URL into an inline image part. */

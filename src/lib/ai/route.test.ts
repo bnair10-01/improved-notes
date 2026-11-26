@@ -26,10 +26,14 @@ describe("hybrid routing", () => {
     }
   });
 
-  it("tries handwriting on-device first, then falls back, using the stronger cloud model", () => {
+  it("sends photos of handwriting to the cloud, using the stronger model", () => {
     const r = route("transcribe", 4000, { hasImages: true });
-    expect(r.mode).toBe(InferenceMode.PREFER_ON_DEVICE);
+    expect(r.mode).toBe(InferenceMode.ONLY_IN_CLOUD);
     expect(r.model).toBe(AI_DEFAULTS.cloud_model_pro);
+  });
+
+  it("can be forced to the cloud for a retry", () => {
+    expect(route("summary", 100, { forceCloud: true }).mode).toBe(InferenceMode.ONLY_IN_CLOUD);
   });
 
   it("uses the lighter cloud model for plain text work", () => {

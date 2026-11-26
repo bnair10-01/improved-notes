@@ -13,6 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { AppHeader } from "@/components/AppHeader";
+import { InsightColumn } from "@/components/vault/InsightColumn";
+import { InferenceBadge } from "@/components/shell/InferenceBadge";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useVault, type VNote } from "@/lib/vault";
 import { getDoc } from "firebase/firestore";
 import { userDoc } from "@/lib/db";
 import { prepareImage, urlToDataUrl } from "@/lib/image";
@@ -78,6 +82,8 @@ function ReviewPage() {
   const [markdown, setMarkdown] = useState(session.result?.markdown ?? "");
   const [tab, setTab] = useState("preview");
   const [pane, setPane] = useState<"text" | "photo">("text");
+  const { data: vault } = useVault();
+  const [insightOpen, setInsightOpen] = useState(false);
   const [mmLoading, setMmLoading] = useState(false);
   const mapper = generateMindmap;
   const autoTried = useRef(false);
@@ -314,12 +320,23 @@ function ReviewPage() {
 
   const fileBase = (title || "notes").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "notes";
 
+  const nowIso = new Date().toISOString();
+  const savedNote = vault?.notes.find((n) => n.id === session.noteId);
+  const insightNote: VNote = { id: session.noteId ?? "draft", kind: "handwritten", folder_id: null, tags: [], pinned: false, deleted_at: null, updated_at: nowIso, created_at: nowIso, source_note_ids: [], ...savedNote, title: title || "Untitled notes", markdown };
+  const insight = (
+    <InsightColumn note={insightNote} vault={vault ?? { notes: [], folders: [], links: [] }} markdown={markdown} saved={!!session.noteId}
+      onOpenGraph={() => { setTab("mindmap"); setInsightOpen(false); }} />
+  );
+
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="mx-auto max-w-6xl px-3 py-3 sm:px-4 sm:py-6">
+      <main className="mx-auto flex max-w-[1560px] gap-4 px-3 py-3 sm:px-4 sm:py-6">
+        <div className="min-w-0 flex-1">
         <div className="mb-3 flex items-center gap-2">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Title" className="h-auto min-w-0 flex-1 border-transparent bg-transparent px-0 font-serif text-xl font-semibold shadow-none focus-visible:border-input focus-visible:px-2 sm:text-2xl md:text-2xl" />
+          <InferenceBadge className="hidden sm:inline-flex" />
+          <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setInsightOpen(true)}>Insight</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" aria-label="Export and more"><Download /><span className="hidden sm:inline">Export</span></Button>
@@ -438,6 +455,11 @@ function ReviewPage() {
             </Tabs>
           </section>
         </div>
+        </div>
+        <aside className="sticky top-16 hidden max-h-[calc(100dvh-5rem)] w-[320px] shrink-0 self-start overflow-y-auto rounded-xl border lg:block xl:w-[368px]">{insight}</aside>
+        <Sheet open={insightOpen} onOpenChange={setInsightOpen}>
+          <SheetContent side="right" className="w-[min(92vw,380px)] overflow-y-auto p-0"><SheetTitle className="sr-only">Insight</SheetTitle>{insight}</SheetContent>
+        </Sheet>
       </main>
     </div>
   );

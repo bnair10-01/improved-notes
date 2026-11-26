@@ -19,11 +19,12 @@ const module_ = "rounded-xl border bg-card/60 p-3.5";
 const QUICK = ["Explain like I'm new", "What are the key terms?", "What should I remember?"];
 
 /** The note's side of the workspace: summary, study actions, sources and Ask, all visible at once. */
-export function InsightColumn({ note, vault, markdown, onOpenGraph }: { note: VNote; vault: Vault; markdown: string; onOpenGraph: () => void }) {
+export function InsightColumn({ note, vault, markdown, onOpenGraph, saved = true }: { note: VNote; vault: Vault; markdown: string; onOpenGraph: () => void; saved?: boolean }) {
   const navigate = useNavigate();
   const live = vault.notes.filter((n) => !n.deleted_at);
   const { data: study } = useQuery(studyOverviewQuery);
 
+  const needSave = () => toast("Save this note first, then you can make cards and quizzes from it.");
   const [summary, setSummary] = useState<string | null>(null);
   const [summarising, setSummarising] = useState(false);
   async function summarise() {
@@ -78,8 +79,13 @@ export function InsightColumn({ note, vault, markdown, onOpenGraph }: { note: VN
       <section className={module_} aria-label="Study">
         <div className="mb-2"><span className={label}>Make from this note</span></div>
         <div className="grid grid-cols-3 gap-1.5 text-sm">
-          <GenerateDialog noteIds={[note.id]} initialKind="flashcards" trigger={<button className="w-full rounded-lg border py-2 hover:bg-secondary">Cards</button>} />
-          <GenerateDialog noteIds={[note.id]} initialKind="quiz" trigger={<button className="w-full rounded-lg border py-2 hover:bg-secondary">Quiz</button>} />
+          {saved ? <>
+            <GenerateDialog noteIds={[note.id]} initialKind="flashcards" trigger={<button className="w-full rounded-lg border py-2 hover:bg-secondary">Cards</button>} />
+            <GenerateDialog noteIds={[note.id]} initialKind="quiz" trigger={<button className="w-full rounded-lg border py-2 hover:bg-secondary">Quiz</button>} />
+          </> : <>
+            <button onClick={needSave} className="w-full rounded-lg border py-2 hover:bg-secondary">Cards</button>
+            <button onClick={needSave} className="w-full rounded-lg border py-2 hover:bg-secondary">Quiz</button>
+          </>}
           <button onClick={onOpenGraph} className="inline-flex items-center justify-center gap-1 rounded-lg border py-2 hover:bg-secondary"><Network className="h-3.5 w-3.5" />Map</button>
         </div>
         <div className="mt-3 flex items-center gap-3 rounded-lg border p-2.5">

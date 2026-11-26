@@ -32,6 +32,26 @@ export function validateSpec(raw: unknown, depth = 0): Spec {
   for (const value of Array.isArray(r['parts']) ? r['parts'] : []) {
     const p = record(value);
     if (!SHAPES.includes(p['shape'] as Shape)) continue;
+    // A copy of a repeated part that was saved earlier keeps pointing at its original, instead of becoming a part of its own.
+    const declared = typeof p['instance_of'] === "string" ? p['instance_of'] : undefined;
+    if (declared && ids.has(declared) && Math.round(number(p['copies'], 1, 1, 12)) <= 1) {
+      if (parts.length >= 80) break;
+      const sz = Array.isArray(p['size']) ? p['size'] : [];
+      let id = text(p['id'], `${declared}-copy`, 80) || `${declared}-copy`;
+      while (ids.has(id)) id += "x";
+      ids.add(id);
+      const pos = vector(p['position'], [0, 0, 0]);
+      const copy: Part = {
+        id, name: text(p['name'], "Part", 160) || "Part", description: text(p['description']), group: text(p['group'], "Assembly", 160),
+        shape: p['shape'] as Shape, size: [0, 1, 2].map((j) => number(sz[j], 1, 0.02, 50)), position: pos, rotation: vector(p['rotation'], [0, 0, 0], Math.PI * 2),
+        color: typeof p['color'] === "string" && /^#[\da-f]{6}$/i.test(p['color']) ? p['color'] : palette[0]!,
+        explode_direction: vector(p['explode_direction'], centroidDirection(pos, [0, 0, 0])),
+        assembly_order: Math.round(number(p['assembly_order'], 1, 1, 30)), instance_of: declared,
+      };
+      if (typeof p['opacity'] === "number") copy.opacity = number(p['opacity'], 1, 0.08, 1);
+      parts.push(copy);
+      continue;
+    }
     if (primaries === 30) break;
     const i = primaries++;
     const base = text(p['id'], `part-${i + 1}`, 80) || `part-${i + 1}`;

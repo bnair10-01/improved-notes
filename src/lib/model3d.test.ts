@@ -127,5 +127,22 @@ describe("tidyGenerated", () => {
     const spec = validateSpec({ parts: [mk(1), mk(2), mk(3)] });
     expect(tidyGenerated(spec).parts).toHaveLength(3);
   });
+
+  it("keeps repeated copies as copies when a saved model is loaded again", () => {
+    const first = validateSpec({ parts: [mk(1, { copies: 6, arrange: "ring", arrange_radius: 2 }), mk(2, { name: "Matrix" })] });
+    const again = validateSpec(JSON.parse(JSON.stringify(first)));
+    expect(again.parts).toHaveLength(7);
+    expect(again.parts.filter((p) => !p.instance_of)).toHaveLength(2);
+    expect(again.parts.filter((p) => p.instance_of === "p1")).toHaveLength(5);
+    expect(again.parts.map((p) => p.position)).toEqual(first.parts.map((p) => p.position));
+    expect(validateSpec(again).parts.filter((p) => !p.instance_of)).toHaveLength(2);
+  });
+
+  it("does not let copies use up the limit on distinct parts", () => {
+    const parts = Array.from({ length: 12 }, (_, i) => mk(i + 1, { copies: 6, arrange: "scatter" }));
+    const model = validateSpec({ parts });
+    expect(model.parts.filter((p) => !p.instance_of)).toHaveLength(12);
+    expect(validateSpec(JSON.parse(JSON.stringify(model))).parts.filter((p) => !p.instance_of)).toHaveLength(12);
+  });
 });
 

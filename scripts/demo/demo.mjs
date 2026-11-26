@@ -65,14 +65,18 @@ const rail = async (label) => { await dismiss(); await d.click({ sel: "[data-rai
 const rest = async (label) => { await d.waitFor(`/${label}/.test(location.pathname)`, { label: `${label} page` }); };
 
 async function openNote(title) {
-  await dismiss();
-  await d.press("k", { meta: true });
-  await d.waitFor("document.querySelector('[cmdk-input]')", { label: "search box" });
-  await d.type(title, { chunk: 1, delay: 40 });
-  await d.pause(700);
-  // Pick the exact title, not whatever happens to be listed first (a generated note can share its first word).
-  await d.click({ sel: "[cmdk-item]", text: `^${title}$` });
-  await d.waitFor(`document.querySelector('[aria-label=Title]') && document.querySelector('[aria-label=Title]').value === ${JSON.stringify(title)}`, { label: `note ${title}` });
+  const isOpen = `document.querySelector('[aria-label=Title]') && document.querySelector('[aria-label=Title]').value === ${JSON.stringify(title)}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await dismiss();
+    await d.press("k", { meta: true });
+    await d.waitFor("document.querySelector('[cmdk-input]')", { label: "search box" });
+    await d.type(title, { chunk: 1, delay: 40 });
+    await d.pause(700);
+    // Pick the exact title, not whatever happens to be listed first (a generated note can share its first word).
+    await d.click({ sel: "[cmdk-item]", text: `^${title}$` });
+    try { await d.waitFor(isOpen, { timeout: 8000, label: `note ${title}` }); break; }
+    catch (e) { await d.press("Escape"); if (attempt === 2) throw e; }
+  }
   await d.pause(700);
 }
 

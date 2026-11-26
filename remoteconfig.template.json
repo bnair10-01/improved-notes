@@ -1,0 +1,27 @@
+{
+  "parameters": {
+    "cloud_model": {
+      "defaultValue": { "value": "gemini-2.5-flash" },
+      "description": "Cloud model for everyday text jobs when on-device isn't available or suitable."
+    },
+    "cloud_model_pro": {
+      "defaultValue": { "value": "gemini-2.5-pro" },
+      "description": "Cloud model for heavier jobs: handwriting, diagrams, 3D."
+    },
+    "on_device_max_chars": {
+      "defaultValue": { "value": "6000" },
+      "valueType": "NUMBER",
+      "description": "Inputs longer than this go straight to the cloud instead of trying on-device first."
+    },
+    "transcribe_prefer_cloud": {
+      "defaultValue": { "value": "false" },
+      "valueType": "BOOLEAN",
+      "description": "Send handwriting transcription to the cloud (best accuracy) instead of on-device first."
+    },
+    "on_device_enabled": {
+      "defaultValue": { "value": "true" },
+      "valueType": "BOOLEAN",
+      "description": "Kill switch: set to false to turn off on-device inference for everyone."
+    }
+  }
+}

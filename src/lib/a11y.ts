@@ -47,5 +47,5 @@ export const A11Y_INIT_SCRIPT = `(function(){try{var raw=localStorage.getItem('$
 
 /** Split text into sentences for read-aloud. */
 export function sentences(text: string): string[] {
-  return (text.replace(/[#*_>`\[\]]/g, " ").replace(/\s+/g, " ").match(/[^.!?]+[.!?]*/g) ?? []).map((s) => s.trim()).filter(Boolean);
+  return (text.replace(/[#*_>`[\]]/g, " ").replace(/\s+/g, " ").match(/[^.!?]+[.!?]*/g) ?? []).map((s) => s.trim()).filter(Boolean);
 }

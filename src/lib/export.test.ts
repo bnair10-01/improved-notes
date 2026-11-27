@@ -5,6 +5,7 @@ describe("Markdown export paths", () => {
   it("sanitizes unsafe, traversal, empty and reserved names", () => {
     for (const raw of ["../a\\b:c?", "...", "CON", "nul.txt", "\u0000", ""]) {
       const name = sanitizeFilename(raw);
+      // eslint-disable-next-line no-control-regex
       expect(name).not.toMatch(/[<>:"/\\|?*\u0000-\u001f]/);
       expect(name).not.toMatch(/^[. ]|[. ]$/);
       expect(name.length).toBeGreaterThan(0);

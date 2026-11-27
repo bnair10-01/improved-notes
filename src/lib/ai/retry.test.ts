@@ -49,7 +49,7 @@ describe("runJson on-device handling", () => {
   });
 
   it("quietly retries once when the App Check token fails to arrive", async () => {
-    let n = 0;
+    const n = 0;
     shouldThrowFirst = true;
     answers = [{ text: '{"a":"ok"}', src: "in_cloud" }];
     const r = await runJson<{ a: string }>({ task: "summary", instructions: "hi", schema: schema as never });

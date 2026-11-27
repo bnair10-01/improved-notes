@@ -1,5 +1,5 @@
 /** Pure helpers for [[wikilinks]]. No I/O here, so it is easy to test. */
-export const WIKILINK_RE = /\[\[([^\[\]\n|]+)(?:\|([^\[\]\n]*))?\]\]/g;
+export const WIKILINK_RE = /\[\[([^[\]\n|]+)(?:\|([^[\]\n]*))?\]\]/g;
 
 export function parseWikilinks(md: string): string[] {
   const out = new Map<string, string>();

@@ -14,7 +14,7 @@ th,td{border:1px solid #bbb;padding:5px 8px;text-align:left;vertical-align:top}t
 blockquote{border-left:3px solid #999;margin:.8em 0;padding:.3em .9em;background:#f6f3ee}
 .uncertain-mark{background:#fde7b0}
 </style></head><body><h1>${esc(title)}</h1>${html}
-<script>window.onload=()=>{setTimeout(()=>window.print(),150)}<\/script></body></html>`);
+<script>window.onload=()=>{setTimeout(()=>window.print(),150)}</script></body></html>`);
   w.document.close();
   return true;
 }

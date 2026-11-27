@@ -157,7 +157,7 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
 
   function detect(v: string, caret: number) {
     const before = v.slice(0, caret);
-    const link = /\[\[([^\[\]\n]*)$/.exec(before);
+    const link = /\[\[([^[\]\n]*)$/.exec(before);
     if (link) { setMenu({ type: "link", query: link[1] ?? "", start: caret - link[0].length }); setSel(0); return; }
     const line = before.slice(before.lastIndexOf("\n") + 1);
     const slash = /^\/(\w*)$/.exec(line);

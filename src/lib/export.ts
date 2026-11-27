@@ -1,6 +1,7 @@
 export type ExportNote = { id: string; title: string; markdown: string; folder_id: string | null; deleted_at?: string | null };
 export type ExportFolder = { id: string; name: string; parent_id: string | null };
 export function sanitizeFilename(value: string): string {
+  // eslint-disable-next-line no-control-regex
   let name = value.normalize("NFKC").replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, "-").replace(/\s+/g, " ").trim().replace(/^[. ]+|[. ]+$/g, "").slice(0, 90).replace(/[. ]+$/g, "");
   if (!name) name = "Untitled";
   if (/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\.|$)/i.test(name)) name = `_${name}`;

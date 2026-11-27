@@ -12,8 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as ReviewRouteImport } from './routes/review'
+import { Route as ScanRouteImport } from './routes/scan'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedStudyRouteImport } from './routes/_authenticated/study'
@@ -40,14 +40,14 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CaptureRoute = CaptureRouteImport.update({
-  id: '/capture',
-  path: '/capture',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ReviewRoute = ReviewRouteImport.update({
   id: '/review',
   path: '/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScanRoute = ScanRouteImport.update({
+  id: '/scan',
+  path: '/scan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
@@ -113,8 +113,8 @@ const AuthenticatedTopicsFolderIdMapRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/capture': typeof CaptureRoute
   '/review': typeof ReviewRoute
+  '/scan': typeof ScanRoute
   '/vault': typeof AuthenticatedVaultRouteRouteWithChildren
   '/history': typeof AuthenticatedHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -130,8 +130,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/capture': typeof CaptureRoute
   '/review': typeof ReviewRoute
+  '/scan': typeof ScanRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/study': typeof AuthenticatedStudyRoute
@@ -148,8 +148,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/capture': typeof CaptureRoute
   '/review': typeof ReviewRoute
+  '/scan': typeof ScanRoute
   '/_authenticated/vault': typeof AuthenticatedVaultRouteRouteWithChildren
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -167,8 +167,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/capture'
     | '/review'
+    | '/scan'
     | '/vault'
     | '/history'
     | '/settings'
@@ -184,8 +184,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/capture'
     | '/review'
+    | '/scan'
     | '/history'
     | '/settings'
     | '/study'
@@ -201,8 +201,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/capture'
     | '/review'
+    | '/scan'
     | '/_authenticated/vault'
     | '/_authenticated/history'
     | '/_authenticated/settings'
@@ -220,8 +220,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  CaptureRoute: typeof CaptureRoute
   ReviewRoute: typeof ReviewRoute
+  ScanRoute: typeof ScanRoute
   STokenRoute: typeof STokenRoute
 }
 
@@ -248,18 +248,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/capture': {
-      id: '/capture'
-      path: '/capture'
-      fullPath: '/capture'
-      preLoaderRoute: typeof CaptureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/review': {
       id: '/review'
       path: '/review'
       fullPath: '/review'
       preLoaderRoute: typeof ReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scan': {
+      id: '/scan'
+      path: '/scan'
+      fullPath: '/scan'
+      preLoaderRoute: typeof ScanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/history': {
@@ -387,8 +387,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  CaptureRoute: CaptureRoute,
   ReviewRoute: ReviewRoute,
+  ScanRoute: ScanRoute,
   STokenRoute: STokenRoute,
 }
 export const routeTree = rootRouteImport

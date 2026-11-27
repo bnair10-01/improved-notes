@@ -5,6 +5,14 @@ import "./styles.css";
 import { getRouter } from "./router";
 import { startUploadQueue } from "./lib/upload-queue";
 import { uploadPending } from "./lib/notes";
+import { Capacitor } from "@capacitor/core";
+
+// Inside the phone apps the page is the app, so it never zooms: no pinch or double-tap zoom to get stuck in.
+// (The website keeps normal zoom. Phones still have their own system Zoom for anyone who needs it.)
+if (Capacitor.isNativePlatform()) {
+  document.documentElement.setAttribute("data-native", "");
+  document.querySelector('meta[name="viewport"]')?.setAttribute("content", "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
+}
 
 const router = getRouter();
 startUploadQueue(uploadPending);

@@ -23,7 +23,7 @@ export function NoteTools({ note, markdown }: { note: VNote; markdown: string })
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="Add to your notes" data-note-tools>
       <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Add</span>
-      <button className={btn} onClick={go(() => navigate({ to: "/capture" }))}><Camera className="h-3.5 w-3.5" />Scan</button>
+      <button className={btn} onClick={go(() => navigate({ to: "/scan" }))}><Camera className="h-3.5 w-3.5" />Scan</button>
       <button className={btn} onClick={go(() => openDialog("audio"))}><Mic className="h-3.5 w-3.5" />Voice or lecture</button>
       <button className={btn} onClick={go(() => openDialog("slides"))}><FileText className="h-3.5 w-3.5" />PDF or slides</button>
       <button className={btn} onClick={() => setUrlKind("website")}><Globe className="h-3.5 w-3.5" />Website</button>

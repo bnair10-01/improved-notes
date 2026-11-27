@@ -46,7 +46,7 @@ function VaultHome() {
           </Link>
         ))}
       </div>
-      {!notes.length && <div className="paper-sheet mt-4 p-8 text-center"><p className="font-serif text-lg">No notes yet</p><p className="mt-1 text-sm text-muted-foreground">Tap + (or New note in the sidebar) to write your first one.</p></div>}
+      {!notes.length && <div className="paper-sheet mt-4 p-8 text-center"><p className="font-serif text-lg">No notes yet</p><p className="mt-1 text-sm text-muted-foreground">Press Add to write one, scan handwriting, or bring in a recording, slides or a link.</p></div>}
     </div>
   );
 }

@@ -1,23 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowUp, Camera, FileText, Folder, Loader2, Mic, Paperclip, Plus, X } from "lucide-react";
+import { ArrowUp, FileText, Folder, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AddPopover, useBringIn } from "@/components/shell/AddMenu";
 import { AnswerCard } from "@/components/shell/AnswerCard";
 import { SplitPreview } from "@/components/split/SplitPreview";
 import { askNotes, importFromUrl, type UrlImport } from "@/lib/ai/tasks";
 import type { Citation } from "@/lib/ai/cite";
-import { openDialog } from "@/lib/dialogs";
 import { sourceLink } from "@/lib/video";
 import { couldBeSubject, forceMode, homeIntent, questionSubject, toNote, type HomeIntent, type HomeMode } from "@/lib/home-intent";
 import { ResearchPanel } from "./ResearchPanel";
-import { prepareImage } from "@/lib/image";
 import { rankNotes } from "@/lib/retrieve";
-import { setSession } from "@/lib/session";
-import { validateDeckFile } from "@/lib/slides";
 import { createNote, openTarget, syncWikilinks, useRefreshVault, useVault, type VFolder, type VNote } from "@/lib/vault";
-
-const ACCEPT = "image/*,.pdf,.pptx,application/pdf,.mp3,.m4a,.wav,.webm,.ogg,audio/*,.txt,.md,text/plain,text/markdown";
 
 const HINT: Record<HomeIntent["kind"], string> = {
   empty: "",
@@ -52,11 +46,9 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
   const [dragging, setDragging] = useState(false);
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [imported, setImported] = useState<UrlImport | null>(null);
-  const [menu, setMenu] = useState(false);
   const [mode, setMode] = useState<HomeMode>("auto");
   const [researching, setResearching] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
-  const picker = useRef<HTMLInputElement>(null);
 
   const withText = useMemo(() => notes.filter((n) => n.markdown.trim()), [notes]);
   const base = homeIntent(text, withText.length > 0);
@@ -133,45 +125,13 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
     else if (intent.kind === "youtube" || intent.kind === "website") void readLink(intent.url);
   }
 
-  /** Photos go to Scan; PDFs and slides, audio and text files each open where they belong, already chosen. */
-  async function bringIn(list: FileList | File[] | null) {
-    const files = Array.from(list ?? []);
-    if (!files.length) return;
-    const images = files.filter((f) => f.type.startsWith("image/"));
-    if (images.length) {
-      setBusy("files");
-      try {
-        const pages = await Promise.all(images.map(async (f) => ({ id: crypto.randomUUID(), dataUrl: await prepareImage(f) })));
-        setSession({ pages, result: null, noteId: null });
-        navigate({ to: "/capture" });
-      } catch { toast.error("Couldn't read that photo."); setBusy(null); }
-      return;
-    }
-    const f = files[0]!;
-    if (/\.(pdf|pptx)$/i.test(f.name) || f.type === "application/pdf") {
-      const err = validateDeckFile(f);
-      if (err) { toast.error(err); return; }
-      openDialog("slides", f);
-    } else if (f.type.startsWith("audio/") || /\.(mp3|m4a|wav|webm|ogg)$/i.test(f.name)) {
-      openDialog("audio", f);
-    } else if (f.type.startsWith("text/") || /\.(txt|md)$/i.test(f.name)) {
-      const body = await f.text();
-      setBusy("note");
-      try {
-        const id = await createNote({ kind: "text", title: f.name.replace(/\.(txt|md)$/i, ""), markdown: body });
-        await refresh();
-        navigate({ to: "/vault/$noteId", params: { noteId: id } });
-      } catch { toast.error("Couldn't import that file."); setBusy(null); }
-    } else toast.error("That file type isn't supported. Try a photo, a PDF or slides, audio, or a text file.");
-  }
+  const bringIn = useBringIn(setBusy);
 
   const alt = mode !== "auto" ? null : exact ? { label: "Start a new note instead", run: () => void startNote() }
     : intent.kind === "learn" ? { label: "Just write a note", run: () => void startNote() }
     : intent.kind === "note" && couldBeSubject(text) ? { label: "Look it up instead", run: () => research(text.trim()) }
     : intent.kind === "note" && withText.length ? { label: "Ask your notes instead", run: () => void ask() }
     : intent.kind === "ask" ? { label: "Start a note instead", run: () => void startNote() } : null;
-  const item = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm hover:bg-secondary";
-  const pick = (fn: () => void) => () => { setMenu(false); fn(); };
 
   return (
     <div className="w-full">
@@ -195,24 +155,15 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
           className="block w-full resize-none bg-transparent px-4 pb-1 pt-4 text-[16px] leading-relaxed sm:text-[15px] outline-none placeholder:text-muted-foreground disabled:opacity-70"
         />
         <div className="flex items-center gap-2 px-2.5 pb-2.5">
-          <Popover open={menu} onOpenChange={setMenu}>
-            <PopoverTrigger asChild>
-              <button type="button" aria-label="Add a scan, recording, PDF or file" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-8 sm:w-8"><Plus className="h-4 w-4" /></button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-60 p-1.5">
-              <button className={item} onClick={pick(() => navigate({ to: "/capture" }))}><Camera className="h-4 w-4" /> Scan handwriting</button>
-              <button className={item} onClick={pick(() => openDialog("audio"))}><Mic className="h-4 w-4" /> Voice or lecture</button>
-              <button className={item} onClick={pick(() => openDialog("slides"))}><FileText className="h-4 w-4" /> PDF or slides</button>
-              <button className={item} onClick={pick(() => picker.current?.click())}><Paperclip className="h-4 w-4" /> Upload a file…</button>
-            </PopoverContent>
-          </Popover>
+          <AddPopover align="start" onBusy={setBusy}>
+            <button type="button" aria-label="Add a note, scan, recording, PDF, link or file" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-8 sm:w-8"><Plus className="h-4 w-4" /></button>
+          </AddPopover>
           <div role="group" aria-label="What Enter does" className="flex shrink-0 rounded-full border p-0.5 text-xs" data-home-mode>
             {([["auto", "Auto", "Decide from what you type"], ["research", "Research", "Always look it up on Wikipedia and YouTube"], ["note", "Note", "Always start a note with what you type"]] as const).map(([m, name, tip]) => (
               <button key={m} type="button" title={tip} aria-pressed={mode === m} onClick={() => setMode(m)}
                 className={`rounded-full px-3 py-2 transition-colors sm:px-2.5 sm:py-1 ${mode === m ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{name}</button>
             ))}
           </div>
-          <input ref={picker} type="file" multiple accept={ACCEPT} className="hidden" onChange={(e) => { void bringIn(e.target.files); e.target.value = ""; }} />
           <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground" aria-live="polite" data-home-hint>
             {busy === "link" ? "Reading… this runs in the cloud" : busy === "ask" ? "Looking through your notes…" : exact ? `Enter opens “${exact.label}”` : text.trim() ? HINT[intent.kind] : touch ? "Tap + to scan, record or import a file" : "Or drop a photo, PDF, slides or a recording here"}
           </p>

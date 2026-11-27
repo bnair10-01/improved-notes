@@ -247,7 +247,7 @@ function ReviewPage() {
         <div className="mx-auto max-w-md px-4 py-24 text-center">
           <h1 className="font-serif text-2xl font-semibold">Nothing to review yet</h1>
           <p className="mt-2 text-muted-foreground">Add some note photos and transcribe them first.</p>
-          <Button asChild className="mt-6"><Link to="/capture">Scan notes</Link></Button>
+          <Button asChild className="mt-6"><Link to="/scan">Scan notes</Link></Button>
         </div>
       </div>
     );

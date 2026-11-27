@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Player</title>
+<style>html,body,#p{margin:0;width:100%;height:100%;background:#000;overflow:hidden}body{color:#bbb;font:14px system-ui}</style>
+</head>
+<body>
+<!--
+  A tiny video page the phone apps embed. YouTube refuses to play inside an app whose address isn't a real web page
+  (error 153, "video player configuration error"), so the player lives here, on the real site, and the app talks to it:
+    app -> page   { type: "seek", seconds }   { type: "time", id }
+    page -> app   { type: "ready" }           { type: "time", id, seconds }
+-->
+<div id="p"></div>
+<script>
+  var q = new URLSearchParams(location.search);
+  var v = q.get("v") || "";
+  var t = Math.max(0, Number(q.get("t")) || 0);
+  var player = null;
+  function post(m) { try { parent.postMessage(m, "*"); } catch (e) {} }
+  if (!/^[\w-]{11}$/.test(v)) {
+    document.body.textContent = "That video link isn't valid.";
+  } else {
+    window.onYouTubeIframeAPIReady = function () {
+      player = new YT.Player("p", {
+        videoId: v, width: "100%", height: "100%", host: "https://www.youtube-nocookie.com",
+        playerVars: { rel: 0, playsinline: 1, start: Math.floor(t), origin: location.origin },
+        events: { onReady: function () { post({ type: "ready" }); } }
+      });
+    };
+    var s = document.createElement("script");
+    s.src = "https://www.youtube.com/iframe_api";
+    s.onerror = function () { document.body.textContent = "The video player couldn't load."; };
+    document.head.appendChild(s);
+  }
+  addEventListener("message", function (e) {
+    var d = e.data || {};
+    if (!player || !player.getCurrentTime) return;
+    if (d.type === "seek") { player.seekTo(Number(d.seconds) || 0, true); player.playVideo(); }
+    if (d.type === "time") post({ type: "time", id: d.id, seconds: player.getCurrentTime() });
+  });
+</script>
+</body>
+</html>

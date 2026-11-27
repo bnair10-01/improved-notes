@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 /** App-wide create dialogs (slides, audio, 3D) so any Create button can open them, even from a closing sheet. */
-export type DialogKey = "slides" | "audio" | "model" | null;
+export type DialogKey = "slides" | "audio" | "model" | "link" | null;
 let current: DialogKey = null;
 let file: File | null = null;
 const subs = new Set<() => void>();

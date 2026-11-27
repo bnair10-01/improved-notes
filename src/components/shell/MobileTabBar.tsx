@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { NAV } from "@/lib/nav";
-import { NewActionGrid } from "./NewActions";
+import { AddItems } from "./AddMenu";
 
 export function MobileTabBar() {
   const [open, setOpen] = useState(false);
@@ -17,15 +17,15 @@ export function MobileTabBar() {
             <n.icon className="h-5 w-5" aria-hidden />{n.label}
           </Link>
         ) : (
-          <button key="new" onClick={() => setOpen(true)} aria-label="New" className="flex items-center justify-center">
+          <button key="new" onClick={() => setOpen(true)} aria-label="Add" className="flex items-center justify-center">
             <span className="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground shadow-md"><Plus /></span>
           </button>
         ))}
       </nav>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl pb-8">
-          <SheetTitle className="mb-3">Create</SheetTitle>
-          <NewActionGrid compact onDone={() => setOpen(false)} />
+          <SheetTitle className="mb-2">Add</SheetTitle>
+          <AddItems onDone={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
     </>

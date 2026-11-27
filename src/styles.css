@@ -293,3 +293,7 @@ html.dark[data-contrast="high"][data-theme] {
 }
 html[data-contrast="high"] .paper-sheet { border: 1px solid var(--border); }
 html[data-contrast="high"] [data-rail], html[data-contrast="high"] header { border-color: var(--border); }
+
+/* Phone apps: no double-tap zoom, no focus zoom, no rubber-banding the whole page. */
+html[data-native], html[data-native] body { touch-action: manipulation; overscroll-behavior-y: none; -webkit-text-size-adjust: 100%; }
+html[data-native] input, html[data-native] textarea, html[data-native] select { font-size: 16px; }

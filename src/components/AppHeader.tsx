@@ -15,8 +15,7 @@ import { sectionName } from "@/lib/nav";
 import { Rail } from "./shell/Rail";
 import { CommandPalette, openPalette } from "./shell/CommandPalette";
 import { SplitHost } from "./split/SplitHost";
-import { NewActionGrid } from "./shell/NewActions";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AddPopover } from "./shell/AddMenu";
 import { signOut as signOutUser, useAuth } from "@/lib/auth";
 import { resetSession } from "@/lib/session";
 
@@ -64,10 +63,7 @@ export function AppHeader() {
         ) : <span className="hidden md:block" />}
         <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1">
           {user && !onHome && (
-            <Popover>
-              <PopoverTrigger asChild><button className="mr-1 hidden items-center gap-1 rounded-lg bg-foreground px-3 py-1.5 text-[13px] font-medium text-background md:flex" aria-label="New"><Plus className="h-3.5 w-3.5" /> New</button></PopoverTrigger>
-              <PopoverContent align="end" className="w-[min(92vw,640px)]"><NewActionGrid compact /></PopoverContent>
-            </Popover>
+            <AddPopover><button className="mr-1 hidden items-center gap-1 rounded-lg bg-foreground px-3 py-1.5 text-[13px] font-medium text-background md:flex" aria-label="Add"><Plus className="h-3.5 w-3.5" /> Add</button></AddPopover>
           )}
           <SyncStatus />
           <HelpDialog />

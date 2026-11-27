@@ -80,7 +80,7 @@ function HistoryPage() {
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : !data?.length ? (
           <div className="paper-sheet mt-6 px-6 py-12 text-center text-muted-foreground">
-            No saved notes yet. <Link to="/capture" className="text-primary underline underline-offset-4">Scan your first page</Link>.
+            No saved notes yet. <Link to="/scan" className="text-primary underline underline-offset-4">Scan your first page</Link>.
           </div>
         ) : (
           <ul className="mt-6 space-y-3">

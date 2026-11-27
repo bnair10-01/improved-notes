@@ -17,7 +17,7 @@ describe("nav", () => {
   });
   it("names the page for the top bar", () => {
     expect(sectionName("/vault/abc")).toBe("Notes");
-    expect(sectionName("/capture")).toBe("Capture");
+    expect(sectionName("/scan")).toBe("Scan");
     expect(sectionName("/settings")).toBe("Settings");
   });
 });

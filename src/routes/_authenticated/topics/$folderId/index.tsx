@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
+import { AddPopover } from "@/components/shell/AddMenu";
 import { TopicInsight } from "@/components/topics/TopicInsight";
 import { excerpt, itemKind, type ItemKind } from "@/lib/topics";
 import { openTarget, useVault } from "@/lib/vault";
@@ -33,7 +34,7 @@ function TopicPage() {
           <Link to="/topics" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-3.5 w-3.5" /> Topics</Link>
           <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
             <h1 className="font-serif text-4xl font-normal leading-tight tracking-tight sm:text-5xl">{folder.name}</h1>
-            <Link to="/capture" className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background"><Plus className="h-4 w-4" /> Add to topic</Link>
+            <AddPopover folderId={folderId}><button className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background"><Plus className="h-4 w-4" /> Add to topic</button></AddPopover>
           </div>
           <div role="tablist" aria-label="Filter by type" className="mt-5 flex flex-wrap gap-1.5">
             {(["ALL", ...counts.keys()] as (ItemKind | "ALL")[]).map((k) => (
@@ -47,7 +48,7 @@ function TopicPage() {
             <div className="mt-8 rounded-xl border border-dashed p-10 text-center">
               <p className="font-serif text-xl">Nothing in this topic yet</p>
               <p className="mt-1 text-sm text-muted-foreground">Scans, notes, websites, lectures and slides you add here end up in one place.</p>
-              <Link to="/capture" className="mt-4 inline-block rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background">Capture something</Link>
+              <AddPopover folderId={folderId} align="center"><button className="mt-4 inline-block rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background">Add something</button></AddPopover>
             </div>
           ) : (
             <ul className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

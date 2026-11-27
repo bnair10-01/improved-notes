@@ -31,7 +31,7 @@ export function CommandPalette() {
         <CommandEmpty>Nothing found.</CommandEmpty>
         <CommandGroup heading="Go to">
           {NAV.map((n) => <CommandItem key={n.to} value={`go ${n.label}`} onSelect={() => go(() => navigate({ to: n.to }))}>{n.label}</CommandItem>)}
-          <CommandItem value="go capture new" onSelect={() => go(() => navigate({ to: "/capture" }))}>Capture</CommandItem>
+          <CommandItem value="scan handwriting photo" onSelect={() => go(() => navigate({ to: "/scan" }))}>Scan handwriting</CommandItem>
         </CommandGroup>
         {folders.length > 0 && (
           <CommandGroup heading="Topics">

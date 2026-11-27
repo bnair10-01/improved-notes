@@ -8,12 +8,12 @@ import { importFromUrl, type UrlImport } from "@/lib/ai/tasks";
 import { sourceLink } from "@/lib/video";
 
 /** Paste a website or YouTube link: it's read, divided into notes by idea, and you choose the topic before anything is saved. */
-export function UrlCapture({ kind, folderId, folderName }: { kind: "website" | "youtube"; folderId: string | null; folderName?: string }) {
+export function UrlCapture({ kind, folderId, folderName }: { kind: "website" | "youtube" | "link"; folderId: string | null; folderName?: string }) {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [item, setItem] = useState<UrlImport | null>(null);
-  const label = kind === "youtube" ? "YouTube video" : "web page";
+  const label = kind === "youtube" ? "YouTube video" : kind === "link" ? "website or YouTube video" : "web page";
 
   async function read() {
     if (!url.trim()) return;

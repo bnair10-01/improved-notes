@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, NotebookPen } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { timeLabel, type NoteVideo as Video } from "@/lib/video";
+
+/**
+ * YouTube won't play inside an app whose address isn't a real web page (error 153), and the phone apps run from
+ * capacitor://localhost. So there the player is a small page on the real site (public/player.html) that the app embeds and messages.
+ */
+const NATIVE = Capacitor.isNativePlatform();
+const PLAYER_ORIGIN = `https://${import.meta.env["VITE_FIREBASE_PROJECT_ID"] ?? "improvednotes-d0907"}.web.app`;
+const playerUrl = (id: string, start: number) => `${PLAYER_ORIGIN}/player.html?v=${id}${start > 0 ? `&t=${Math.floor(start)}` : ""}`;
 
 /** Anything on the page can ask the player to jump: a timestamp link in the note, for example. */
 const SEEK = "note-video-seek";
@@ -36,12 +45,14 @@ export function NoteVideo({ videos, onAddNote }: { videos: Video[]; onAddNote: (
   const [start, setStart] = useState(0);
   const [ready, setReady] = useState(false);
   const holder = useRef<HTMLDivElement>(null);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const timeWaiters = useRef(new Map<string, (s: number) => void>());
   const player = useRef<YTPlayer | null>(null);
   const pending = useRef<number | null>(null);
   const video = videos[Math.min(active, videos.length - 1)]!;
 
   useEffect(() => {
-    if (failed || !holder.current) return;
+    if (NATIVE || failed || !holder.current) return;
     let dead = false;
     setReady(false);
     const target = document.createElement("div");
@@ -60,12 +71,30 @@ export function NoteVideo({ videos, onAddNote }: { videos: Video[]; onAddNote: (
     return () => { dead = true; try { player.current?.destroy(); } catch { /* already gone */ } player.current = null; };
   }, [video.id, failed]);
 
+  // Phone apps: the hosted player page tells us when it is ready and answers "what time is it?".
+  useEffect(() => {
+    if (!NATIVE) return;
+    const on = (e: MessageEvent) => {
+      if (e.origin !== PLAYER_ORIGIN) return;
+      const d = e.data as { type?: string; id?: string; seconds?: number };
+      if (d.type === "ready") setReady(true);
+      if (d.type === "time" && d.id) { timeWaiters.current.get(d.id)?.(d.seconds ?? 0); timeWaiters.current.delete(d.id); }
+    };
+    window.addEventListener("message", on);
+    return () => window.removeEventListener("message", on);
+  }, []);
+
   useEffect(() => {
     const on = (e: Event) => {
       const { id, seconds } = (e as CustomEvent<{ id: string; seconds: number }>).detail;
       const i = videos.findIndex((v) => v.id === id);
       if (i < 0) return;
       holder.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (NATIVE) {
+        if (i !== active) { setActive(i); setStart(seconds); setReady(false); }
+        else frame.current?.contentWindow?.postMessage({ type: "seek", seconds }, PLAYER_ORIGIN);
+        return;
+      }
       if (failed) { setActive(i); setStart(seconds); return; }
       if (i !== active) { pending.current = seconds; setActive(i); }
       else if (player.current && ready) { player.current.seekTo(seconds, true); player.current.playVideo(); }
@@ -75,7 +104,19 @@ export function NoteVideo({ videos, onAddNote }: { videos: Video[]; onAddNote: (
     return () => window.removeEventListener(SEEK, on);
   }, [videos, active, ready, failed]);
 
-  const stamp = () => { const t = player.current?.getCurrentTime(); if (typeof t === "number") onAddNote(video.id, t); };
+  const stamp = () => {
+    if (NATIVE) {
+      const id = `${video.id}-${Date.now()}`;
+      const w = frame.current?.contentWindow;
+      if (!w) return;
+      const timer = setTimeout(() => timeWaiters.current.delete(id), 3000);
+      timeWaiters.current.set(id, (t) => { clearTimeout(timer); onAddNote(video.id, t); });
+      w.postMessage({ type: "time", id }, PLAYER_ORIGIN);
+      return;
+    }
+    const t = player.current?.getCurrentTime();
+    if (typeof t === "number") onAddNote(video.id, t);
+  };
 
   return (
     <section className="mt-4 rounded-xl border bg-card/50 p-3" aria-label="Video" data-note-video>
@@ -90,12 +131,14 @@ export function NoteVideo({ videos, onAddNote }: { videos: Video[]; onAddNote: (
         <a href={video.url} target="_blank" rel="noreferrer" aria-label="Open on YouTube" className="ml-auto text-muted-foreground hover:text-foreground"><ExternalLink className="h-3.5 w-3.5" /></a>
       </div>
       <div className="aspect-video w-full max-w-[640px] overflow-hidden rounded-lg bg-black">
-        {failed
+        {NATIVE
+          ? <iframe key={`${video.id}-${start}`} ref={frame} className="h-full w-full" src={playerUrl(video.id, start)} title={video.title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
+          : failed
           ? <iframe key={`${video.id}-${start}`} className="h-full w-full" src={`https://www.youtube-nocookie.com/embed/${video.id}?rel=0${start ? `&start=${Math.floor(start)}&autoplay=1` : ""}`} title={video.title} allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
           : <div ref={holder} className="h-full w-full [&_iframe]:h-full [&_iframe]:w-full" />}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        {!failed && (
+        {(NATIVE || !failed) && (
           <button onClick={stamp} disabled={!ready} className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm hover:bg-secondary disabled:opacity-50 sm:min-h-0 sm:w-auto sm:justify-start sm:px-2.5 sm:py-1.5 sm:text-xs">
             <NotebookPen className="h-3.5 w-3.5" /> Add my note at this moment
           </button>

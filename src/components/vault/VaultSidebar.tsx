@@ -2,7 +2,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { studyOverviewQuery } from "@/lib/study";
-import { Camera, ChevronRight, FilePlus2, Folder, FolderPlus, Lightbulb, MoreHorizontal, Network, NotebookPen, Pin, Search, SquarePen, Tag, Trash2, Undo2, Upload } from "lucide-react";
+import { ChevronRight, FilePlus2, Folder, FolderPlus, Lightbulb, MoreHorizontal, Network, NotebookPen, Pin, Plus, Search, Tag, Trash2, Undo2 } from "lucide-react";
+import { AddPopover } from "@/components/shell/AddMenu";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,12 +36,6 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
 
   async function run(p: Promise<unknown>, ok?: string) {
     try { await p; await refresh(); if (ok) toast.success(ok); } catch { toast.error("Something went wrong. Please try again."); }
-  }
-  async function newNote(kind: "text" | "concept") {
-    const id = await createNote({ title: kind === "concept" ? "New concept" : "Untitled", kind });
-    await refresh();
-    onNavigate?.();
-    navigate({ to: "/vault/$noteId", params: { noteId: id } });
   }
   const go = (n: VNote) => { onNavigate?.(); navigate(openTarget(n)); };
 
@@ -119,13 +114,8 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search notes" className="pl-8" aria-label="Search notes" />
       </div>
-      <div className="grid grid-cols-3 gap-1 text-center text-[12px]">
-        <Link to="/capture" onClick={onNavigate} className="flex items-center justify-center gap-1.5 rounded-lg border bg-card py-2 hover:bg-secondary"><Camera className="h-3.5 w-3.5" aria-hidden />Scan</Link>
-        <button onClick={() => void newNote("text")} className="flex items-center justify-center gap-1.5 rounded-lg border bg-card py-2 hover:bg-secondary"><SquarePen className="h-3.5 w-3.5" aria-hidden />Write</button>
-        <Link to="/capture" onClick={onNavigate} className="flex items-center justify-center gap-1.5 rounded-lg border bg-card py-2 hover:bg-secondary"><Upload className="h-3.5 w-3.5" aria-hidden />Import</Link>
-      </div>
+      <AddPopover align="start"><button className="flex items-center justify-center gap-1.5 rounded-lg border bg-card py-2 text-[13px] font-medium hover:bg-secondary"><Plus className="h-3.5 w-3.5" aria-hidden />Add</button></AddPopover>
       <div className="flex gap-1 text-xs text-muted-foreground">
-        <button onClick={() => void newNote("concept")} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><Lightbulb className="h-3 w-3" /> Concept</button>
         <button onClick={() => setNewTopic({ parent: null })} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><FolderPlus className="h-3 w-3" /> Topic</button>
         <Link to="/vault/graph" onClick={onNavigate} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><Network className="h-3 w-3" /> Graph</Link>
       </div>

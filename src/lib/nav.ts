@@ -23,7 +23,7 @@ export function isActive(item: Pick<NavItem, "to" | "exact">, pathname: string):
 export function sectionName(pathname: string): string {
   const hit = NAV.find((n) => isActive(n, pathname));
   if (hit) return hit.label;
-  if (pathname.startsWith("/capture")) return "Capture";
+  if (pathname.startsWith("/scan")) return "Scan";
   if (pathname.startsWith("/review")) return "Review";
   if (pathname.startsWith("/settings")) return "Settings";
   return "";

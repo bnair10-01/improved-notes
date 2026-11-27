@@ -8,7 +8,7 @@ import { timeLabel, type NoteVideo as Video } from "@/lib/video";
  * capacitor://localhost. So there the player is a small page on the real site (public/player.html) that the app embeds and messages.
  */
 const NATIVE = Capacitor.isNativePlatform();
-const PLAYER_ORIGIN = `https://${import.meta.env["VITE_FIREBASE_PROJECT_ID"] ?? "improvednotes-d0907"}.web.app`;
+const PLAYER_ORIGIN = `https://${import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "improvednotes-d0907"}.web.app`;
 const playerUrl = (id: string, start: number) => `${PLAYER_ORIGIN}/player.html?v=${id}${start > 0 ? `&t=${Math.floor(start)}` : ""}`;
 
 /** Anything on the page can ask the player to jump: a timestamp link in the note, for example. */

@@ -10,5 +10,6 @@ interface ImportMetaEnv {
   readonly VITE_APPCHECK_DEBUG_TOKEN?: string;
   readonly VITE_USE_EMULATORS?: string;
   readonly VITE_EMULATOR_HOST?: string;
+  readonly VITE_NATIVE_SELFTEST?: string;
 }
 interface ImportMeta { readonly env: ImportMetaEnv }

@@ -29,4 +29,4 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-if (import.meta.env["VITE_NATIVE_SELFTEST"]) void import("./lib/selftest").then((m) => m.runSelfTest());
+if (import.meta.env.VITE_NATIVE_SELFTEST) void import("./lib/selftest").then((m) => m.runSelfTest());

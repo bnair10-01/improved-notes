@@ -6,6 +6,7 @@
 #   scripts/release/ios.sh ipa appstore                 an .ipa for TestFlight / the App Store (paid program)
 #
 # Environment: TEAM_ID (default WY6V5GC2M4, your current personal team; for the paid program use that team's ID),
+#              UPLOAD=1 (with 'ipa appstore': send the build straight to App Store Connect using the account signed in to Xcode),
 #              SHARE_APPCHECK_TOKEN (a token made just for this build) or pass --no-ai as the last argument.
 # Read RELEASING.md first. iOS can't be shared by just sending a file the way Android can; Apple decides who may install.
 set -euo pipefail
@@ -21,11 +22,14 @@ TOKEN=""
 if [ "$NO_AI" = 0 ]; then
   TOKEN="${SHARE_APPCHECK_TOKEN:-}"
   [ -z "$TOKEN" ] && { echo "Set SHARE_APPCHECK_TOKEN (a debug token made just for this build, Firebase console > App Check > your iOS app) or add --no-ai." >&2; exit 1; }
-  [ -n "$DEV_TOKEN" ] && [ "$TOKEN" = "$DEV_TOKEN" ] && { echo "That's your own development token. Make a separate one for the shared build." >&2; exit 1; }
+  if [ -n "$DEV_TOKEN" ] && [ "$TOKEN" = "$DEV_TOKEN" ]; then
+    [ "${ALLOW_DEV_TOKEN:-0}" = 1 ] || { echo "That's your own development token. Make a separate one for the shared build. (To use it anyway, knowing it becomes extractable, set ALLOW_DEV_TOKEN=1.)" >&2; exit 1; }
+    echo "WARNING: your development token goes inside this app. Revoke it in the Firebase console when you stop sharing." >&2
+  fi
 fi
 
 VITE_APPCHECK_DEBUG_TOKEN="$TOKEN" npm run cap:sync
-if [ -n "$DEV_TOKEN" ] && grep -rqF "$DEV_TOKEN" ios/App/App/public 2>/dev/null; then echo "ABORT: your development token is inside the app. Not building." >&2; exit 1; fi
+if [ -n "$DEV_TOKEN" ] && [ "$TOKEN" != "$DEV_TOKEN" ] && grep -rqF "$DEV_TOKEN" ios/App/App/public 2>/dev/null; then echo "ABORT: your development token is inside the app. Not building." >&2; exit 1; fi
 
 case "$MODE" in
   device)
@@ -40,9 +44,10 @@ case "$MODE" in
   ipa)
     METHOD="${ARGS[0]:-}"; case "$METHOD" in adhoc) EXPORT=release-testing ;; appstore) EXPORT=app-store-connect ;; *) echo "Use: ipa adhoc | ipa appstore" >&2; exit 1 ;; esac
     mkdir -p "$OUT_DIR"
+    UPLOAD_XML=""; [ "${UPLOAD:-0}" = 1 ] && [ "$METHOD" = appstore ] && UPLOAD_XML="<key>destination</key><string>upload</string>"
     cat > "$OUT_DIR/ExportOptions.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict><key>method</key><string>$EXPORT</string><key>teamID</key><string>$TEAM_ID</string><key>signingStyle</key><string>automatic</string><key>stripSwiftSymbols</key><true/></dict></plist>
+<plist version="1.0"><dict><key>method</key><string>$EXPORT</string><key>teamID</key><string>$TEAM_ID</string><key>signingStyle</key><string>automatic</string><key>stripSwiftSymbols</key><true/>${UPLOAD_XML:-}</dict></plist>
 PLIST
     xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' \
       -archivePath "$OUT_DIR/ImprovedNotes.xcarchive" DEVELOPMENT_TEAM="$TEAM_ID" -allowProvisioningUpdates archive

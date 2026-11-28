@@ -24,7 +24,7 @@ export const QUIPS: Record<QuipSet, string[]> = {
     "Fun fact: the word “cell” was coined by Robert Hooke in 1665, after he looked at cork.",
     "A cube has 8 corners, 12 edges and 6 faces. I count them every time, just in case.",
     "The famous Utah teapot, a 3D graphics test object, dates from 1975.",
-    "Reference picture first, 3D second. Even AI sketches before it builds.",
+    "Sketching first, details second. Even AI draws a rough version before the good one.",
     "Making the shells see-through so you can see the insides. Rude, but educational.",
     "Leonardo da Vinci drew machines taken apart in the 1400s. This is that, with fewer horses.",
     "The hairy ball theorem says you can't comb a hairy ball flat. Mathematicians have standards.",

@@ -83,8 +83,8 @@ export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Pro
   await loadAiConfig();
   const chars = opts.chars ?? opts.instructions.length;
   const r = route(opts.task, chars, { hasImages: !!opts.hasImages, forceCloud: !!opts.forceCloud });
-  // Simple tasks don't need the model to "think" first (it adds seconds). Hard ones (photos, drawings, 3D) keep it.
-  // (3D models are long structured answers; with thinking on, the model sometimes returned a single part.)
+  // Simple tasks don't need the model to "think" first (it adds seconds). Hard ones (photos, drawings, concept pictures) keep it.
+  // (concept answers are long structured answers; with thinking on, the model sometimes returned a single part.)
   const thinks = opts.think ?? (opts.task === "transcribe" || opts.task === "diagrams" || !!opts.hasImages);
   const model = getGenerativeModel(ai(), {
     mode: r.mode,

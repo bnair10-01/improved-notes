@@ -25,9 +25,9 @@ export const Route = createFileRoute("/_authenticated/vault/graph")({
   component: GraphPage,
 });
 
-// Every kind of note belongs in the graph: written, scanned, concept, generated, slides, audio and 3D models.
+// Every kind of note belongs in the graph: written, scanned, concept, generated, slides, audio and pictures.
 const KINDS = ["handwritten", "text", "concept", "generated", "slides", "audio", "model3d"];
-const KIND_LABEL: Record<string, string> = { handwritten: "scans", text: "notes", concept: "concepts", generated: "generated", slides: "slides", audio: "audio", model3d: "3D models" };
+const KIND_LABEL: Record<string, string> = { handwritten: "scans", text: "notes", concept: "concepts", generated: "generated", slides: "slides", audio: "audio", model3d: "pictures" };
 
 function GraphPage() {
   const { data: vault } = useVault();

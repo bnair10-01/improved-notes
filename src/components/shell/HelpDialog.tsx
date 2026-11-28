@@ -65,7 +65,7 @@ const GUIDE: [string, string[]][] = [
   ]],
   ["Where the AI runs", [
     "A small badge shows whether each AI answer ran On-device (private, free, works offline, in Chrome with Gemini Nano) or in the Cloud.",
-    "Short jobs try your device first and fall back to the cloud. Photos, audio, slides, research and 3D always use the cloud.",
+    "Short jobs try your device first and fall back to the cloud. Photos, audio, slides, research and pictures always use the cloud.",
     "Every AI answer cites where it came from, and quotes are checked against your own text.",
   ]],
   ["Pen, Apple Pencil and tablets", [

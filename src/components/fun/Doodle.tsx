@@ -3,7 +3,7 @@ import { QUIPS, shuffled, type QuipSet } from "@/lib/quips";
 
 /**
  * Little animated pictures for things that take a moment, each one matching the job: a magnifier sweeping over text while
- * searching, a book turning its page while reading, blocks stacking while a 3D model is built. They use the text colour, so
+ * searching, a book turning its page while reading, blocks stacking while a picture is drawn. They use the text colour, so
  * they suit every theme, and stand still under Reduce motion.
  */
 export type DoodleKind = "search" | "book" | "video" | "write" | "sketch" | "blocks" | "cards" | "quiz" | "sparkle" | "scan" | "wave" | "slides" | "globe" | "scissors" | "mind";

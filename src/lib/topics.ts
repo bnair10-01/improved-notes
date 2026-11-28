@@ -1,7 +1,7 @@
 import { words } from "./retrieve";
 import type { VFolder, VLink, VNote } from "./vault";
 
-export type ItemKind = "SCAN" | "NOTE" | "AUDIO" | "SLIDES" | "3D" | "WEBSITE" | "YOUTUBE" | "STUDY";
+export type ItemKind = "SCAN" | "NOTE" | "AUDIO" | "SLIDES" | "PICTURE" | "WEBSITE" | "YOUTUBE" | "STUDY";
 
 /** The label shown on an item's card, from how it was captured. */
 export function itemKind(n: Pick<VNote, "kind" | "tags">): ItemKind {
@@ -11,7 +11,7 @@ export function itemKind(n: Pick<VNote, "kind" | "tags">): ItemKind {
     case "handwritten": return "SCAN";
     case "audio": return "AUDIO";
     case "slides": return "SLIDES";
-    case "model3d": return "3D";
+    case "model3d": return "PICTURE";
     case "generated": return "STUDY";
     default: return "NOTE";
   }

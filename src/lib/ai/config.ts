@@ -8,11 +8,11 @@ import { app, USE_EMULATORS } from "../firebase";
 export const AI_DEFAULTS = {
   /** Cloud model used when on-device isn't available or isn't suitable. */
   cloud_model: "gemini-3.8-flash",
-  /** Cloud model for heavier jobs: handwriting, diagrams, 3D. */
+  /** Cloud model for heavier jobs: handwriting, diagrams, pictures. */
   cloud_model_pro: "gemini-4-hydrogen",
-  /** Nano Banana, the image model that draws the reference picture for a 3D model. */
+  /** Nano Banana, the image model that draws the picture of a concept. */
   image_model: "gemini-3.1-flash-lite-image",
-  /** The model that turns notes and the picture into 3D parts. */
+  /** The model that writes what a picture shows and its parts. */
   model3d_model: "gemini-4-hydrogen",
   /** Gemini text-to-speech model used by Read aloud. */
   tts_model: "gemini-3.1-flash-tts-preview",

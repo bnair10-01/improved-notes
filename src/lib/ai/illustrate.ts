@@ -5,7 +5,7 @@ import { recordInference } from "./status";
 
 /**
  * A clean reference picture of a concept, drawn by Nano Banana through Firebase AI Logic (cloud only: there is no
- * on-device image model). It guides the 3D model's layout and is kept beside the model as a picture of the whole.
+ * on-device image model). It is kept with the note as the picture of the whole concept.
  */
 export type ReferenceImage = { mime: string; base64: string };
 

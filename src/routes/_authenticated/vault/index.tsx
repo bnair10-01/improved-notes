@@ -40,7 +40,7 @@ function VaultHome() {
           ))}
         </div>
       </div>
-      <div className="mt-3"><Hint id="vault">Press Add for a new note, a scan, a recording, slides, a link or a 3D model. Link notes by typing [[ in a note. {touchFirst() ? "Pull down from the top of any screen to search and jump to a note" : "Press Ctrl/⌘ K to jump to any note"}, or open Graph to see how they connect.</Hint></div>
+      <div className="mt-3"><Hint id="vault">Press Add for a new note, a scan, a recording, slides, a link or a picture of a concept. Link notes by typing [[ in a note. {touchFirst() ? "Pull down from the top of any screen to search and jump to a note" : "Press Ctrl/⌘ K to jump to any note"}, or open Graph to see how they connect.</Hint></div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {notes.map((n, i) => (
           <div key={n.id} style={{ "--i": Math.min(i, 12) } as React.CSSProperties} className="enter relative min-w-0">

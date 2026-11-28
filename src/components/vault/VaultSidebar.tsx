@@ -107,10 +107,6 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search notes" className="pl-8" aria-label="Search notes" />
       </div>
       <AddPopover align="start"><button className="flex items-center justify-center gap-1.5 rounded-lg border bg-card py-2 text-[13px] font-medium hover:bg-secondary"><Plus className="h-3.5 w-3.5" aria-hidden />Add</button></AddPopover>
-      <div className="flex gap-1 text-xs text-muted-foreground">
-        <button onClick={() => setNewTopic({ parent: null })} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><FolderPlus className="h-3 w-3" /> Topic</button>
-        <Link to="/vault/graph" onClick={onNavigate} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-secondary hover:text-foreground"><Network className="h-3 w-3" /> Graph</Link>
-      </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-auto">
         {showTrash ? (

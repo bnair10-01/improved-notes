@@ -191,7 +191,6 @@ html[data-theme="slate"] { --h: 230; --p: 200; --c: 0.05; }
 
 /* ---------- Accessibility (set on <html> by src/lib/a11y.ts) ---------- */
 :root { --lh: 1; --tabbar: calc(3.75rem + env(safe-area-inset-bottom)); }
-@media (min-width: 768px) { :root { --tabbar: 0px; } }
 body { line-height: calc(1.5 * var(--lh)); padding-bottom: var(--tabbar); }
 .transcript { line-height: calc(1.75 * var(--lh)); }
 html[data-font="readable"] body, html[data-font="readable"] body * { font-family: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif !important; }
@@ -262,9 +261,6 @@ html.dark[data-theme="noir"] .paper-sheet { border: 1px solid #1f1f22; }
 .font-mono-meta { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.02em; }
 .font-hand { font-family: var(--font-hand); }
 
-/* Room for the icon rail on laptops and tablets. */
-/* On #root, not body: dialogs lock body scrolling and reset its padding. */
-@media (min-width: 768px) { #root { padding-left: 52px; } }
 
 .transcript mark.hl-mark, .hl-mark { background: color-mix(in oklab, #c9a24a 40%, transparent); color: inherit; border-radius: 2px; padding: 0 0.1em; }
 
@@ -292,7 +288,7 @@ html.dark[data-contrast="high"][data-theme] {
   --ring: oklch(1 0 0); --paper-shadow: none; --wash: none;
 }
 html[data-contrast="high"] .paper-sheet { border: 1px solid var(--border); }
-html[data-contrast="high"] [data-rail], html[data-contrast="high"] header { border-color: var(--border); }
+html[data-contrast="high"] header { border-color: var(--border); }
 
 /* Phone apps: no double-tap zoom, no focus zoom, no rubber-banding the whole page. */
 html[data-native], html[data-native] body { touch-action: manipulation; overscroll-behavior-y: none; -webkit-text-size-adjust: 100%; }
@@ -301,7 +297,6 @@ html[data-native] input, html[data-native] textarea, html[data-native] select { 
 /* ---------- Motion ----------
    Pages cross-fade and rise a little (View Transitions, set up in router.tsx); the header, side rail and tab bar are named so they
    stay put. Inside a page, .enter eases things in, and --i staggers a list. Everything here is switched off by "Reduce motion". */
-[data-rail] { view-transition-name: app-rail; }
 header.sticky { view-transition-name: app-header; }
 [data-tabbar] { view-transition-name: app-tabbar; }
 ::view-transition-old(root) { animation: page-out 140ms ease-in both; }
@@ -363,7 +358,7 @@ html[data-motion="reduce"] .pop, html[data-motion="reduce"] .shake, html[data-mo
 [aria-checked="true"] .theme-sun { opacity: 0; transform: rotate(120deg) scale(0.3); }
 [aria-checked="true"] .theme-moon { opacity: 1; transform: none; }
 /* The new colours ripple out from the switch (see transitionTheme in theme.ts); a colour theme change cross-fades. Header, rail and tab bar join in. */
-html[data-theming] header.sticky, html[data-theming] [data-rail], html[data-theming] [data-tabbar] { view-transition-name: none; }
+html[data-theming] header.sticky, html[data-theming] [data-tabbar] { view-transition-name: none; }
 html[data-theming]::view-transition-old(root), html[data-theming]::view-transition-new(root) { mix-blend-mode: normal; }
 html[data-theming]::view-transition-old(root) { animation: none; }
 html[data-theming="ripple"]::view-transition-new(root) { animation: theme-ripple 650ms cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -477,8 +472,5 @@ a[data-on] .ni-n3 { animation-delay: 0.8s; }
 @media (pointer: coarse) {
   :where(button, [role="tab"], [role="menuitem"], [role="radio"], select, summary):not([data-graph-node], .react-flow *, [data-no-touch]) { min-height: 40px; }
   :where(button):not([data-graph-node], .react-flow *, [data-no-touch]) { min-width: 40px; }
-  [data-rail] a { width: 44px; height: 44px; }
-  [data-rail] a[aria-label="Improved Notes home"] { width: 44px; height: 44px; display: grid; place-items: center; margin-bottom: 0.5rem; }
-  [data-rail] a[aria-label="Settings"] { display: grid; place-items: center; width: 44px; height: 44px; }
   kbd { display: none; }
 }

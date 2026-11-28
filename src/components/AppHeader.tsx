@@ -1,31 +1,23 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { LogIn, LogOut, Plus, Search } from "lucide-react";
+import { LogIn, LogOut, Search } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAccountActions } from "./AccountActions";
 import { ThemePicker } from "./ThemePicker";
-import { A11yPanel } from "./shell/A11yPanel";
 import { HelpDialog } from "./shell/HelpDialog";
 import { DialogHost } from "./shell/DialogHost";
 import { Settings } from "lucide-react";
 import { MobileTabBar } from "./shell/MobileTabBar";
 import { SyncStatus } from "./shell/SyncStatus";
-import { sectionName } from "@/lib/nav";
-import { Rail } from "./shell/Rail";
-import { CommandPalette, openPalette } from "./shell/CommandPalette";
+import { CommandPalette, openPalette, touchFirst } from "./shell/CommandPalette";
 import { SplitHost } from "./split/SplitHost";
-import { AddPopover } from "./shell/AddMenu";
 
 export function AppHeader() {
   const { user, guest, signIn, askSignOut, dialog } = useAccountActions();
   const navigate = useNavigate();
   const [menu, setMenu] = useState(false);
-  const pathname = useRouterState({ select: (st) => st.location.pathname });
-  const section = sectionName(pathname);
-  // Home's own box already searches and creates, so the top bar stays quiet there.
-  const onHome = pathname === "/";
 
   const avatarUrl = user?.photoURL ?? null;
   const displayName = user?.displayName || user?.email?.split("@")[0] || (user?.isAnonymous ? "Guest" : "Account");
@@ -40,26 +32,18 @@ export function AppHeader() {
   return (
     <>
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/70 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:px-5 md:min-h-[46px] md:grid-cols-[minmax(0,1fr)_minmax(0,300px)_auto] md:py-1.5">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link to="/" className="flex min-w-0 items-center gap-2 whitespace-nowrap font-serif text-lg font-semibold md:hidden">
-            <BrandMark className="h-6 w-6" />
-            <span data-brand-name className="truncate">Improved Notes</span>
-          </Link>
-          {section && <span data-section className="hidden truncate text-[13px] text-foreground lg:block">{section}</span>}
-        </div>
-        {user && !onHome ? (
-          <button onClick={openPalette} className="hidden items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5 text-left text-[13px] text-muted-foreground md:flex" aria-label="Search, jump, or ask anything">
-            <Search className="h-3.5 w-3.5" /><span className="flex-1 truncate">Search and jump</span><kbd className="rounded border px-1.5 font-mono text-[10.5px]">⌘K</kbd>
-          </button>
-        ) : <span className="hidden md:block" />}
+      {/* The same top bar on a phone, a tablet and the web: the logo (home) on the left, then search, help, light/dark and your account. */}
+      <div className="mx-auto flex w-full max-w-[1600px] items-center gap-2 px-3 py-2.5 sm:px-5">
+        <Link to="/" aria-label="Improved Notes home" className="flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap font-serif text-lg font-semibold">
+          <BrandMark className="h-6 w-6" />
+          <span data-brand-name className="truncate">Improved Notes</span>
+        </Link>
         <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          {user && !onHome && (
-            <AddPopover><button className="mr-1 hidden items-center gap-1 rounded-lg bg-foreground px-3 py-1.5 text-[13px] font-medium text-background md:flex" aria-label="Add"><Plus className="h-3.5 w-3.5" /> Add</button></AddPopover>
+          {user && (
+            <Button variant="ghost" size="icon" className="min-h-10 min-w-10" aria-label="Search and jump" title={touchFirst() ? "Search (or pull down from the top)" : "Search (⌘K)"} onClick={openPalette} data-open-search><Search /></Button>
           )}
           <SyncStatus />
           <HelpDialog />
-          <A11yPanel />
           <ThemePicker />
           {user ? (
             <Popover open={menu} onOpenChange={setMenu}>
@@ -85,7 +69,6 @@ export function AppHeader() {
         </nav>
       </div>
     </header>
-    <Rail initials={initials} avatarUrl={avatarUrl} />
     {user && <><MobileTabBar /><DialogHost /><SplitHost /><CommandPalette />{dialog}</>}
     </>
   );

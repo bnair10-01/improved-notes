@@ -27,8 +27,9 @@ export function holdForSplash() {
   return true;
 }
 
+/** The same front door on the web, an iPad and a phone. Only the phone apps add the opening logo animation. */
 export function LaunchGate() {
-  return Capacitor.isNativePlatform() ? <Gate /> : null;
+  return <Gate />;
 }
 
 function Gate() {

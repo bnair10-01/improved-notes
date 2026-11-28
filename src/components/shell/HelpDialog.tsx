@@ -11,7 +11,7 @@ const GUIDE: [string, string[]][] = [
   ["Getting started", [
     "Home is one box. Type a topic and press Enter to look it up and build notes from Wikipedia and YouTube, or switch the box to Note to start writing with what you typed. Your choice is remembered.",
     "Paste a YouTube or web link into the box and it's read and divided into notes, one per idea. You name the topic; nothing is filed until you accept.",
-    "Press + in the box, or Add in the top bar, to bring in anything else. On a phone the big + in the tab bar does the same, Notes, Graph, Topics and Study are one tap away, and the logo takes you home.",
+    "Press + in the box, or Add in the top bar, to bring in anything else. The bar at the bottom is the same on a phone, a tablet and the web: Notes, Graph, the big + (Add), Topics and Study, and the logo at the top takes you home.",
     "Your notes are private to your account and follow you to any device you sign in on. A guest account lasts only for this tab until you sign in.",
   ]],
   ["Rename, delete and research more", [
@@ -34,7 +34,7 @@ const GUIDE: [string, string[]][] = [
     "Add → Scan handwriting. Take photos or choose files; add as many pages as you like.",
     "Reorder, rotate or remove pages, then tap Transcribe. You always get the transcript and a mind map, and the note is saved for you as soon as it's transcribed. Edits save as you go.",
     "Nothing is invented. Words that can't be read show as [illegible], guesses as [word?], highlighted so you can fix them in Edit.",
-    "Export the transcript as PDF, Markdown or plain text. Past scans are under History.",
+    "Export the transcript as PDF, Markdown or plain text. Scans are saved as notes, so they're in Notes with everything else.",
   ]],
   ["Writing and linking notes", [
     "Add → Write a note. Notes save automatically as you type.",
@@ -70,13 +70,13 @@ const GUIDE: [string, string[]][] = [
     "Every AI answer cites where it came from, and quotes are checked against your own text.",
   ]],
   ["Pen, Apple Pencil and tablets", [
-    "On an iPad or Android tablet the app uses the roomier laptop layout, with controls sized for fingers and pens.",
+    "On an iPad or Android tablet it's the same app as on a phone, with more room and controls sized for fingers and pens.",
     "Touch a note's editor with a pen and it switches to Pencil mode and starts writing straight away. Lines get bolder as you press harder, a resting palm or finger is ignored once a pen is in use, and a stylus's eraser end rubs out.",
     "In Pencil mode, Pen and Eraser are in the toolbar, with Undo, Clear ink, and To text to turn your handwriting into text.",
   ]],
   ["Appearance and accessibility", [
-    "Light or dark follows your device's setting and changes with it. The sun/moon switch flips it for now with a ripple, and it goes back to the device's setting when you reopen the app or the device changes. The palette button (and Settings → Appearance, which is where a phone picks one) chooses the colour theme for each mode.",
-    "The accessibility button sets font (including dyslexia-friendly), text size, line spacing, high contrast, reduced motion and focus mode. Reduce motion also turns off the animations.",
+    "Light or dark follows your device's setting and changes with it. The sun/moon switch in the top bar flips it for now with a ripple, and it goes back to the device's setting when you reopen the app or the device changes. Settings → Appearance chooses the colour theme for each mode.",
+    "Settings → Accessibility sets font (including dyslexia-friendly), text size, line spacing, high contrast, reduced motion and focus mode. Reduce motion also turns off the animations.",
     "Read aloud on any note uses a natural Gemini voice (your device's voice as a backup) and highlights the current sentence.",
     "These settings are saved on each device and apply everywhere.",
   ]],

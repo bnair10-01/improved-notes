@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Moon, Palette, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, Moon, Sun } from "lucide-react";
 import { readTheme, savedThemeFor, THEMES, transitionTheme, type Mode } from "@/lib/theme";
 
 type State = { mode: Mode; theme: string };
@@ -61,27 +59,14 @@ function ThemeSwatches({ state, set }: { state: State; set: (theme: string) => v
 
 const note = (m: Mode) => `Light or dark follows your device, which is in ${m} mode now. This sets the ${m} colours; the other mode keeps its own.`;
 
-/** In the top bar: the light/dark switch, plus (on wider screens) a palette button for the colour themes. */
+/** In the top bar: just the light/dark switch. Colour themes and accessibility live in Settings. */
 export function ThemePicker() {
-  const [state, set] = useThemeState();
+  const [state] = useThemeState();
   if (!state) return <div className="h-10 w-12" aria-hidden />;
-  return (
-    <>
-    <ThemeSwitch state={state} />
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="hidden min-h-10 min-w-10 sm:inline-flex" aria-label={`Colour theme (${state.mode} mode, from your device)`}><Palette /></Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-64">
-        <p className="mb-2 text-xs text-muted-foreground">{note(state.mode)}</p>
-        <ThemeSwatches state={state} set={set} />
-      </PopoverContent>
-    </Popover>
-    </>
-  );
+  return <ThemeSwitch state={state} />;
 }
 
-/** For Settings: the same switch and swatches, so phones (where the palette button is hidden) can pick a theme too. */
+/** For Settings: the switch and the colour themes for the current mode. */
 export function AppearanceControls() {
   const [state, set] = useThemeState();
   if (!state) return null;

@@ -1,14 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
-import { BookOpenCheck, Loader2, PenLine, Pin } from "lucide-react";
-import { toast } from "sonner";
+import { BookOpenCheck, Pin } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
-import { GoogleMark } from "@/components/GoogleMark";
 import { HomeComposer } from "@/components/home/HomeComposer";
-import { Button } from "@/components/ui/button";
-import { IS_NATIVE } from "@/lib/firebase";
-import { authMessage, ensureSignedIn, googleCancelled, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { studyDueQuery } from "@/lib/study";
 import { openTarget, useVault, type VNote } from "@/lib/vault";
 
@@ -23,7 +18,8 @@ function HomePage() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main>{!ready ? null : user ? <Home name={firstName(user.displayName, user.email)} /> : IS_NATIVE ? null : <Welcome />}</main>
+      {/* Signed out, the front door (LaunchGate) is what you see; there's no separate landing page. */}
+      <main>{ready && user ? <Home name={firstName(user.displayName, user.email)} /> : null}</main>
     </div>
   );
 }
@@ -33,56 +29,6 @@ function firstName(displayName?: string | null, email?: string | null) {
 }
 
 const today = () => new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }).toUpperCase();
-
-function Column({ children }: { children: ReactNode }) {
-  return <div className="mx-auto flex max-w-[1100px] flex-col gap-7 px-5 pb-12 pt-8 sm:px-10 lg:px-16 lg:pt-16">{children}</div>;
-}
-
-function Headline({ line1, line2 }: { line1: string; line2: string }) {
-  return (
-    <div>
-      <div className={`${mono} enter`}>{today()}</div>
-      <h1 className="enter mt-3.5 font-serif text-[40px] font-normal leading-[1.02] tracking-[-0.02em] sm:text-6xl" style={{ "--i": 1 } as React.CSSProperties}>
-        {line1}<br /><span className="italic text-muted-foreground">{line2}</span>
-      </h1>
-    </div>
-  );
-}
-
-function Welcome() {
-  const [busy, setBusy] = useState<"google" | "write" | null>(null);
-  async function google() {
-    setBusy("google");
-    try { rememberNext("/"); await signInWithGoogle(); }
-    catch (e) { if (!googleCancelled(e)) toast.error(authMessage(e)); }
-    finally { setBusy(null); }
-  }
-  async function write() {
-    setBusy("write");
-    // A guest is created here and Home takes over: the box is where writing, asking and importing start.
-    try { await ensureSignedIn(); } catch { toast.error("Couldn't get started. Please try again."); } finally { setBusy(null); }
-  }
-  return (
-    <Column>
-      <Headline line1="Take notes. See the map." line2="Learn it." />
-      <p className="enter max-w-[520px] text-[15px] leading-relaxed text-muted-foreground" style={{ "--i": 3 } as React.CSSProperties}>
-        Write, scan handwriting, or bring in a lecture, a website or a video. Everything is divided into notes, linked into topics, and turned into flashcards and quizzes made only from what you wrote. AI runs on your device first.
-      </p>
-      <div className="enter max-w-sm space-y-2" style={{ "--i": 5 } as React.CSSProperties}>
-        <Button className="w-full" size="lg" onClick={() => void write()} disabled={busy !== null}>
-          {busy === "write" ? <Loader2 className="animate-spin" /> : <PenLine />} Start writing
-        </Button>
-        {(
-          <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={() => void google()} disabled={busy !== null}>
-            {busy === "google" ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
-          </Button>
-        )}
-        <Link to="/auth" search={{ redirect: "/" }} className="mx-auto block w-fit min-h-9 px-2 py-1.5 text-sm text-foreground underline underline-offset-4">Sign in with email</Link>
-        <p className="px-1 text-xs text-muted-foreground">Start without an account and sign in later to keep your notes on every device.</p>
-      </div>
-    </Column>
-  );
-}
 
 function greeting() {
   const h = new Date().getHours();

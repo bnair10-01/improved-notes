@@ -8,7 +8,7 @@ import type { MindMap, MindNode } from "../mindmap-types";
 import type { AiDiagram } from "../diagram-types";
 import type { Segment } from "../audio";
 import { CARD_MAX, CARD_MIN, QUIZ_MAX, QUIZ_MIN, clampCount } from "../study-validate";
-import { SHAPES, fitToView, tidyGenerated, validateSpec, verifyPartQuotes, type Spec } from "../model3d";
+import { SHAPES, declutter, fitToView, tidyGenerated, validateSpec, verifyPartQuotes, type Spec } from "../model3d";
 import { AiFailure, imagePart, runJson, runModel, runStream, safe } from "./run";
 import type { JS } from "./schema";
 import { modelInstructions } from "./model-rules";
@@ -316,24 +316,26 @@ const MODEL_SCHEMA = wrapObj({ title: str, summary: str, parts: { type: "array",
 
 export type GenerateModelResponse = { ok: true; spec: Spec } | { ok: false; error: string };
 
-export const generateModelSpec = ({ concept, context }: { concept: string; context?: string }): Promise<GenerateModelResponse> =>
+export const generateModelSpec = ({ concept, context, reference }: { concept: string; context?: string; reference?: { mime: string; base64: string } }): Promise<GenerateModelResponse> =>
   safe("model3d", async () => {
     if (!concept.trim() || concept.length > 1000) throw new AiFailure("Describe a concept in 1–1000 characters.");
     const notes = context?.slice(0, 30000);
     const attempt = async () => {
       const { data } = await runJson<unknown>({
         task: "model3d", schema: MODEL_SCHEMA, chars: concept.length + (notes?.length ?? 0),
-        instructions: modelInstructions(concept, notes),
+        instructions: modelInstructions(concept, notes, !!reference),
+        ...(reference ? { hasImages: true, parts: [{ inlineData: { mimeType: reference.mime, data: reference.base64 } }] } : {}),
       });
       const spec = tidyGenerated(validateSpec(data));
       fitToView(spec.parts);
+      declutter(spec.parts);
       return notes ? verifyPartQuotes(spec, notes) : spec;
     };
     const distinct = (sp: Spec) => sp.parts.filter((p) => !p.instance_of).length;
     let spec = await attempt();
     // A model with a few parts isn't worth exploring. Ask again once before giving up.
-    if (distinct(spec) < 8) { const again = await attempt(); if (distinct(again) > distinct(spec)) spec = again; }
-    if (distinct(spec) < 5) throw new AiFailure("The model came back too simple. Try adding a focus, or describe the concept in more detail.");
+    if (distinct(spec) < 6) { const again = await attempt(); if (distinct(again) > distinct(spec)) spec = again; }
+    if (distinct(spec) < 4) throw new AiFailure("The model came back too simple. Try adding a focus, or describe the concept in more detail.");
     return { spec };
   }) as Promise<GenerateModelResponse>;
 

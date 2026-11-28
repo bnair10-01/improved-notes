@@ -53,7 +53,7 @@ export function explain(err: unknown): AiFailure {
 }
 
 /** A single-use App Check token can occasionally fail to arrive. Try once more with a fresh token before telling the person. */
-async function withAppCheckRetry<T>(call: () => Promise<T>): Promise<T> {
+export async function withAppCheckRetry<T>(call: () => Promise<T>): Promise<T> {
   try { return await call(); }
   catch (e) {
     if (explain(e).kind !== "app_check") throw e;

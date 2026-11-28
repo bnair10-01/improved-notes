@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateSpec, fitToView, tidyGenerated, verifyPartQuotes, centroidDirection, explodeOffset, partsToNodes, findPath, parseModelEmbeds } from './model3d';
+import { declutter, validateSpec, fitToView, tidyGenerated, verifyPartQuotes, centroidDirection, explodeOffset, partsToNodes, findPath, parseModelEmbeds } from './model3d';
 const part = (extra = {}) => ({ id: 'a', name: 'Housing', shape: 'box', ...extra });
 describe('validateSpec', () => {
   it('accepts fewer than eight, rejects invalid shapes, caps valid parts at thirty', () => {
@@ -146,3 +146,28 @@ describe("tidyGenerated", () => {
   });
 });
 
+
+describe("declutter", () => {
+  const part = (id: string, position: [number, number, number], size: number[], extra: object = {}) => ({ id, name: id, shape: "box", size, position, color: "#60a5fa", ...extra });
+  const overlaps = (a: { position: number[]; size: number[] }, b: { position: number[]; size: number[] }) => [0, 1, 2].every((k) => (a.size[k]! + b.size[k]!) / 2 - Math.abs(a.position[k]! - b.position[k]!) > 1e-6);
+
+  it("pulls apart two solid parts piled on top of each other", () => {
+    const spec = validateSpec({ parts: [part("a", [0, 0, 0], [2, 2, 2]), part("b", [0.4, 0.2, 0], [2, 2, 2])] });
+    expect(overlaps(spec.parts[0]!, spec.parts[1]!)).toBe(true);
+    declutter(spec.parts);
+    expect(overlaps(spec.parts[0]!, spec.parts[1]!)).toBe(false);
+  });
+
+  it("leaves parts inside a see-through shell, and parts that only touch, where they are", () => {
+    const spec = validateSpec({ parts: [part("shell", [0, 0, 0], [8, 8, 8], { opacity: 0.2 }), part("core", [0, 0, 0], [2, 2, 2]), part("side", [2.05, 0, 0], [2, 2, 2])] });
+    const before = spec.parts.map((p) => [...p.position]);
+    declutter(spec.parts);
+    expect(spec.parts.map((p) => [...p.position])).toEqual(before);
+  });
+
+  it("does not move a part that sits fully inside another solid part", () => {
+    const spec = validateSpec({ parts: [part("big", [0, 0, 0], [4, 4, 4]), part("small", [0.5, 0, 0], [1, 1, 1])] });
+    declutter(spec.parts);
+    expect(spec.parts[1]!.position).toEqual([0.5, 0, 0]);
+  });
+});

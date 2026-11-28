@@ -177,7 +177,7 @@ export function modelConcept(noteTitle: string, extra = ""): string {
  * Clean up a freshly generated model: drop parts the model listed twice, and if it came back with more distinct parts
  * than can be read at a glance, keep the most meaningful ones (shells, parts backed by the note, the largest).
  */
-export function tidyGenerated(spec: Spec, max = 14): Spec {
+export function tidyGenerated(spec: Spec, max = 10): Spec {
   const key = (p: Part) => `${p.name.trim().toLowerCase()}|${p.description.trim().toLowerCase()}`;
   const seen = new Set<string>();
   const drop = new Set<string>();
@@ -191,4 +191,35 @@ export function tidyGenerated(spec: Spec, max = 14): Spec {
     primaries = primaries.filter((p) => !drop.has(p.id));
   }
   return { ...spec, parts: spec.parts.filter((p) => !drop.has(p.instance_of ?? p.id)) };
+}
+
+/**
+ * Pull apart solid parts that sit on top of each other, so a freshly built model reads cleanly. Parts inside a shell
+ * (or any part that fully contains another) and the copies of a repeated part are left alone; only genuine pile-ups move.
+ */
+export function declutter(parts: Part[], rounds = 10): void {
+  const solid = parts.filter((p) => (p.opacity ?? 1) >= 0.5 && !p.instance_of);
+  const half = (p: Part, i: number) => (p.size[i] ?? 1) / 2;
+  const volume = (p: Part) => p.size.slice(0, 3).reduce((a, b) => a * b, 1);
+  for (let r = 0; r < rounds; r++) {
+    let moved = false;
+    for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) {
+      const a = solid[i]!, b = solid[j]!;
+      const depth = [0, 1, 2].map((k) => half(a, k) + half(b, k) - Math.abs(a.position[k]! - b.position[k]!));
+      if (depth.some((d) => d <= 0)) continue;
+      const inside = (x: Part, y: Part) => [0, 1, 2].every((k) => Math.abs(x.position[k]! - y.position[k]!) + half(y, k) <= half(x, k) + 1e-6);
+      if (inside(a, b) || inside(b, a)) continue;
+      if (depth[0]! * depth[1]! * depth[2]! / Math.min(volume(a), volume(b)) < 0.3) continue; // touching, not piled up
+      const axis = depth.indexOf(Math.min(...depth));
+      const push = depth[axis]! / 2 + 0.03;
+      const dir = (b.position[axis]! - a.position[axis]!) >= 0 ? 1 : -1;
+      const pa = [...a.position] as Vec3, pb = [...b.position] as Vec3;
+      pa[axis] = pa[axis]! - dir * push; pb[axis] = pb[axis]! + dir * push;
+      a.position = pa; b.position = pb;
+      moved = true;
+    }
+    if (!moved) break;
+  }
+  // Moved parts (and their copies) separate outward when the model is taken apart, so refresh those directions.
+  for (const p of solid) if (!parts.some((c) => c.instance_of === p.id)) p.explode_direction = centroidDirection(p.position, [0, 0, 0]);
 }

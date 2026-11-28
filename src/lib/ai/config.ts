@@ -10,6 +10,8 @@ export const AI_DEFAULTS = {
   cloud_model: "gemini-3.8-flash",
   /** Cloud model for heavier jobs: handwriting, diagrams, 3D. */
   cloud_model_pro: "gemini-4-hydrogen",
+  /** Nano Banana, the image model that draws the reference picture for a 3D model. */
+  image_model: "gemini-nano-banana-2.1",
   /** Gemini text-to-speech model used by Read aloud. */
   tts_model: "gemini-3.1-flash-tts-preview",
   /** Above this many characters, a task goes straight to the cloud instead of trying on-device. */
@@ -52,6 +54,7 @@ export function aiConfig(): AiConfig {
   return {
     cloud_model: str("cloud_model", AI_DEFAULTS.cloud_model),
     cloud_model_pro: str("cloud_model_pro", AI_DEFAULTS.cloud_model_pro),
+    image_model: str("image_model", AI_DEFAULTS.image_model),
     tts_model: str("tts_model", AI_DEFAULTS.tts_model),
     on_device_max_chars: num("on_device_max_chars", AI_DEFAULTS.on_device_max_chars),
     transcribe_prefer_cloud: bool("transcribe_prefer_cloud", AI_DEFAULTS.transcribe_prefer_cloud),

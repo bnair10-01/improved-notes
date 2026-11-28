@@ -1,7 +1,7 @@
 import { Working } from "@/components/fun/Doodle";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Camera, FileText, ImagePlus, Loader2, Network, RotateCw, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, ImagePlus, Loader2, RotateCw, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
@@ -9,7 +9,8 @@ import { Hint } from "@/components/shell/Hint";
 import { prepareImage, rotateDataUrl } from "@/lib/image";
 import { getSession, resetSession, setSession, useSession } from "@/lib/session";
 import { transcribeNotes } from "@/lib/ai/tasks";
-import { ensureSignedIn, useAuth } from "@/lib/auth";
+import { ensureSignedIn, rememberNext, useAuth } from "@/lib/auth";
+import { saveNote } from "@/lib/notes";
 
 export const Route = createFileRoute("/scan")({
   component: ScanPage,
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/scan")({
 
 /** Scan handwriting: take or choose photos, put them in order, and turn them into a note. Reached from the Add menu. */
 function ScanPage() {
-  const { pages, mode = "text" } = useSession();
+  const { pages } = useSession();
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -68,8 +69,16 @@ function ScanPage() {
     try {
       const res = await transcribe({ images: pages.map((p) => p.dataUrl) });
       if (!res.ok) { toast.error(res.error); return; }
-      setSession({ result: res.result, mode, noteId: null, mindmap: null, mindmapStale: false, diagrams: [] });
-      navigate({ to: "/review" });
+      // Always saved, straight away: scanning is making a note, and a note is never left to be saved by hand.
+      // The mind map is built next on the review screen and saved onto the same note.
+      const me = await ensureSignedIn();
+      const noteId = await saveNote(null, pages, res.result);
+      setSession({ result: res.result, mode: "map", noteId, mindmap: null, mindmapStale: false, diagrams: [] });
+      if (me.isAnonymous) {
+        const next = `/review?id=${noteId}`;
+        toast.success("Saved as a guest. Sign in to keep it on all your devices.", { action: { label: "Sign in", onClick: () => { rememberNext(next); navigate({ to: "/auth", search: { redirect: next } }); } } });
+      }
+      navigate({ to: "/review", search: { id: noteId } });
     } catch {
       toast.error("Couldn't reach the transcriber. Try fewer pages or try again.");
     } finally {
@@ -103,21 +112,7 @@ function ScanPage() {
           <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
         </div>
 
-        <fieldset className="mt-5">
-          <legend className="mb-2 text-sm font-medium text-muted-foreground">What do you want back?</legend>
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              { v: "text", icon: FileText, label: "Just the text", hint: "Clean transcript, tables kept, save as PDF" },
-              { v: "map", icon: Network, label: "Text + mind map", hint: "Also a 3D map and redrawn sketches" },
-            ] as const).map(({ v, icon: Icon, label, hint }) => (
-              <button key={v} type="button" aria-pressed={mode === v} onClick={() => setSession({ mode: v })}
-                className={`paper-sheet flex flex-col items-start gap-1 p-3 text-left transition-colors ${mode === v ? "border-primary ring-2 ring-primary/30" : "opacity-80 hover:opacity-100"}`}>
-                <span className="flex items-center gap-1.5 text-sm font-medium"><Icon className="h-4 w-4 text-primary" /> {label}</span>
-                <span className="text-xs text-muted-foreground">{hint}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <p className="mt-5 text-sm text-muted-foreground">You get the transcript and a mind map, saved to your notes as soon as it's ready.</p>
 
         {pages.length > 0 && (
           <section className="mt-6">

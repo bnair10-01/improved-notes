@@ -50,3 +50,7 @@ ios/DerivedData/
 
 # Demo screenshots and reports
 demo-output/
+
+# Per-app Firebase client config for the native apps (download with: firebase apps:sdkconfig <IOS|ANDROID> <app id>)
+ios/App/App/GoogleService-Info.plist
+android/app/google-services.json

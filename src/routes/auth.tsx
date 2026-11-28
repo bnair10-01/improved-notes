@@ -5,10 +5,9 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  authMessage, isPermanent, rememberNext, signInWithEmail, signInWithGoogle, signUpWithEmail, takeNext, useAuth,
+  authMessage, googleCancelled, isPermanent, rememberNext, signInWithEmail, signInWithGoogle, signUpWithEmail, takeNext, useAuth,
 } from "@/lib/auth";
 import { GoogleMark } from "@/components/GoogleMark";
-import { IS_NATIVE } from "@/lib/firebase";
 
 function safePath(p: unknown) {
   return typeof p === "string" && p.startsWith("/") && !p.startsWith("//") ? p : "/history";
@@ -38,7 +37,7 @@ function AuthPage() {
       rememberNext(redirect);
       await fn();
     } catch (err) {
-      toast.error(authMessage(err));
+      if (!googleCancelled(err)) toast.error(authMessage(err));
     } finally {
       setBusy(false);
     }
@@ -53,7 +52,7 @@ function AuthPage() {
           One account on every device. Anything you captured as a guest comes with you.
         </p>
 
-        {!IS_NATIVE && (
+        {(
           <div className="mt-6 space-y-2">
             <Button
               type="button"
@@ -69,7 +68,7 @@ function AuthPage() {
           </div>
         )}
 
-        <div className="my-4 text-center text-xs text-muted-foreground">{IS_NATIVE ? "Sign in with email" : "or with email"}</div>
+        <div className="my-4 text-center text-xs text-muted-foreground">or with email</div>
 
         <form
           onSubmit={(e) => { e.preventDefault(); run(() => (mode === "in" ? signInWithEmail(email, password) : signUpWithEmail(email, password))); }}

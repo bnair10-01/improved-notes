@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { GoogleMark } from "@/components/GoogleMark";
-import { authMessage, ensureSignedIn, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
+import { authMessage, ensureSignedIn, googleCancelled, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
 
 /**
  * The phone apps' front door. It plays the logo animation (the tile settles in, its margin line draws, the dot lands, the name rises),
@@ -19,8 +19,6 @@ const reduced = () => {
 };
 const SHOW_MS = 1500, FADE_MS = 450;
 let played = false;
-/** Google's sign-in popup can't open inside the phone app, so the button waits for the native Google sign-in to be set up (VITE_NATIVE_GOOGLE=1). */
-const GOOGLE = import.meta.env.VITE_NATIVE_GOOGLE === "1";
 
 /** Called before the first render so the start page knows to hold its own entrance until the screen lifts. */
 export function holdForSplash() {
@@ -68,7 +66,7 @@ function Gate() {
   }
   async function google() {
     setBusy("google");
-    try { rememberNext("/"); await signInWithGoogle(); } catch (e) { toast.error(authMessage(e)); } finally { setBusy(null); }
+    try { rememberNext("/"); await signInWithGoogle(); } catch (e) { if (!googleCancelled(e)) toast.error(authMessage(e)); } finally { setBusy(null); }
   }
   function email() { rememberNext("/"); void navigate({ to: "/auth", search: { redirect: "/" } }); }
 
@@ -91,11 +89,9 @@ function Gate() {
             <Button className="w-full" size="lg" onClick={() => void write()} disabled={busy !== null}>
               {busy === "write" ? <Loader2 className="animate-spin" /> : <PenLine />} Start writing
             </Button>
-            {GOOGLE && (
-              <Button variant="outline" className="w-full" size="lg" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={() => void google()} disabled={busy !== null}>
-                {busy === "google" ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
-              </Button>
-            )}
+            <Button variant="outline" className="w-full" size="lg" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={() => void google()} disabled={busy !== null}>
+              {busy === "google" ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
+            </Button>
             <button type="button" onClick={email} disabled={busy !== null} className="mx-auto block min-h-11 px-3 text-sm text-foreground underline underline-offset-4 disabled:opacity-50">Sign in with email</button>
             <p className="px-2 text-center text-xs text-muted-foreground">Start without an account and sign in later to keep your notes on every device.</p>
           </div>

@@ -26,6 +26,8 @@ import { InsightColumn } from "@/components/vault/InsightColumn";
 import { NoteTools } from "@/components/vault/NoteTools";
 import { NoteVideo, seekVideo } from "@/components/vault/NoteVideo";
 import { Hint } from "@/components/shell/Hint";
+import { LocalGraph } from "@/components/vault/LocalGraph";
+import { NoteMindMap } from "@/components/vault/NoteMindMap";
 import { appendMyNote, linkSeconds, sourceVideos, videoId } from "@/lib/video";
 import { TopicSuggestion } from "@/components/vault/TopicSuggestion";
 import { ResizableInsight } from "@/components/vault/ResizableInsight";
@@ -36,7 +38,6 @@ import { ModelNotePanel } from "@/components/model3d/ModelNotePanel";
 import { NewModelDialog } from "@/components/model3d/NewModelDialog";
 import { parseModelEmbeds } from "@/lib/model3d";
 
-const VaultGraph = lazy(() => import("@/components/vault/VaultGraph3D"));
 const SlidesView = lazy(() => import("@/components/slides/SlidesView"));
 const AudioView = lazy(() => import("@/components/audio/AudioView"));
 const ModelEmbed = lazy(() => import("@/components/model3d/ModelEmbed"));
@@ -70,8 +71,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
   const [md, setMd] = useState(note?.markdown ?? "");
   const [tab, setTab] = useState(note && !note.markdown ? "edit" : "preview");
   const [status, setStatus] = useState<"saved" | "saving" | "dirty">("saved");
-  const [depth, setDepth] = useState(1);
-  const [showGraph, setShowGraph] = useState(false);
+  const [mapSignal, setMapSignal] = useState(0);
   const [confirmTrash, setConfirmTrash] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
   const [insightOpen, setInsightOpen] = useState(false);
@@ -162,7 +162,6 @@ function NoteEditor({ noteId }: { noteId: string }) {
   const backlinks = vault.links.filter((l) => l.to_note_id === noteId).map((l) => ({ l, n: live.find((x) => x.id === l.from_note_id) })).filter((x) => x.n);
   const linkedIds = new Set(vault.links.flatMap((l) => (l.to_note_id === noteId ? [l.from_note_id] : l.from_note_id === noteId ? [l.to_note_id] : [])));
   const mentions = live.filter((n) => n.id !== noteId && !linkedIds.has(n.id) && mentionsTitle(n.markdown, note.title));
-  const near = neighborhood(vault, noteId, depth);
   const folder = vault.folders.find((f) => f.id === note.folder_id);
 
   async function openWiki(t: string) {
@@ -176,7 +175,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
   const addVideoNote = (id: string, seconds: number) => { const next = appendMyNote(md, id, seconds); setMd(next); scheduleSave(next); setTab("edit"); setFocusEnd(true); };
 
   const words = md.trim() ? md.trim().split(/\s+/).length : 0;
-  const insight = <InsightColumn note={note} vault={vault} markdown={md} onOpenGraph={() => { setShowGraph(true); setInsightOpen(false); }} />;
+  const insight = <InsightColumn note={note} vault={vault} markdown={md} onOpenGraph={() => { setMapSignal((n) => n + 1); setInsightOpen(false); }} />;
 
   return (
     <div className="fold-split flex min-h-0 min-w-0 flex-1">
@@ -279,24 +278,8 @@ function NoteEditor({ noteId }: { noteId: string }) {
           </section>
         </div>
 
-        <section data-distraction className="mt-5">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowGraph(!showGraph)}><Network /> {showGraph ? "Hide" : "Show"} local graph</Button>
-            {showGraph && <div className="flex items-center gap-1 text-xs text-muted-foreground">Depth {[1, 2, 3].map((d) => <button key={d} onClick={() => setDepth(d)} className={`h-6 w-6 rounded-md border ${depth === d ? "border-primary bg-primary text-primary-foreground" : ""}`}>{d}</button>)}</div>}
-          </div>
-          {showGraph && (
-            <div className="paper-sheet h-80 overflow-hidden">
-              <ClientOnly fallback={<Skeleton className="h-full w-full" />}>
-                <Suspense fallback={<Skeleton className="h-full w-full" />}>
-                  <VaultGraph notes={live.filter((n) => near.has(n.id))} links={vault.links} folders={vault.folders} focusId={noteId}
-                    onOpen={(n) => navigate(openTarget(n))}
-                    onAddLink={async (a, b, why) => { await addLink(a, b, "auto", why.slice(0, 60)); await refresh(); }}
-                    onRemoveLink={async (id) => { await deleteLink(id); await refresh(); }} />
-                </Suspense>
-              </ClientOnly>
-            </div>
-          )}
-        </section>
+        <NoteMindMap noteId={noteId} title={note.title} markdown={md} signal={mapSignal} />
+        <LocalGraph noteId={noteId} />
       </div>
 
       <NewModelDialog open={modelOpen} onOpenChange={setModelOpen} sourceNote={{ id: noteId, title, markdown: md, folderId: note.folder_id }} />

@@ -1,8 +1,9 @@
 import { ClientOnly, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useState } from "react";
-import { Check, Loader2, Sparkles, X } from "lucide-react";
+import { Check, Loader2, Search, SlidersHorizontal, Sparkles, Unlink, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { addLink, deleteLink, openTarget, useRefreshVault, useVault } from "@/lib/vault";
 import { suggestLinks, type LinkSuggestion } from "@/lib/ai/tasks";
@@ -24,7 +25,9 @@ export const Route = createFileRoute("/_authenticated/vault/graph")({
   component: GraphPage,
 });
 
-const KINDS = ["handwritten", "text", "concept", "generated"];
+// Every kind of note belongs in the graph: written, scanned, concept, generated, slides, audio and 3D models.
+const KINDS = ["handwritten", "text", "concept", "generated", "slides", "audio", "model3d"];
+const KIND_LABEL: Record<string, string> = { handwritten: "scans", text: "notes", concept: "concepts", generated: "generated", slides: "slides", audio: "audio", model3d: "3D models" };
 
 function GraphPage() {
   const { data: vault } = useVault();
@@ -38,6 +41,10 @@ function GraphPage() {
   const [ideas, setIdeas] = useState<LinkSuggestion[] | null>(null);
   const [showAuto, setShowAuto] = useState(true);
   const [stats, setStats] = useState<GraphStats | null>(null);
+  const [query, setQuery] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [lonelyOpen, setLonelyOpen] = useState(false);
+  const [pick, setPick] = useState<{ id: string; n: number } | null>(null);
   if (!vault) return null;
 
   const live = vault.notes.filter((n) => !n.deleted_at);
@@ -45,6 +52,8 @@ function GraphPage() {
   const shown = live.filter((n) => kinds.includes(n.kind) && (!tag || n.tags.includes(tag)) && (!folder || n.folder_id === folder));
   const title = (id: string) => live.find((n) => n.id === id)?.title ?? "?";
   const sel = "h-8 rounded-md border bg-background px-2 text-sm";
+  const q = query.trim().toLowerCase();
+  const matches = q ? new Set(shown.filter((n) => n.title.toLowerCase().includes(q)).map((n) => n.id)) : undefined;
 
   async function runSuggest() {
     setBusy(true);
@@ -58,15 +67,29 @@ function GraphPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
-        <select aria-label="Filter by tag" className={sel} value={tag} onChange={(e) => setTag(e.target.value)}><option value="">All tags</option>{tags.map((t) => <option key={t}>{t}</option>)}</select>
-        <select aria-label="Filter by folder" className={sel} value={folder} onChange={(e) => setFolder(e.target.value)}><option value="">All folders</option>{vault.folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-        <div className="flex gap-1">{KINDS.map((k) => (
-          <button key={k} onClick={() => setKinds(kinds.includes(k) ? kinds.filter((x) => x !== k) : [...kinds, k])} className={`rounded-full border px-2 py-0.5 text-xs capitalize ${kinds.includes(k) ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{k}</button>
-        ))}</div>
-        <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground"><input type="checkbox" role="switch" checked={showAuto} onChange={(e) => setShowAuto(e.target.checked)} /> Connect notes automatically</label>
-        <Button size="sm" variant="outline" onClick={runSuggest} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Sparkles />} Refine with AI</Button>
+      {/* Top bar: just search and the two things you reach for most. Everything else is under Filters, so a phone isn't crowded. */}
+      <div className="flex items-center gap-2 border-b px-3 py-2">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a note or concept" aria-label="Find a note or concept" data-graph-search
+            className="h-9 w-full rounded-md border bg-background pl-8 pr-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 sm:text-sm" />
+        </div>
+        <Button size="sm" variant="outline" className="h-9 shrink-0 sm:h-8" onClick={() => setLonelyOpen(true)} disabled={!stats?.orphans.length} data-unconnected>
+          <Unlink className="h-3.5 w-3.5" /> <span className="hidden min-[400px]:inline">Not connected</span> {stats ? `(${stats.orphans.length})` : ""}
+        </Button>
+        <Button size="sm" variant="outline" className="h-9 shrink-0 sm:h-8" onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}><SlidersHorizontal className="h-3.5 w-3.5" /> <span className="hidden min-[400px]:inline">Filters</span></Button>
       </div>
+      {filtersOpen && (
+        <div className="enter-pop flex flex-wrap items-center gap-2 border-b bg-muted/30 px-3 py-2" data-graph-filters>
+          <select aria-label="Filter by tag" className={sel} value={tag} onChange={(e) => setTag(e.target.value)}><option value="">All tags</option>{tags.map((t) => <option key={t}>{t}</option>)}</select>
+          <select aria-label="Filter by folder" className={sel} value={folder} onChange={(e) => setFolder(e.target.value)}><option value="">All topics</option>{vault.folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          <div className="flex w-full flex-wrap gap-1">{KINDS.map((k) => (
+            <button key={k} onClick={() => setKinds(kinds.includes(k) ? kinds.filter((x) => x !== k) : [...kinds, k])} className={`rounded-full border px-2.5 py-1 text-xs ${kinds.includes(k) ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{KIND_LABEL[k] ?? k}</button>
+          ))}</div>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground"><input type="checkbox" role="switch" checked={showAuto} onChange={(e) => setShowAuto(e.target.checked)} /> Connect notes automatically</label>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={runSuggest} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Sparkles />} Refine with AI</Button>
+        </div>
+      )}
       {ideas && ideas.length > 0 && (
         <div className="max-h-48 space-y-1 overflow-auto border-b bg-muted/50 px-3 py-2">
           {ideas.map((s) => (
@@ -78,17 +101,37 @@ function GraphPage() {
           ))}
         </div>
       )}
-      <p className="px-3 py-1 font-mono text-[11px] text-muted-foreground" data-graph-stats aria-live="polite">{stats ? `${stats.notes} notes · ${stats.links} written link${stats.links === 1 ? "" : "s"} · ${stats.auto} found automatically` : "Building the graph…"}</p>
+      <p className="px-3 py-1 font-mono text-[11px] text-muted-foreground" data-graph-stats aria-live="polite">{stats ? `${stats.notes} notes · ${stats.links} linked${showAuto ? ` · ${stats.auto} related` : ""} · ${stats.orphans.length} not connected yet` : ""}{matches ? ` · ${matches.size} match${matches.size === 1 ? "" : "es"}` : ""}</p>
       <div className="min-h-0 flex-1">
         <ClientOnly fallback={<Skeleton className="h-full w-full" />}>
           <Suspense fallback={<Skeleton className="h-full w-full" />}>
-            <VaultGraph notes={shown} links={vault.links} folders={vault.folders} showAuto={showAuto} onStats={setStats}
+            <VaultGraph notes={shown} links={vault.links} folders={vault.folders} showAuto={showAuto} onStats={setStats} {...(matches ? { highlight: matches } : {})} select={pick}
               onOpen={(n) => navigate(openTarget(n))}
               onAddLink={async (a, b, why) => { await addLink(a, b, "auto", why.slice(0, 60)); await refresh(); toast.success("Link kept"); }}
               onRemoveLink={async (id) => { await deleteLink(id); await refresh(); }} />
           </Suspense>
         </ClientOnly>
       </div>
+      <Sheet open={lonelyOpen} onOpenChange={setLonelyOpen}>
+        <SheetContent side="bottom" className="max-h-[75dvh] overflow-y-auto rounded-t-2xl pb-8">
+          <SheetTitle>Not connected yet</SheetTitle>
+          <p className="mb-2 text-sm text-muted-foreground">Stored, but nothing links to them or shares enough with them yet. Tap one to see it on the map and what it's closest to.</p>
+          <ul className="divide-y rounded-lg border" data-unconnected-list>
+            {(stats?.orphans ?? []).map((id) => {
+              const n = live.find((x) => x.id === id);
+              if (!n) return null;
+              return (
+                <li key={id}>
+                  <button className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-secondary" onClick={() => { setPick({ id, n: Date.now() }); setLonelyOpen(false); }}>
+                    <span className="min-w-0 flex-1 truncate font-medium">{n.title || "Untitled"}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{KIND_LABEL[n.kind] ?? n.kind}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

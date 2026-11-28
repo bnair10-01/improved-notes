@@ -8,7 +8,7 @@ import { GoogleMark } from "@/components/GoogleMark";
 import { HomeComposer } from "@/components/home/HomeComposer";
 import { Button } from "@/components/ui/button";
 import { IS_NATIVE } from "@/lib/firebase";
-import { authMessage, ensureSignedIn, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
+import { authMessage, ensureSignedIn, googleCancelled, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
 import { studyOverviewQuery } from "@/lib/study";
 import { openTarget, useVault, type VNote } from "@/lib/vault";
 
@@ -54,7 +54,7 @@ function Welcome() {
   async function google() {
     setBusy("google");
     try { rememberNext("/"); await signInWithGoogle(); }
-    catch (e) { toast.error(authMessage(e)); }
+    catch (e) { if (!googleCancelled(e)) toast.error(authMessage(e)); }
     finally { setBusy(null); }
   }
   async function write() {
@@ -72,7 +72,7 @@ function Welcome() {
         <Button className="w-full" size="lg" onClick={() => void write()} disabled={busy !== null}>
           {busy === "write" ? <Loader2 className="animate-spin" /> : <PenLine />} Start writing
         </Button>
-        {!IS_NATIVE && (
+        {(
           <Button variant="outline" className="w-full" style={{ background: "#FFFFFF", borderColor: "#747775", color: "#1F1F1F" }} onClick={() => void google()} disabled={busy !== null}>
             {busy === "google" ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
           </Button>

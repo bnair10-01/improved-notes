@@ -21,6 +21,7 @@ import { useAuth } from "./auth";
 import { commit, newId, noteVersions, nowIso, requireUid, userCol, userDoc } from "./db";
 import { EDITOR_ID } from "./conflict";
 import { linkFirstMention, parseWikilinks, renameWikilinks } from "./wikilinks";
+import { pairKey, relatedPairs } from "./related";
 
 export type NoteKind = "handwritten" | "text" | "concept" | "generated" | "slides" | "audio" | "model3d";
 export type VNote = {
@@ -209,13 +210,22 @@ export async function deleteFolder(id: string) {
 }
 
 /** Notes within `depth` hops of `id` (links are treated as undirected). */
-export function neighborhood(v: Vault, id: string, depth: number): Set<string> {
+/**
+ * The notes within `depth` steps of one note. Connections are the links you wrote plus, unless turned off, the ones found
+ * automatically from what notes say, so a note joins its neighbours even before anyone has linked it by hand.
+ */
+export function neighborhood(v: Vault, id: string, depth: number, opts: { auto?: boolean } = {}): Set<string> {
+  const edges: [string, string][] = v.links.map((l) => [l.from_note_id, l.to_note_id]);
+  if (opts.auto ?? true) {
+    const written = new Set(v.links.map((l) => pairKey(l.from_note_id, l.to_note_id)));
+    for (const r of relatedPairs(v.notes.filter((n) => !n.deleted_at), { skip: written, perNote: 4 })) edges.push([r.a, r.b]);
+  }
   const seen = new Set([id]);
   let frontier = [id];
   for (let d = 0; d < depth; d++) {
     const next: string[] = [];
-    for (const l of v.links) {
-      for (const [a, b] of [[l.from_note_id, l.to_note_id], [l.to_note_id, l.from_note_id]] as const) {
+    for (const [x, y] of edges) {
+      for (const [a, b] of [[x, y], [y, x]] as const) {
         if (frontier.includes(a) && !seen.has(b)) { seen.add(b); next.push(b); }
       }
     }

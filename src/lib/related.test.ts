@@ -50,3 +50,27 @@ describe("relatedPairs", () => {
     expect(relatedPairs([])).toEqual([]);
   });
 });
+
+import { neighborhood, type Vault } from "./vault";
+describe("a note's neighbourhood", () => {
+  const note = (id: string, title: string, markdown: string) => ({ id, title, markdown, kind: "text", folder_id: null, tags: [], pinned: false, deleted_at: null, updated_at: "", created_at: "", source_note_ids: [] }) as unknown as Vault["notes"][number];
+  const vault = {
+    notes: [
+      note("a", "Cells", "Cells are the basic unit of life. Mitochondria produce energy inside cells."),
+      note("b", "Mitochondria", "Mitochondria produce energy for the cell through respiration."),
+      note("c", "Chess", "The Sicilian defence is a popular reply to the king pawn opening in chess."),
+    ],
+    folders: [], links: [],
+  } as unknown as Vault;
+  it("joins notes that share ideas, even with no written link", () => {
+    expect([...neighborhood(vault, "a", 1)].sort()).toEqual(["a", "b"]);
+  });
+  it("leaves out unrelated notes, and the automatic ones when asked not to", () => {
+    expect(neighborhood(vault, "c", 2).size).toBe(1);
+    expect([...neighborhood(vault, "a", 1, { auto: false })]).toEqual(["a"]);
+  });
+  it("follows written links too", () => {
+    const linked = { ...vault, links: [{ id: "l", from_note_id: "c", to_note_id: "a", kind: "wikilink", label: null }] } as unknown as Vault;
+    expect(neighborhood(linked, "c", 1).has("a")).toBe(true);
+  });
+});

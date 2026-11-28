@@ -14,7 +14,7 @@ const GUIDE: [string, string[]][] = [
     "Your notes are private to your account and follow you to any device you sign in on. A guest account lasts only for this tab until you sign in.",
   ]],
   ["Add anything", [
-    "The Add menu is the one place to start: Write a note, Scan handwriting, Voice or lecture, PDF or slides, Website or YouTube link, Upload a file, 3D model of a concept, Blank concept.",
+    "The Add menu is the one place to start: Write a note, Scan handwriting, Voice or lecture, PDF or slides, Website or YouTube link, Upload a file, 3D model of a concept.",
     "Open it from inside a topic and whatever you add lands in that topic.",
     "You can also drop a photo, PDF, slides or a recording on Home, or paste a screenshot into the box.",
   ]],
@@ -25,12 +25,12 @@ const GUIDE: [string, string[]][] = [
   ]],
   ["Scanning handwritten notes", [
     "Add → Scan handwriting. Take photos or choose files; add as many pages as you like.",
-    "Reorder, rotate or remove pages, then pick “Just the text” or “Text + mind map” and tap Transcribe.",
+    "Reorder, rotate or remove pages, then tap Transcribe. You always get the transcript and a mind map, and the note is saved for you as soon as it's transcribed. Edits save as you go.",
     "Nothing is invented. Words that can't be read show as [illegible], guesses as [word?], highlighted so you can fix them in Edit.",
     "Export the transcript as PDF, Markdown or plain text. Past scans are under History.",
   ]],
   ["Writing and linking notes", [
-    "Add → Write a note or Blank concept. Notes save automatically as you type.",
+    "Add → Write a note. Notes save automatically as you type.",
     "Type / for headings, lists and checklists. Type [[ to link another note; a missing note is created for you.",
     "Each note shows Backlinks (notes that link here) and Unlinked mentions you can link with one tap.",
     "In Notes, sort by recently edited, created or title, use folders and tags, and press Ctrl/⌘ K to search and jump anywhere.",

@@ -2,7 +2,7 @@ import { ClientOnly, createFileRoute, Link, useNavigate } from "@tanstack/react-
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChevronLeft, ChevronRight, Copy, Download, FileText, Image as ImageIcon, Loader2, ImagePlus, MoreHorizontal, Network, RefreshCw, Save, ZoomIn, ZoomOut } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy, Download, FileText, Image as ImageIcon, Loader2, ImagePlus, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportPdf } from "@/lib/pdf";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { useVault, type VNote } from "@/lib/vault";
 import { getDoc } from "firebase/firestore";
 import { userDoc } from "@/lib/db";
 import { prepareImage, urlToDataUrl } from "@/lib/image";
+import { LocalGraph } from "@/components/vault/LocalGraph";
 import { saveDiagrams, saveMindmap, saveNote, signedUrls } from "@/lib/notes";
 import { extractDiagrams } from "@/lib/ai/tasks";
 import type { Diagram } from "@/lib/diagram-types";
@@ -67,6 +68,11 @@ function toPlain(md: string) {
     .replace(/(^|[^*])\*(?!\s)(.*?)\*/g, "$1$2")
     .replace(/^>\s?/gm, "")
     .replace(/`([^`]*)`/g, "$1");
+}
+
+/** A small, quiet reminder that it's kept. */
+function SavedMark({ saved }: { saved: boolean }) {
+  return saved ? <span data-saved className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex"><Check className="h-3.5 w-3.5" /> Saved</span> : null;
 }
 
 function ReviewPage() {
@@ -151,11 +157,13 @@ function ReviewPage() {
   }, [mapper, persistMindmap]);
 
   // Generate automatically after a fresh transcription.
+  // Every scan gets a mind map, built automatically and saved onto its note (also for an older scan that never had one).
+  useEffect(() => { autoTried.current = false; }, [id]);
   useEffect(() => {
-    if (autoTried.current || id || session.mode === "text" || !session.result || session.mindmap || !session.result.markdown.trim()) return;
+    if (autoTried.current || !session.result || session.mindmap || !session.result.markdown.trim() || (id && session.noteId !== id)) return;
     autoTried.current = true;
     void runMindmap(session.result.markdown);
-  }, [id, session.result, session.mindmap, runMindmap]);
+  }, [id, session.noteId, session.result, session.mindmap, runMindmap]);
 
   function onMindmapChange(m: MindMap) {
     setSession({ mindmap: m });
@@ -224,7 +232,7 @@ function ReviewPage() {
       const pages = urls.map((u, i) => ({ id: `${id}-${i}`, dataUrl: u, path: data.image_paths[i] ?? "" }));
       const structure = (data.structure as unknown as NoteStructure) ?? { nodes: [], edges: [] };
       const saved = isMindMap(data.structure) ? (data.structure as unknown as MindMap) : null;
-      setSession({ noteId: id, mode: saved || (data.diagrams as unknown[] | null)?.length ? "map" : "text", pages, diagrams: (data.diagrams as unknown as Diagram[]) ?? [], mindmap: saved, mindmapStale: data.mindmap_stale, result: { title: data.title, markdown: data.markdown, uncertain_spans: [], structure: saved ? { nodes: [], edges: [] } : structure } });
+      setSession({ noteId: id, mode: "map", pages, diagrams: (data.diagrams as unknown as Diagram[]) ?? [], mindmap: saved, mindmapStale: data.mindmap_stale, result: { title: data.title, markdown: data.markdown, uncertain_spans: [], structure: saved ? { nodes: [], edges: [] } : structure } });
       setTitle(data.title);
       setMarkdown(data.markdown);
       setPage(0);
@@ -282,7 +290,7 @@ function ReviewPage() {
       setSession({ pages: [...pages, ...added], result: { ...session.result!, markdown: nextMd }, mindmapStale: !!mindmap });
       setMarkdown(nextMd);
       setPage(pages.length);
-      toast.success(`Added ${added.length} page${added.length > 1 ? "s" : ""} — tap Save to keep them`);
+      toast.success(`Added ${added.length} page${added.length > 1 ? "s" : ""}`);
     } catch {
       toast.error("Couldn't add those photos. Please try again.");
     } finally {
@@ -290,27 +298,26 @@ function ReviewPage() {
     }
   }
 
-  async function save() {
-    if (!session.result) return;
-    const me = await ensureSignedIn();
-    setBusy("save");
+  /** Keep the note up to date as it changes. Saving is never something to remember to do. */
+  async function persist() {
+    if (!session.result || !session.noteId) return;
     try {
       const result = { ...session.result, title: title || "Untitled notes", markdown };
-      const noteId = await saveNote(session.noteId, pages, result, mindmap, stale, diagrams);
-      setSession({ noteId, result });
-      if (noteId !== id) navigate({ to: "/review", search: { id: noteId }, replace: true });
-      if (me.isAnonymous) {
-        toast.success("Saved as a guest. Sign in to keep it on all your devices.", { action: { label: "Sign in", onClick: () => { rememberNext(`/review?id=${noteId}`); navigate({ to: "/auth", search: { redirect: `/review?id=${noteId}` } }); } } });
-      } else toast.success("Saved to history");
+      await saveNote(session.noteId, pages, result, mindmap, stale, diagrams);
+      setSession({ result });
     } catch (e) {
       console.error(e);
-      toast.error("Couldn't save. Please try again.");
-    } finally {
-      setBusy(null);
+      toast.error("Couldn't save your changes. They're still here; we'll try again as you keep going.");
     }
   }
-
-  const isMap = session.mode !== "text";
+  // Title, text and added pages save a moment after you stop changing them.
+  useEffect(() => {
+    const r = session.result;
+    if (!r || !session.noteId) return;
+    if (title === r.title && markdown === r.markdown && pages.every((p) => p.path)) return;
+    const t = setTimeout(() => void persist(), 1200);
+    return () => clearTimeout(t);
+  }, [title, markdown, pages.length, session.noteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pdf() {
     const html = articleRef.current?.innerHTML;
@@ -350,7 +357,7 @@ function ReviewPage() {
               <DropdownMenuItem onClick={retranscribe} disabled={!!busy}><RefreshCw /> Re-transcribe</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" onClick={save} disabled={!!busy} aria-label="Save">{busy ? <Loader2 className="animate-spin" /> : <Save />}<span className="hidden sm:inline">Save</span></Button>
+          <SavedMark saved={!!session.noteId} />
         </div>
 
         <div className="mb-3 grid grid-cols-2 rounded-lg bg-muted p-1 text-sm lg:hidden" role="tablist" aria-label="Show">
@@ -390,18 +397,10 @@ function ReviewPage() {
                 <TabsList className="max-w-full overflow-x-auto">
                   <TabsTrigger value="preview">Read</TabsTrigger>
                   <TabsTrigger value="edit">Edit</TabsTrigger>
-                  {isMap && <TabsTrigger value="mindmap">Map</TabsTrigger>}
+                  <TabsTrigger value="mindmap">Map</TabsTrigger>
                 </TabsList>
                 <div className="flex shrink-0 items-center gap-2">
                   {flagged > 0 && <span className="uncertain-mark whitespace-nowrap text-xs">{flagged} to check</span>}
-                  {!isMap && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More tools"><MoreHorizontal /></Button></DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setSession({ mode: "map" }); setTab("mindmap"); if (!mindmap && markdown.trim()) void runMindmap(markdown); }}><Network /> Add mind map &amp; drawings</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
                 </div>
               </div>
               <TabsContent value="preview" className="m-0 h-[calc(100dvh-13rem-var(--tabbar))] overflow-auto px-4 py-4 sm:px-5 lg:h-[70vh]">
@@ -409,7 +408,7 @@ function ReviewPage() {
                 <article ref={articleRef} className="transcript">
                   <ReactMarkdown remarkPlugins={[remarkGfm, remarkUncertain]}>{markdown}</ReactMarkdown>
                 </article>
-                {isMap && (
+                {(
                   <div className="mt-6 border-t pt-4">
                     <h2 className="mb-2 font-serif text-lg font-semibold">Drawings</h2>
                     <ClientOnly fallback={<Skeleton className="h-40 w-full" />}>
@@ -455,6 +454,7 @@ function ReviewPage() {
             </Tabs>
           </section>
         </div>
+        {session.noteId && <LocalGraph noteId={session.noteId} />}
         </div>
         <aside className="sticky top-16 hidden max-h-[calc(100dvh-5rem)] w-[320px] shrink-0 self-start overflow-y-auto rounded-xl border lg:block xl:w-[368px]">{insight}</aside>
         <Sheet open={insightOpen} onOpenChange={setInsightOpen}>

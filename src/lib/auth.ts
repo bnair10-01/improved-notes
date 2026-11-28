@@ -21,6 +21,7 @@ import {
 } from "firebase/auth";
 import { auth } from "./firebase";
 import { carryGuestData } from "./account";
+import { Capacitor } from "@capacitor/core";
 
 const PENDING = "ink-next-path";
 
@@ -129,7 +130,33 @@ async function linkOrSignInInner(provider: AuthProvider): Promise<User> {
   }
 }
 
-export const signInWithGoogle = () => linkOrSignIn(new GoogleAuthProvider());
+/**
+ * Inside the phone apps Google's popup can't open, so the device's own Google sign-in runs (the Capacitor Firebase Authentication plugin)
+ * and hands back a token, which the web SDK turns into the session. Everything after that is the same as on the web, including
+ * keeping a guest's notes when they sign in.
+ */
+async function nativeGoogle(): Promise<User> {
+  const { FirebaseAuthentication } = await import("@capacitor-firebase/authentication");
+  const r = await FirebaseAuthentication.signInWithGoogle();
+  const idToken = r.credential?.idToken;
+  if (!idToken) throw Object.assign(new Error("Google didn't return a sign-in token."), { code: "auth/invalid-credential" });
+  const credential = GoogleAuthProvider.credential(idToken, r.credential?.accessToken);
+  const guest = auth.currentUser?.isAnonymous ? auth.currentUser : null;
+  try {
+    return (guest ? await linkWithCredential(guest, credential) : await signInWithCredential(auth, credential)).user;
+  } catch (e) {
+    if (guest && isCode(e, "auth/credential-already-in-use")) {
+      const existing = GoogleAuthProvider.credentialFromError(e as never) ?? credential;
+      return carryGuestData(guest.uid, () => signInWithCredential(auth, existing).then((x) => x.user));
+    }
+    throw e;
+  }
+}
+
+/** True when the person closed Google's sign-in themselves, which isn't an error worth showing. */
+export const googleCancelled = (e: unknown) => /cancel|12501|dismiss|closed/i.test(`${(e as { code?: string })?.code ?? ""} ${(e as Error)?.message ?? ""}`);
+
+export const signInWithGoogle = () => (Capacitor.isNativePlatform() ? keepSignedIn(nativeGoogle()) : linkOrSignIn(new GoogleAuthProvider()));
 
 export async function signUpWithEmail(email: string, password: string): Promise<User> {
   const guest = auth.currentUser?.isAnonymous ? auth.currentUser : null;

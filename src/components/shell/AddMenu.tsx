@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Box, Camera, FileText, Globe, Lightbulb, Mic, Paperclip, SquarePen } from "lucide-react";
+import { Box, Camera, FileText, Globe, Mic, Paperclip, SquarePen } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { setCaptureTopic } from "@/lib/capture-context";
@@ -65,9 +65,9 @@ export function AddItems({ onDone, folderId = null, onBusy }: { onDone?: () => v
   const picker = useRef<HTMLInputElement>(null);
   const go = (fn: () => void) => () => { setCaptureTopic(folderId); onDone?.(); fn(); };
 
-  async function newNote(kind: "text" | "concept") {
+  async function newNote() {
     try {
-      const id = await createNote({ kind, title: kind === "concept" ? "New concept" : "Untitled", folder_id: folderId });
+      const id = await createNote({ kind: "text", title: "Untitled", folder_id: folderId });
       await refresh();
       navigate({ to: "/vault/$noteId", params: { noteId: id } });
     } catch { toast.error("Couldn't create the note."); }
@@ -75,7 +75,7 @@ export function AddItems({ onDone, folderId = null, onBusy }: { onDone?: () => v
 
   return (
     <div role="menu" aria-label="Add" data-add-menu>
-      <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 0 } as CSSProperties} onClick={go(() => void newNote("text"))}><SquarePen className="h-4 w-4 shrink-0" /> Write a note</button>
+      <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 0 } as CSSProperties} onClick={go(() => void newNote())}><SquarePen className="h-4 w-4 shrink-0" /> Write a note</button>
       <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 1 } as CSSProperties} onClick={go(() => navigate({ to: "/scan" }))}><Camera className="h-4 w-4 shrink-0" /> Scan handwriting</button>
       <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 2 } as CSSProperties} onClick={go(() => openDialog("audio"))}><Mic className="h-4 w-4 shrink-0" /> Voice or lecture</button>
       <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 3 } as CSSProperties} onClick={go(() => openDialog("slides"))}><FileText className="h-4 w-4 shrink-0" /> PDF or slides</button>
@@ -83,7 +83,6 @@ export function AddItems({ onDone, folderId = null, onBusy }: { onDone?: () => v
       <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 5 } as CSSProperties} onClick={go(() => picker.current?.click())}><Paperclip className="h-4 w-4 shrink-0" /> Upload a file…</button>
       <div className="my-1 border-t" role="separator" />
       <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 6 } as CSSProperties} onClick={go(() => openDialog("model"))}><Box className="h-4 w-4 shrink-0" /> 3D model of a concept</button>
-      <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 7 } as CSSProperties} onClick={go(() => void newNote("concept"))}><Lightbulb className="h-4 w-4 shrink-0" /> Blank concept</button>
       <input ref={picker} type="file" multiple accept={ACCEPT} className="hidden" onChange={(e) => { void bringIn(e.target.files, folderId); e.target.value = ""; }} />
     </div>
   );

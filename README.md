@@ -12,11 +12,12 @@ Built for the #BuildHybridAI 2026 hackathon.
 
 - **Write first.** "Start writing" opens a blank note. A tools row sits above it: Scan, Voice or lecture, PDF or slides, Website, YouTube, Split into notes.
 - **Insight column on every note:** streamed summary, Ask (answers cite numbered sources, with quotes checked against your text), flashcards and a quiz. A badge shows whether each AI call ran **On-device** or in the **Cloud**.
+- **Scan handwriting** always gives the transcript and a mind map, and the note is saved the moment it's transcribed. Edits save as you go.
 - **Study that adapts.** Flashcards step up from Guided (a hint) to Flip to Recall (type it from memory) after three right in a row, and back down after two misses; weak cards come first. Quizzes suggest a harder or easier one next from your score.
 - **Fluid motion.** Pages cross-fade, lists ease in, light and dark follow your device's setting live (the switch flips it for now, with a ripple), and phone apps open with an animated splash. Reduce motion turns it all off.
 - **Topics you name.** The AI may suggest a topic for a note; nothing is filed until you accept. Topic pages have a topic-wide summary and Ask.
 - **Import and split.** Websites and YouTube videos are divided into one note per idea under a topic you name in a preview. "Split into notes" does the same for any long note.
-- **3D vault graph.** Connections between notes are found automatically. Topic maps show "↗" satellites for notes in other topics.
+- **Obsidian-style graph, three sizes.** The whole-vault graph shows every kind of note and how they connect (links you wrote, plus connections found from what notes say); notes nothing connects to yet sit on the outer edge and are listed under Not connected, with the closest matches to connect in one tap. Each note has a local graph, each topic a topic map, and every note a mind map. Labels thin out so a phone stays readable, and you can search, filter and pinch or tap + / − to zoom.
 - **3D model from a note.** Nano Banana first draws a clean reference picture, then the model is built to match it: see-through shells, a few clearly separated parts, and a note quote for each. The picture is kept beside the model.
 - **Read aloud** with a natural Gemini voice (device voice as fallback), pencil ink, high contrast, reduced motion, and phone, tablet and foldable layouts.
 - **Sign-in:** Google or email. Guests last only for the current tab.
@@ -93,7 +94,7 @@ Email and guest sign-in work out of the box. Google must be switched on once in 
 
 Sign in with Apple is not offered: it needs a paid Apple Developer account.
 
-On iPhone and Android, the apps use email sign-in for now. Google uses a browser pop-up, which a WebView blocks, so the button is hidden there (see Status).
+On iPhone and Android, Google sign-in runs through the device's own Google sign-in (`@capacitor-firebase/authentication`); the app's `GoogleService-Info.plist` and `google-services.json` are per-project and not committed (`firebase apps:sdkconfig <IOS|ANDROID> <app id>` downloads them).
 
 ## Native apps
 
@@ -109,7 +110,7 @@ npx cap open ios         # open in Xcode
 - **iOS:** builds and runs on the iOS 17.5 simulator with the same checks passing. Camera, microphone and photo permissions are declared. A build for a physical iPhone needs your Apple ID signed in to Xcode and Developer Mode on the phone.
 - **AI inside the native apps:** every call still goes through Firebase AI Logic (the same web SDK in the WebView), with App Check. On-device Gemini Nano (Android) and Apple's on-device model (iOS) need the native Firebase AI Logic hybrid SDKs behind a Capacitor plugin that is **not written yet**, so inside the apps AI runs in the cloud and the badge says Cloud. On-device inference is demonstrated in Chrome on the web.
 - **Native test build:** `VITE_NATIVE_SELFTEST=1 npm run cap:sync` adds a launch-time panel that signs in as a guest, makes a real AI call and reports whether it ran on-device or in the cloud. It is not in normal builds.
-- **Sign-in:** email only inside the apps. Google sign-in uses a browser popup, which doesn't work in a WebView, so that button is hidden there until `@capacitor-firebase/authentication` is added. App Check's reCAPTCHA also doesn't work in a WebView, so native builds use the debug token from `.env` (local test builds only; never distribute them).
+- **Sign-in:** Start writing (a guest), Google and email work in the apps. Google uses the device's native sign-in, because a browser popup doesn't work in a WebView. App Check's reCAPTCHA also doesn't work in a WebView, so native builds use the debug token from `.env` (local test builds only; never distribute them).
 - **macOS and Windows:** not started. Tauri needs Rust, which is not installed.
 
 ## Status

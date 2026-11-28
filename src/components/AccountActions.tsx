@@ -35,10 +35,11 @@ export function useAccountActions() {
           <AlertDialogTitle>Sign out of your guest account?</AlertDialogTitle>
           <AlertDialogDescription>Guest notes can't be reopened after you sign out. Sign in first and they come with you to every device.</AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Stay</AlertDialogCancel>
-          <AlertDialogAction onClick={() => { setConfirming(false); signIn(); }}>Sign in first</AlertDialogAction>
-          <AlertDialogAction onClick={() => void signOut()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Sign out anyway</AlertDialogAction>
+        {/* One column on a phone, evenly spaced, the safe choice first; a row on wider screens. */}
+        <AlertDialogFooter className="flex-col gap-2.5 sm:flex-row sm:justify-end sm:space-x-0">
+          <AlertDialogAction onClick={() => { setConfirming(false); signIn(); }} className="mt-0 min-h-11 w-full sm:w-auto">Sign in first</AlertDialogAction>
+          <AlertDialogAction onClick={() => void signOut()} className="mt-0 min-h-11 w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:w-auto">Sign out anyway</AlertDialogAction>
+          <AlertDialogCancel className="mt-0 min-h-11 w-full sm:w-auto">Stay</AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

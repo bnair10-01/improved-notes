@@ -14,7 +14,7 @@ export function relatedPairs(
   notes: Pick<VNote, "id" | "title" | "markdown">[],
   opts: { minScore?: number; perNote?: number; skip?: Set<string> } = {},
 ): Related[] {
-  const { minScore = 0.08, perNote = 2, skip = new Set<string>() } = opts;
+  const { minScore = 0.08, perNote = 3, skip = new Set<string>() } = opts;
   const tokens = (n: Pick<VNote, "title" | "markdown">) => words(`${n.title} ${n.title} ${n.markdown}`).filter((w) => w.length >= 3);
   const raw = notes.map((n) => ({ id: n.id, toks: tokens(n) })).filter((d) => d.toks.length >= 3);
   if (raw.length < 2) return [];

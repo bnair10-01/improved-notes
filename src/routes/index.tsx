@@ -124,7 +124,7 @@ function Home({ name }: { name: string }) {
 
       {fresh ? (
         <p className="mt-4 px-1 text-xs leading-relaxed text-muted-foreground">
-          Type to start a note. Paste a YouTube or web link and it's divided into notes, one per idea. Press + to scan handwriting, record a lecture or import slides.
+          Type a topic and Enter builds notes from Wikipedia and YouTube. Switch to Note to write your own. Paste a YouTube or web link and it's divided into notes, one per idea. Press + to scan handwriting, record a lecture or import slides.
         </p>
       ) : (
         <div className="enter mt-10 space-y-8" style={{ "--i": 4 } as React.CSSProperties}>

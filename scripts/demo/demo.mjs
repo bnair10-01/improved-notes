@@ -144,7 +144,7 @@ async function run() {
     await d.click({ text: "^Start writing$" });
     await d.waitFor("!!document.querySelector('[data-home-composer]')", { label: "the Home box" });
     await d.pause(1200);
-    await say("You land on Home: one box. Write, ask your notes, paste a link, or drop a file.", 2800);
+    await say("You land on Home: one box. Look a topic up, write a note, paste a link, or drop a file.", 2800);
     t.check("Stays on Home after starting as a guest", await d.evaluate("location.pathname === '/'"));
     t.check("Signed in as a guest", /Guest/.test(await text()));
     t.check("The Home box is there", await d.evaluate("!!document.querySelector('[data-home-composer] textarea')"));

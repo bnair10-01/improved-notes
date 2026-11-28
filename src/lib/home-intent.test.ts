@@ -97,17 +97,16 @@ describe("questionSubject", () => {
 
 describe("forceMode", () => {
   const auto = (t: string) => homeIntent(t, true);
-  it("leaves auto alone", () => {
-    expect(forceMode("auto", "black holes", auto("black holes"))).toMatchObject({ kind: "note" });
-  });
   it("research looks up whatever was typed", () => {
     expect(forceMode("research", "Black Holes", auto("Black Holes"))).toEqual({ kind: "learn", subject: "Black Holes" });
     expect(forceMode("research", "need notes on Black Hole", auto("need notes on Black Hole"))).toEqual({ kind: "learn", subject: "Black Hole" });
     expect(forceMode("research", "What is a quasar?", auto("What is a quasar?"))).toEqual({ kind: "learn", subject: "quasar" });
     expect(forceMode("research", "Quasars\nsome thoughts", auto("Quasars\nsome thoughts"))).toEqual({ kind: "learn", subject: "Quasars" });
   });
-  it("research still reads links as links", () => {
+  it("reads links as links in either mode", () => {
     expect(forceMode("research", "youtu.be/abcdefghijk", auto("youtu.be/abcdefghijk"))).toMatchObject({ kind: "youtube" });
+    expect(forceMode("note", "youtu.be/abcdefghijk", auto("youtu.be/abcdefghijk"))).toMatchObject({ kind: "youtube" });
+    expect(forceMode("note", "https://example.com/a", auto("https://example.com/a"))).toMatchObject({ kind: "website" });
   });
   it("note always makes a note, even from a question or a learning wish", () => {
     expect(forceMode("note", "What is a quasar?", auto("What is a quasar?"))).toEqual({ kind: "note", title: "What is a quasar?", markdown: "" });

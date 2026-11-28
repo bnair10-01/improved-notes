@@ -88,15 +88,15 @@ export function homeIntent(text: string, canAsk: boolean): HomeIntent {
   return { kind: "note", ...toNote(t) };
 }
 
-/** What the person asked Enter to do: decide from the text (auto), always look the text up, or always make a note. */
-export type HomeMode = "auto" | "research" | "note";
+/** What Enter does with what was typed: look it up and build notes, or start a note with it. The person picks; nothing guesses. */
+export type HomeMode = "research" | "note";
 
-/** Apply the chosen mode to what auto-detection decided. Links keep reading as links when researching. */
+/** Apply the chosen mode to the detected intent. A pasted link is always read as a link, in either mode. */
 export function forceMode(mode: HomeMode, text: string, intent: HomeIntent): HomeIntent {
   const t = text.trim();
-  if (mode === "auto" || !t) return intent;
-  if (mode === "note") return { kind: "note", ...toNote(t) };
+  if (!t) return intent;
   if (intent.kind === "youtube" || intent.kind === "website") return intent;
+  if (mode === "note") return { kind: "note", ...toNote(t) };
   const subject = learnSubject(t) ?? (looksLikeQuestion(t) ? questionSubject(t) : (t.split("\n")[0] ?? t).replace(/^#+\s*/, "").slice(0, 80).trim());
   return { kind: "learn", subject };
 }

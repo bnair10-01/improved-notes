@@ -34,7 +34,9 @@ Every AI feature goes through **Firebase AI Logic hybrid inference**: short jobs
 
 - Revoke the App Check debug token.
 
-## Demo video outline (3:00 max)
+## Demo video outline (2 to 4 minutes; label any sped-up footage)
+
+Open with who it is for (a student with a week of photos, recordings and links), end with what was built during the event, the limits, and where AI helped development. The five written answers are in the README under "For judges"; paste them into the project page.
 
 1. Start writing on a blank page; select a short passage and Summarize. Show the **On-device** badge (0:30).
 2. Turn off the network; make flashcards from the note, still on-device (0:20).

@@ -164,9 +164,78 @@ Not yet verified or not built:
 
 ## For judges
 
-- **Fastest way in:** open the live site, press **Start writing** (no account needed), write a few lines, select them and use the Insight column; or open Home and try **Research more**, **Picture of a concept** and **Graph**.
+### Who it is for, and why they would use it
+
+**Students and self-learners** who collect notes as photos of handwritten pages, lecture recordings, PDFs, web pages and videos, and never go back to them. Example situation: after a week of lectures you have 40 photos, two recordings and a stack of links. Today you retype, or paste everything into a chatbot that forgets it tomorrow and sends your notes to a server.
+
+Improved Notes turns each source into notes you can search, question, quiz yourself on and see connected, and every AI answer points to the sentence of yours it came from. Short, private jobs stay on the device, so they are free and work offline. It differs from a general chatbot in three ways: it only answers from your notes and cites them, it checks its own quotes, and it never files or renames anything without you accepting it.
+
+### What was built or improved during the event
+
+- **New or existing:** existing project. It began as an earlier notes app with a different backend and AI service. This repository's history starts on 25 November 2026, during the event, and is the rebuild.
+- **Rebuilt on Firebase during the event:** authentication (Google and email, guest to account linking), the Firestore data layer with offline cache, version history and Trash, security rules, Storage with an offline upload queue, App Check, Remote Config, and **every AI call** through Firebase AI Logic hybrid inference. The earlier backend and AI gateway were deleted.
+- **New features during the event:** on-device-first routing with an On-device / Cloud badge, cited answers with checked quotes, adaptive flashcards and quizzes, website and YouTube import with split-into-notes, research more, concept pictures (Nano Banana), the 3D vault graph with topic maps, pen ink with palm rejection, rename / delete / clear everything, backups, and the Android, iPhone and iPad apps.
+- **Third-party work:** React, TanStack, Tailwind, shadcn/ui components, Three.js, Capacitor, and Firebase and Gemini services. The application code, routing, AI tasks and security rules are this project's own.
+
+### How AI was used
+
+**In the finished product** (all through Firebase AI Logic, `src/lib/ai/`):
+
+| Job | Model | Why this choice |
+|---|---|---|
+| Short summaries, flashcards, quizzes, links, mind maps | Gemini Nano on-device, falling back to a Gemini cloud model | Private, free and offline for the common case; the cloud covers devices without Nano |
+| Handwriting, long documents, slides, audio, research | Gemini cloud models | Needs a bigger model or a long context |
+| Concept pictures | Nano Banana image model (cloud) | Clean, labelled pictures that on-device models can't draw |
+| Read aloud | Gemini text-to-speech | Natural voice; the device voice is the fallback |
+
+Project-specific AI decisions already built in:
+- **Routing by task and size** (`route.ts`, tuned live from Remote Config): routing and size rules are unit tested, and the UI records where each call actually ran.
+- **Citations that are checked, not trusted:** answers cite numbered sources, and each quote is searched for in your text. A quote that isn't there is dropped (`ask` and the picture and split tasks in `src/lib/ai/tasks.ts`; the part-quote check is unit tested).
+- **Nothing is filed by the AI:** topics are suggested, and you accept or name them.
+- **A rejected approach:** an earlier feature built interactive 3D models from notes. In testing, the structured output was unreliable, so it was replaced with the concept picture plus a quoted list of its parts.
+
+How quality was assessed: 280 unit tests (routing, schema conversion, citation checks, spaced-repetition rules, conflict handling), a test that fails if any non-Firebase AI provider appears, and hands-on runs on the live site and devices. Limits: no automated measure of answer quality beyond the quote check, and on-device AI is only exercised in Chrome with Nano, not inside the native apps.
+
+**During development:** Claude Code (Anthropic) wrote much of the code under my direction. A person checked it by running the tests, using the live site and testing on a real iPhone and iPad. What the checks found, and what happened:
+- The first pen stroke on an iPad was lost; found by hand on the iPad and fixed.
+- The graph screen could freeze in a render loop ("maximum update depth"); found in a test run, fixed.
+- A note screen crashed on a hook-ordering mistake; found in a test run, fixed.
+- The 3D-model feature above was rejected after testing and replaced.
+
+### How to use it, and the results
+
+- **Access:** https://improvednotes-d0907.web.app in Chrome (no account needed: press **Start writing**), the Android APK above, or iPhone and iPad through the web app. No cost to the user. AI needs an internet connection; on-device jobs and your cached notes work offline.
+- **Main task:** capture or write a note, then use the Insight column. A successful result is a summary and answers whose numbered sources open the exact passage in your own note.
+- **Checks to try** (also what the scripted run covers):
+
+| Case | Should happen | Result |
+|---|---|---|
+| Write three lines, select them, Summarize | Streamed summary with an On-device or Cloud badge | Passed in the scripted run on the live site |
+| Ask a question about a note | Answer with numbered sources; quotes found in the note | Passed; a quote that isn't in the note is dropped before it reaches the screen |
+| Paste a website link | Preview split into notes under a topic you name | Passed |
+| Concept picture of a topic | A picture, what it shows and its parts, about 7 seconds | Passed |
+| Delete a note, then try to erase it from the list | Moves to Trash; permanent delete only from Trash | Passed against the security rules (emulator) |
+| Edit the same note on two devices, one offline | Prompt to keep mine / theirs / both; nothing lost | Passed on the emulators in a real browser; 3 harness tests fail on Node 26 |
+| Turn the network off, then make flashcards | Still works on-device | Needs Chrome with Gemini Nano; falls back to cloud message otherwise |
+
+The scripted run on the live site (`npm run demo`, visible Chrome) passed 72 checks and found 2 problems; the report is kept locally.
+
+### Limits, and what happens when something goes wrong
+
+| Situation | What the app does |
+|---|---|
+| No on-device model on this device | Uses the cloud model; the badge says Cloud |
+| AI service unreachable or blocked (for example headless Chrome fails App Check) | Says AI is unavailable and why; notes, sync and search keep working |
+| A quote the AI gives isn't in your note | Dropped instead of shown |
+| The same note edited on two devices | Conflict prompt instead of overwriting |
+| Offline while capturing a photo or recording | Kept on the device and uploaded when you're back online |
+| Deleted by mistake | Trash and Undo; version history for edits |
+
+Known limits: native apps use the cloud model only (no native on-device plugin yet); the Android download uses a shared test credential for App Check; iPhone and iPad builds are not yet on TestFlight; slides and audio imports aren't split into notes automatically; macOS and Windows aren't built; answer quality beyond the quote check isn't measured automatically. The 3D graph and mind map fall back to a plain list when 3D isn't available on the device.
+
+### Reviewing it
+
 - **App Check:** AI calls are protected by App Check (reCAPTCHA Enterprise on the web). Use a visible, non-headless Chrome; automated or headless browsers are scored as bots and AI is blocked for that session.
-- **On-device AI:** in Chrome with Gemini Nano available, short jobs show the **On-device** badge. Turn the network off and flashcards still work.
 - **Where to read the code:** AI routing in `src/lib/ai/route.ts` and `run.ts`, all prompts and tasks in `src/lib/ai/tasks.ts`, security rules in `firestore.rules` and `storage.rules`.
 
 ## License

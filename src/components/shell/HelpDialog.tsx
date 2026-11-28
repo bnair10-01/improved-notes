@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { readHints, writeHints } from "@/lib/hints";
+import { touchFirst } from "./CommandPalette";
 
 const GUIDE: [string, string[]][] = [
   ["Getting started", [
@@ -85,7 +86,7 @@ export function HelpDialog() {
           {GUIDE.map(([t, items]) => (
             <AccordionItem key={t} value={t}>
               <AccordionTrigger>{t}</AccordionTrigger>
-              <AccordionContent><ul className="list-disc space-y-1.5 pl-5 text-sm">{items.map((i) => <li key={i}>{i}</li>)}</ul></AccordionContent>
+              <AccordionContent><ul className="list-disc space-y-1.5 pl-5 text-sm">{items.map((i) => <li key={i}>{touchFirst() ? i.replace("press Ctrl/⌘ K to search and jump anywhere", "pull down from the top of any screen to search and jump anywhere") : i}</li>)}</ul></AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>

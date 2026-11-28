@@ -10,11 +10,11 @@ export function MobileTabBar() {
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (st) => st.location.pathname });
   const by = (to: string) => NAV.find((n) => n.to === to)!;
-  // Home, Notes and the graph of all of them, then Add, then Topics and Study.
-  const items = [by("/"), by("/vault"), by("/vault/graph"), null, by("/topics"), by("/study")];
+  // Notes and the graph of all of them, Add in the middle, then Topics and Study. Home is the logo in the top bar.
+  const items = [by("/vault"), by("/vault/graph"), null, by("/topics"), by("/study")];
   return (
     <>
-      <nav data-tabbar aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t bg-background/95 backdrop-blur-md md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <nav data-tabbar aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-background/95 backdrop-blur-md md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {items.map((n) => n ? (
           // The app's own section logic decides which tab is open: the graph lives under /vault but is its own tab, not Notes.
           <Link key={n.to} to={n.to} activeOptions={{ exact: true }} data-on={isActive(n, pathname) ? "" : undefined} aria-current={isActive(n, pathname) ? "page" : undefined}

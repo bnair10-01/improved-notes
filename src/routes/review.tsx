@@ -245,6 +245,27 @@ function ReviewPage() {
   const current = pages[Math.min(page, pages.length - 1)];
   const flagged = (markdown.match(UNCERTAIN_RE) ?? []).length;
 
+  /** Keep the note up to date as it changes. Saving is never something to remember to do. */
+  async function persist() {
+    if (!session.result || !session.noteId) return;
+    try {
+      const result = { ...session.result, title: title || "Untitled notes", markdown };
+      await saveNote(session.noteId, pages, result, mindmap, stale, diagrams);
+      setSession({ result });
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't save your changes. They're still here; we'll try again as you keep going.");
+    }
+  }
+  // Title, text and added pages save a moment after you stop changing them.
+  useEffect(() => {
+    const r = session.result;
+    if (!r || !session.noteId) return;
+    if (title === r.title && markdown === r.markdown && pages.every((p) => p.path)) return;
+    const t = setTimeout(() => void persist(), 1200);
+    return () => clearTimeout(t);
+  }, [title, markdown, pages.length, session.noteId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (loading) {
     return (<div className="min-h-screen"><AppHeader /><div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></div>);
   }
@@ -297,27 +318,6 @@ function ReviewPage() {
       setBusy(null);
     }
   }
-
-  /** Keep the note up to date as it changes. Saving is never something to remember to do. */
-  async function persist() {
-    if (!session.result || !session.noteId) return;
-    try {
-      const result = { ...session.result, title: title || "Untitled notes", markdown };
-      await saveNote(session.noteId, pages, result, mindmap, stale, diagrams);
-      setSession({ result });
-    } catch (e) {
-      console.error(e);
-      toast.error("Couldn't save your changes. They're still here; we'll try again as you keep going.");
-    }
-  }
-  // Title, text and added pages save a moment after you stop changing them.
-  useEffect(() => {
-    const r = session.result;
-    if (!r || !session.noteId) return;
-    if (title === r.title && markdown === r.markdown && pages.every((p) => p.path)) return;
-    const t = setTimeout(() => void persist(), 1200);
-    return () => clearTimeout(t);
-  }, [title, markdown, pages.length, session.noteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pdf() {
     const html = articleRef.current?.innerHTML;

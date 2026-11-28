@@ -1,5 +1,6 @@
 import { AppearanceControls } from "@/components/ThemePicker";
 import { AccountCard } from "@/components/AccountActions";
+import { DataSection } from "@/components/DataSection";
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -93,6 +94,7 @@ function SettingsPage() {
         {([['contrast', 'High contrast'], ['motion', 'Reduce motion'], ['focus', 'Reading focus']] as const).map(([key, label]) => <label key={key} className="flex min-h-11 items-center justify-between gap-4 text-sm">{label}<Switch checked={a11y[key]} onCheckedChange={(checked) => update({ [key]: checked })} aria-label={label} /></label>)}
         <Button variant="outline" onClick={() => update(A11Y_DEFAULT)}>Reset accessibility</Button>
       </section>
+      <DataSection />
       <section aria-labelledby="backup-heading" className="paper-sheet space-y-3 p-4 sm:p-6">
         <h2 id="backup-heading" className="text-lg font-semibold">Back up everything</h2>
         <p className="text-sm text-muted-foreground">Your notes are saved to your account and kept on every device you sign in on. This makes a copy that is entirely yours: every note (including Trash), version history, study cards, photos, audio and slides, plus readable Markdown.</p>

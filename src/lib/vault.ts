@@ -2,6 +2,7 @@ import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
   addDoc,
+  collection,
   deleteDoc,
   getDocs,
   increment,
@@ -16,7 +17,8 @@ import {
   type DocumentData,
   type QuerySnapshot,
 } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { listAll, ref as storageRef, deleteObject, type StorageReference } from "firebase/storage";
+import { auth, db, storage } from "./firebase";
 import { useAuth } from "./auth";
 import { commit, newId, noteVersions, nowIso, requireUid, userCol, userDoc } from "./db";
 import { EDITOR_ID } from "./conflict";
@@ -207,6 +209,69 @@ export async function deleteFolder(id: string) {
   inside.docs.forEach((d) => batch.update(d.ref, { folder_id: null }));
   batch.delete(userDoc("folders", id));
   await commit(batch.commit());
+}
+
+/** Apply `fn` to documents in batches under Firestore's 500-write limit. */
+async function inBatches<T>(items: T[], fn: (batch: ReturnType<typeof writeBatch>, item: T) => void, size = 400) {
+  for (let i = 0; i < items.length; i += size) {
+    const batch = writeBatch(db);
+    items.slice(i, i + size).forEach((it) => fn(batch, it));
+    await commit(batch.commit());
+  }
+}
+
+/** Move every note in a topic to Trash (nothing is lost; Trash keeps them until it's emptied). */
+export async function trashNotesIn(folderId: string) {
+  const inside = await getDocs(query(userCol("notes"), where("folder_id", "==", folderId)));
+  const now = nowIso();
+  await inBatches(inside.docs.filter((d) => !d.get("deleted_at")), (b, d) => b.update(d.ref, { deleted_at: now, updated_at: now }));
+}
+
+/** Delete a topic and, when asked, move the notes in it to Trash first. Without that, its notes are kept and simply leave the topic. */
+export async function removeTopic(folderId: string, withNotes: boolean) {
+  if (withNotes) await trashNotesIn(folderId);
+  await deleteFolder(folderId);
+}
+
+/** Move every note to Trash in one go. Recoverable: Trash keeps them until it's emptied. */
+export async function trashAllNotes(): Promise<string[]> {
+  const all = await getDocs(userCol("notes"));
+  const live = all.docs.filter((d) => !d.get("deleted_at"));
+  const now = nowIso();
+  await inBatches(live, (b, d) => b.update(d.ref, { deleted_at: now, updated_at: now }));
+  return live.map((d) => d.id);
+}
+
+/** Bring notes back from Trash (used by Undo). */
+export async function restoreNotes(ids: string[]) {
+  const now = nowIso();
+  await inBatches(ids, (b, id) => b.update(userDoc("notes", id), { deleted_at: null, updated_at: now }));
+}
+
+async function listFiles(dir: StorageReference): Promise<StorageReference[]> {
+  const res = await listAll(dir);
+  const nested = await Promise.all(res.prefixes.map(listFiles));
+  return [...res.items, ...nested.flat()];
+}
+
+/**
+ * Erase everything this account has stored, for good: notes (through Trash, as the security rules require) with their
+ * history and links, topics, study cards, quizzes and results, attachments, share links and uploaded files.
+ * The account itself, and its sign-in, stay. Cannot be undone.
+ */
+export async function eraseEverything(): Promise<void> {
+  const uid = requireUid();
+  await trashAllNotes();
+  const notes = await getDocs(userCol("notes"));
+  const pool = [...notes.docs];
+  await Promise.all(Array.from({ length: 4 }, async () => { for (let d = pool.pop(); d; d = pool.pop()) await purgeNote(d.id); }));
+  for (const name of ["folders", "links", "flashcards", "quizzes", "attempts", "attachments"] as const) {
+    const docs = await getDocs(userCol(name));
+    await inBatches(docs.docs, (b, d) => b.delete(d.ref));
+  }
+  const shares = await getDocs(query(collection(db, "shares"), where("user_id", "==", uid)));
+  await inBatches(shares.docs, (b, d) => b.delete(d.ref));
+  await listFiles(storageRef(storage, `users/${uid}`)).then((files) => Promise.all(files.map((f) => deleteObject(f).catch(() => undefined)))).catch(() => undefined);
 }
 
 /** Notes within `depth` hops of `id` (links are treated as undirected). */

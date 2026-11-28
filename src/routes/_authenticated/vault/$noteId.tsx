@@ -2,7 +2,7 @@ import { ClientOnly, createFileRoute, useNavigate } from "@tanstack/react-router
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Folder, Loader2, Network, Pin, Trash2 } from "lucide-react";
+import { Check, Folder, Loader2, Network, Pin, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ import { InsightColumn } from "@/components/vault/InsightColumn";
 import { NoteTools } from "@/components/vault/NoteTools";
 import { NoteVideo, seekVideo } from "@/components/vault/NoteVideo";
 import { Hint } from "@/components/shell/Hint";
+import { openResearch } from "@/lib/dialogs";
 import { LocalGraph } from "@/components/vault/LocalGraph";
 import { NoteMindMap } from "@/components/vault/NoteMindMap";
 import { appendMyNote, linkSeconds, sourceVideos, videoId } from "@/lib/video";
@@ -200,6 +201,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
           <Button variant="ghost" size="icon" aria-label={note.pinned ? "Unpin" : "Pin"} onClick={async () => { await updateNote(noteId, { pinned: !note.pinned }); await refresh(); }}><Pin className={note.pinned ? "fill-current text-primary" : ""} /></Button>
           <VersionHistory noteId={noteId} title={title} markdown={md} onRestored={(v) => { setMd(v.markdown); setTitle(v.title); savedTitle.current = v.title; setStatus("saved"); }} />
           <NoteShareMenu noteId={noteId} title={title} markdown={md} />
+          <Button variant="ghost" size="icon" aria-label="Research more about this note" data-research-note onClick={() => openResearch({ subject: title || "", folderId: note.folder_id })}><Search /></Button>
           <Button variant="ghost" size="icon" aria-label="Move to Trash" onClick={() => setConfirmTrash(true)}><Trash2 /></Button>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

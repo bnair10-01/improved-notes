@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Download, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Check, Download, Pencil, RotateCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { openResearch } from "@/lib/dialogs";
 import { commit, newId, nowIso, userCol, userDoc } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,6 +117,10 @@ function Flashcards({ noteId, cards }: { noteId: string; cards: FCard[] }) {
                 <Button size="lg" className={suggested === "know" ? "ring-2 ring-primary/50 ring-offset-2 ring-offset-background" : ""} onClick={() => grade("know")}><Check /> Know it</Button>
               </div>
             )}
+            {flipped && (
+              <button type="button" onClick={() => openResearch({ subject: shown.prompt.replace(/[{}]/g, "").slice(0, 120) })} data-look-up
+                className="mx-auto mt-2 flex min-h-10 items-center gap-1.5 px-3 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"><Search className="h-3.5 w-3.5" /> Read more about this</button>
+            )}
           </div>
         ) : (
           <div className="paper-sheet enter-pop p-6 text-center">
@@ -174,7 +179,14 @@ function Quiz({ quizId, questions, difficulty, sourceIds }: { quizId: string; qu
                 ? `You're ready for more. The next quiz steps up to ${next}.`
                 : `Let's ease off. The next quiz steps down to ${next}.`}
           </p>
-          {weak.length ? <p className="mt-1 text-sm text-muted-foreground">Weak topics: {weak.join(", ")}</p> : <p className="mt-1 text-sm text-muted-foreground">No weak topics. Nice work.</p>}
+          {weak.length ? (
+            <div className="mt-1">
+              <p className="text-sm text-muted-foreground">Weak topics. Tap one to read up on it:</p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5" data-weak-topics>
+                {weak.map((t) => <button key={t} type="button" onClick={() => openResearch({ subject: t })} className="inline-flex min-h-9 items-center gap-1 rounded-full border px-3 py-1 text-xs hover:bg-secondary"><Search className="h-3 w-3" /> {t}</button>)}
+              </div>
+            </div>
+          ) : <p className="mt-1 text-sm text-muted-foreground">No weak topics. Nice work.</p>}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {sourceIds.length > 0 && <GenerateDialog noteIds={sourceIds} initialKind="quiz" initialDifficulty={next} trigger={<Button size="sm">New {WORD[next]} quiz</Button>} />}
             {weak.length > 0 && sourceIds.length > 0 && <GenerateDialog noteIds={sourceIds} focusTopics={weak} initialDifficulty={next} trigger={<Button size="sm" variant="outline">Practise weak topics</Button>} />}

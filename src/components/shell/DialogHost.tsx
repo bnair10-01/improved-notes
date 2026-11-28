@@ -4,6 +4,7 @@ import { openDialog, useOpenDialog } from "@/lib/dialogs";
 const ImportSlidesDialog = lazy(() => import("@/components/slides/ImportSlidesDialog").then((m) => ({ default: m.ImportSlidesDialog })));
 const AddAudioDialog = lazy(() => import("@/components/audio/AddAudioDialog").then((m) => ({ default: m.AddAudioDialog })));
 const LinkDialog = lazy(() => import("@/components/capture/LinkDialog").then((m) => ({ default: m.LinkDialog })));
+const ResearchDialog = lazy(() => import("@/components/home/ResearchDialog").then((m) => ({ default: m.ResearchDialog })));
 const NewModelDialog = lazy(() => import("@/components/model3d/NewModelDialog").then((m) => ({ default: m.NewModelDialog })));
 
 export function DialogHost() {
@@ -15,6 +16,7 @@ export function DialogHost() {
       {k === "model" && <NewModelDialog open onOpenChange={close} />}
       {k === "link" && <LinkDialog open onOpenChange={close} />}
       {k === "audio" && <AddAudioDialog open onOpenChange={close} />}
+      {k === "research" && <ResearchDialog open onOpenChange={close} />}
     </Suspense>
   );
 }

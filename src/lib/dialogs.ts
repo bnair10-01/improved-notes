@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 /** App-wide create dialogs (slides, audio, 3D) so any Create button can open them, even from a closing sheet. */
-export type DialogKey = "slides" | "audio" | "model" | "link" | null;
+export type DialogKey = "slides" | "audio" | "model" | "link" | "research" | null;
 let current: DialogKey = null;
 let file: File | null = null;
 const subs = new Set<() => void>();
@@ -9,3 +9,9 @@ export function openDialog(k: DialogKey, withFile?: File) { file = k ? withFile 
 /** The file the open dialog was started with, if any. */
 export const dialogFile = () => file;
 export function useOpenDialog() { return useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => current, () => null); }
+
+/** Research more on something you already have: a note, a topic, a weak quiz topic, a card you missed. Notes made from it can go into a topic. */
+export type ResearchRequest = { subject: string; folderId?: string | null };
+let research: ResearchRequest = { subject: "" };
+export function openResearch(r: ResearchRequest) { research = r; openDialog("research"); }
+export const researchRequest = () => research;

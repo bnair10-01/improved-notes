@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Hint } from "@/components/shell/Hint";
+import { ItemMenu } from "@/components/shell/ItemMenu";
+import { useNoteActions } from "@/components/vault/itemActions";
 import { touchFirst } from "@/components/shell/CommandPalette";
 import { openTarget, useVault } from "@/lib/vault";
 import { sortNotes, type NoteSort } from "@/lib/sort";
@@ -25,6 +27,7 @@ function VaultHome() {
   const { data } = useVault();
   const [sort, setSort] = useState<NoteSort>("recent");
   useEffect(() => { const s = localStorage.getItem("improvednotes-sort"); if (s === "created" || s === "title") setSort(s); }, []);
+  const item = useNoteActions();
   const notes = sortNotes((data?.notes ?? []).filter((n) => !n.deleted_at), sort);
   return (
     <div className="mx-auto w-full min-w-0 max-w-3xl overflow-y-auto overflow-x-hidden px-4 py-6 sm:py-8">
@@ -40,14 +43,18 @@ function VaultHome() {
       <div className="mt-3"><Hint id="vault">Press Add for a new note, a scan, a recording, slides, a link or a 3D model. Link notes by typing [[ in a note. {touchFirst() ? "Pull down from the top of any screen to search and jump to a note" : "Press Ctrl/⌘ K to jump to any note"}, or open Graph to see how they connect.</Hint></div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {notes.map((n, i) => (
-          <Link key={n.id} {...openTarget(n)} style={{ "--i": Math.min(i, 12) } as React.CSSProperties} className="enter paper-sheet block min-w-0 p-4 hover:ring-2 hover:ring-primary/30">
-            <p className="truncate font-medium">{n.title || "Untitled"}</p>
-            <p className="mt-0.5 text-xs capitalize text-muted-foreground">{n.kind} · {new Date(sort === "created" ? n.created_at : n.updated_at).toLocaleDateString()}</p>
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{n.markdown.slice(0, 160) || "Empty note"}</p>
-          </Link>
+          <div key={n.id} style={{ "--i": Math.min(i, 12) } as React.CSSProperties} className="enter relative min-w-0">
+            <Link {...openTarget(n)} className="paper-sheet block min-w-0 p-4 pr-12 hover:ring-2 hover:ring-primary/30">
+              <p className="truncate font-medium">{n.title || "Untitled"}</p>
+              <p className="mt-0.5 text-xs capitalize text-muted-foreground">{n.kind} · {new Date(sort === "created" ? n.created_at : n.updated_at).toLocaleDateString()}</p>
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{n.markdown.slice(0, 160) || "Empty note"}</p>
+            </Link>
+            <ItemMenu label={`${n.title || "Untitled"} options`} actions={item.actions(n)} className="absolute right-1.5 top-1.5" />
+          </div>
         ))}
       </div>
       {!notes.length && <div className="paper-sheet mt-4 p-8 text-center"><p className="font-serif text-lg">No notes yet</p><p className="mt-1 text-sm text-muted-foreground">Press Add to write one, scan handwriting, or bring in a recording, slides or a link.</p></div>}
+      {item.dialogs}
     </div>
   );
 }

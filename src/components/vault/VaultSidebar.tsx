@@ -7,7 +7,8 @@ import { AddPopover } from "@/components/shell/AddMenu";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ItemMenu } from "@/components/shell/ItemMenu";
+import { useNoteActions, useTopicActions } from "@/components/vault/itemActions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { NewTopicDialog } from "@/components/topics/NewTopicDialog";
 import { createNote, deleteFolder, openTarget, purgeNote, renameFolder, renameNote, updateNote, useRefreshVault, type Vault, type VFolder, type VNote } from "@/lib/vault";
@@ -17,6 +18,8 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
   const refresh = useRefreshVault();
   const [q, setQ] = useState("");
   const [tag, setTag] = useState<string | null>(null);
+  const item = useNoteActions();
+  const topic = useTopicActions();
   const [showTrash, setShowTrash] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<string | null>(null);
@@ -51,14 +54,7 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
           <span className="truncate">{n.title || "Untitled"}</span>
         </button>)}
         {n.pinned && <Pin className="h-3 w-3 shrink-0 text-primary" />}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><button aria-label={`${n.title || "Untitled"} options`} className="shrink-0 opacity-60 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditing(n.id)}>Rename</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void run(updateNote(n.id, { pinned: !n.pinned }))}>{n.pinned ? "Unpin" : "Pin"}</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive" onClick={() => void run(updateNote(n.id, { deleted_at: new Date().toISOString() }), "Moved to Trash")}>Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ItemMenu label={`${n.title || "Untitled"} options`} actions={item.actions(n)} />
       </div>
     );
   }
@@ -91,15 +87,11 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
               <Input autoFocus defaultValue={f.name} className="h-6 px-1 text-sm" onBlur={(e) => { setEditing(null); if (e.target.value.trim() && e.target.value !== f.name) void run(renameFolder(f.id, e.target.value.trim())); }} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} />
             ) : <Link to="/topics/$folderId" params={{ folderId: f.id }} onClick={onNavigate} className="flex-1 truncate font-medium hover:underline" title="Open topic page">{f.name}</Link>}
             {editing !== f.id && <span className="font-mono text-[11px] text-muted-foreground">{live.filter((n) => n.folder_id === f.id).length}</span>}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild><button aria-label={`Folder ${f.name} options`} className="opacity-60 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></button></DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => void run(createNote({ folder_id: f.id }).then(refresh))}>New note here</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setNewTopic({ parent: f.id })}>New subtopic</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEditing(f.id)}>Rename</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive" onClick={() => setConfirm({ title: `Delete folder "${f.name}"?`, body: "Notes inside are kept and move out of the folder. Subfolders are deleted.", act: () => deleteFolder(f.id) })}>Delete</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ItemMenu label={`Topic ${f.name} options`} actions={[
+              { label: "New note here", icon: <FilePlus2 className="h-4 w-4" />, onSelect: () => run(createNote({ folder_id: f.id }).then(refresh)) },
+              { label: "New subtopic", icon: <FolderPlus className="h-4 w-4" />, onSelect: () => setNewTopic({ parent: f.id }) },
+              ...topic.actions(f),
+            ]} />
           </div>
           {isOpen && <div className="pl-4">{notes.map((n) => <NoteRow key={n.id} n={n} />)}</div>}
         </div>
@@ -179,6 +171,7 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction disabled={!!confirm?.typed && typedText.trim().toLowerCase() !== confirm.typed} onClick={() => { if (confirm) void run(confirm.act()); setConfirm(null); }}>Delete</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {item.dialogs}{topic.dialogs}
     </div>
   );
 }

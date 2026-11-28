@@ -8,6 +8,7 @@ import { importFromUrl, sectioniseNote } from "@/lib/ai/tasks";
 import { findVideos, wikipediaFor, type Video, type WikiArticle } from "@/lib/research";
 import { Doodle, Working } from "@/components/fun/Doodle";
 import type { Section } from "@/lib/split";
+import { useVault } from "@/lib/vault";
 
 const label = "font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground";
 const titleCase = (s: string) => s.replace(/\b[a-z]/g, (c) => c.toUpperCase());
@@ -20,8 +21,10 @@ type Piece = { overview: string; sections: Section[]; source: string };
  * sources you keep. The ticked sources start being read as soon as they appear, so by the time you press Build most of the
  * waiting is done. Nothing is saved until you name the topic in the preview.
  */
-export function ResearchPanel({ subject, onClose }: { subject: string; onClose: () => void }) {
+export function ResearchPanel({ subject, folderId = null, onClose }: { subject: string; folderId?: string | null; onClose: () => void }) {
   const navigate = useNavigate();
+  const { data: vault } = useVault();
+  const folderName = folderId ? vault?.folders.find((f) => f.id === folderId)?.name : undefined;
   // undefined means still looking; null or [] means looked and found nothing.
   const [wiki, setWiki] = useState<WikiArticle | null | undefined>(undefined);
   const [videos, setVideos] = useState<Video[] | undefined>(undefined);
@@ -156,7 +159,7 @@ export function ResearchPanel({ subject, onClose }: { subject: string; onClose: 
         </div>
       )}
 
-      <SplitPreview open={!!material} onOpenChange={(o) => !o && setMaterial(null)} material={material} initialTopic={material?.title ?? titleCase(subject)} folderId={null}
+      <SplitPreview open={!!material} onOpenChange={(o) => !o && setMaterial(null)} material={material} initialTopic={material?.title ?? titleCase(subject)} folderId={folderId} {...(folderName ? { folderName } : {})}
         onSaved={(id) => { onClose(); navigate({ to: "/vault/$noteId", params: { noteId: id } }); }} />
     </section>
   );

@@ -445,23 +445,28 @@ html[data-motion="reduce"] .doodle *, html[data-motion="reduce"] .working-bar { 
 @keyframes ni-sweep { 0% { transform: translateY(-6px); opacity: 0.2; } 50% { transform: translateY(6px); opacity: 1; } 100% { transform: translateY(-6px); opacity: 0.2; } }
 @keyframes ni-node { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.45); } }
 @keyframes ni-draw { from { stroke-dasharray: 14; stroke-dashoffset: 14; } to { stroke-dasharray: 14; stroke-dashoffset: 0; } }
-:is(a[aria-current="page"], a:active, button:active) .ni-roof { animation: ni-hop 650ms cubic-bezier(0.34, 1.4, 0.64, 1); }
-:is(a[aria-current="page"], a:active, button:active) .ni-door { animation: ni-swing 650ms ease-in-out; transform-origin: left center; }
-:is(a[aria-current="page"], a:active, button:active) .ni-page { animation: ni-tilt 700ms ease-in-out; }
-:is(a[aria-current="page"], a:active, button:active) .ni-line { animation: ni-write 520ms ease-out backwards; }
+:is(a[data-on], a:active, button:active) .ni-roof { animation: ni-hop 650ms cubic-bezier(0.34, 1.4, 0.64, 1); }
+:is(a[data-on], a:active, button:active) .ni-door { animation: ni-swing 650ms ease-in-out; transform-origin: left center; }
+:is(a[data-on], a:active, button:active) .ni-page { animation: ni-tilt 700ms ease-in-out; }
+:is(a[data-on], a:active, button:active) .ni-line { animation: ni-write 520ms ease-out backwards; }
 .ni-l2 { animation-delay: 140ms !important; } .ni-l3 { animation-delay: 280ms !important; }
-:is(a[aria-current="page"], a:active, button:active) .ni-flap { animation: ni-flap 700ms ease-in-out; transform-origin: bottom center; }
-:is(a[aria-current="page"], a:active, button:active) .ni-sheet { animation: ni-sheet 700ms ease-in-out; }
-:is(a[aria-current="page"], a:active, button:active) .ni-book { animation: ni-open 700ms ease-in-out; }
-:is(a[aria-current="page"], a:active, button:active) .ni-check { animation: ni-tick 500ms ease-out 150ms backwards; }
-:is(a[aria-current="page"], a:active, button:active) .ni-scan { animation: ni-sweep 900ms ease-in-out; }
-:is(a[aria-current="page"], a:active, button:active) .ni-node { animation: ni-node 650ms ease-in-out; }
-:is(a[aria-current="page"], a:active, button:active) .ni-n2 { animation-delay: 140ms; } :is(a[aria-current="page"], a:active, button:active) .ni-n3 { animation-delay: 280ms; }
-:is(a[aria-current="page"], a:active, button:active) .ni-link { animation: ni-draw 600ms ease-out backwards; }
+:is(a[data-on], a:active, button:active) .ni-flap { animation: ni-flap 700ms ease-in-out; transform-origin: bottom center; }
+:is(a[data-on], a:active, button:active) .ni-sheet { animation: ni-sheet 700ms ease-in-out; }
+:is(a[data-on], a:active, button:active) .ni-book { animation: ni-open 700ms ease-in-out; }
+:is(a[data-on], a:active, button:active) .ni-check { animation: ni-tick 500ms ease-out 150ms backwards; }
+:is(a[data-on], a:active, button:active) .ni-scan { animation: ni-sweep 900ms ease-in-out; }
+:is(a[data-on], a:active, button:active) .ni-node { animation: ni-node 650ms ease-in-out; }
+:is(a[data-on], a:active, button:active) .ni-n2 { animation-delay: 140ms; } :is(a[data-on], a:active, button:active) .ni-n3 { animation-delay: 280ms; }
+:is(a[data-on], a:active, button:active) .ni-link { animation: ni-draw 600ms ease-out backwards; }
 @media (hover: hover) { a:hover .ni-roof { animation: ni-hop 650ms cubic-bezier(0.34, 1.4, 0.64, 1); } a:hover .ni-door { animation: ni-swing 650ms ease-in-out; transform-origin: left center; } a:hover .ni-page { animation: ni-tilt 700ms ease-in-out; } a:hover .ni-line { animation: ni-write 520ms ease-out backwards; } a:hover .ni-flap { animation: ni-flap 700ms ease-in-out; transform-origin: bottom center; } a:hover .ni-sheet { animation: ni-sheet 700ms ease-in-out; } a:hover .ni-book { animation: ni-open 700ms ease-in-out; } a:hover .ni-check { animation: ni-tick 500ms ease-out 150ms backwards; } a:hover .ni-scan { animation: ni-sweep 900ms ease-in-out; } a:hover .ni-node { animation: ni-node 650ms ease-in-out; } a:hover .ni-link { animation: ni-draw 600ms ease-out backwards; } }
-[data-tabbar] a[aria-current="page"] .navicon { transform: translateY(-1px) scale(1.08); transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+[data-tabbar] a[data-on] .navicon { transform: translateY(-1px) scale(1.08); transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 [data-tabbar] a .navicon { transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 html[data-motion="reduce"] .navicon *, html[data-motion="reduce"] .navicon { animation: none !important; transition: none !important; }
 
 /* Pulling down from the top opens search (CommandPalette), so the browser's own pull-to-refresh must not also fire. */
 @media (pointer: coarse) { html, body { overscroll-behavior-y: contain; } }
+/* The graph icon stays alive while its tab is open: the nodes take turns to pulse, like a map being read. */
+@keyframes ni-node-loop { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.35); opacity: 1; } }
+a[data-on] .ni-node { animation: ni-node-loop 2.4s ease-in-out infinite; }
+a[data-on] .ni-n2 { animation-delay: 0.4s; }
+a[data-on] .ni-n3 { animation-delay: 0.8s; }

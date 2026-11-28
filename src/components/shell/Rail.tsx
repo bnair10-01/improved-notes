@@ -18,7 +18,7 @@ export function Rail({ initials, avatarUrl }: { initials: string; avatarUrl: str
       {user && NAV.map((n) => {
         const on = isActive(n, pathname);
         return (
-          <Link key={n.to} to={n.to} aria-label={n.label} title={n.label} aria-current={on ? "page" : undefined}
+          <Link key={n.to} to={n.to} activeOptions={{ exact: true }} data-on={on ? "" : undefined} aria-label={n.label} title={n.label} aria-current={on ? "page" : undefined}
             className={`relative grid h-[38px] w-[38px] place-items-center rounded-lg transition-colors ${on ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"}`}>
             <NavIcon kind={navKind(n.to)} className="h-[20px] w-[20px]" strokeWidth={on ? 2 : 1.6} />
             {n.to === "/study" && due > 0 && <span aria-label={`${due} cards due`} className="absolute right-[6px] top-[6px] h-1.5 w-1.5 rounded-full bg-foreground" />}

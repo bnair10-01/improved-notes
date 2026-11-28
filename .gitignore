@@ -59,4 +59,4 @@ android/app/google-services.json
 android/keystore.properties
 *.keystore
 *.jks
-release/
+/release/

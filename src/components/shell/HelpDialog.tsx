@@ -11,8 +11,14 @@ const GUIDE: [string, string[]][] = [
   ["Getting started", [
     "Home is one box. Type a topic and press Enter to look it up and build notes from Wikipedia and YouTube, or switch the box to Note to start writing with what you typed. Your choice is remembered.",
     "Paste a YouTube or web link into the box and it's read and divided into notes, one per idea. You name the topic; nothing is filed until you accept.",
-    "Press + in the box, or Add in the top bar, to bring in anything else. On a phone the big + in the tab bar does the same, and Home, Notes, Study and Topics are one tap away.",
+    "Press + in the box, or Add in the top bar, to bring in anything else. On a phone the big + in the tab bar does the same, Notes, Graph, Topics and Study are one tap away, and the logo takes you home.",
     "Your notes are private to your account and follow you to any device you sign in on. A guest account lasts only for this tab until you sign in.",
+  ]],
+  ["Rename, delete and research more", [
+    "Every note and topic has a ⋯ menu (on the Notes list, in a topic, and in the sidebar): rename it, pin it, research more about it, or delete it. Deleting a note moves it to Trash, with an Undo.",
+    "Deleting a topic asks whether to keep its notes (they simply leave the topic) or send them to Trash too.",
+    "Research more opens from a note, a topic, the weak topics after a quiz, and any flashcard (“Read more about this”). New notes made from a topic's research go into that topic.",
+    "Settings → Your notes can move every note to Trash at once (with Undo), or delete everything for good after you type DELETE.",
   ]],
   ["Add anything", [
     "The Add menu is the one place to start: Write a note, Scan handwriting, Voice or lecture, PDF or slides, Website or YouTube link, Upload a file, 3D model of a concept.",
@@ -62,6 +68,11 @@ const GUIDE: [string, string[]][] = [
     "A small badge shows whether each AI answer ran On-device (private, free, works offline, in Chrome with Gemini Nano) or in the Cloud.",
     "Short jobs try your device first and fall back to the cloud. Photos, audio, slides, research and 3D always use the cloud.",
     "Every AI answer cites where it came from, and quotes are checked against your own text.",
+  ]],
+  ["Pen, Apple Pencil and tablets", [
+    "On an iPad or Android tablet the app uses the roomier laptop layout, with controls sized for fingers and pens.",
+    "Touch a note's editor with a pen and it switches to Pencil mode and starts writing straight away. Lines get bolder as you press harder, a resting palm or finger is ignored once a pen is in use, and a stylus's eraser end rubs out.",
+    "In Pencil mode, Pen and Eraser are in the toolbar, with Undo, Clear ink, and To text to turn your handwriting into text.",
   ]],
   ["Appearance and accessibility", [
     "Light or dark follows your device's setting and changes with it. The sun/moon switch flips it for now with a ripple, and it goes back to the device's setting when you reopen the app or the device changes. The palette button (and Settings → Appearance, which is where a phone picks one) chooses the colour theme for each mode.",

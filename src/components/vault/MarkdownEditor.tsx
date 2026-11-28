@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { transcribeNotes } from "@/lib/ai/tasks";
-import { drawStrokes, parseInk, serializeInk, simplify, type Stroke } from "@/lib/ink";
+import { drawStrokes, eraseAt, parseInk, serializeInk, simplify, type Pt, type Stroke } from "@/lib/ink";
 import type { VNote } from "@/lib/vault";
 
 const SLASH = [
@@ -19,7 +19,7 @@ const SLASH = [
 
 type Menu = { type: "slash" | "link"; query: string; start: number } | null;
 
-const TOOL = "grid h-8 min-w-8 place-items-center rounded-md px-2 text-sm text-foreground hover:bg-secondary";
+const TOOL = "grid h-8 min-w-8 place-items-center rounded-md px-2 text-sm text-foreground hover:bg-secondary pointer-coarse:h-11 pointer-coarse:min-w-11";
 
 /**
  * Markdown textarea with a "/" block menu and a "[[" note picker. Writing tools stay out of the way:
@@ -41,7 +41,12 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [strokes, setStrokes] = useState<Stroke[]>(() => parseInk(ink));
-  const cur = useRef<[number, number][] | null>(null);
+  const [tool, setTool] = useState<"pen" | "eraser">("pen");
+  const strokesRef = useRef<Stroke[]>(strokes);
+  strokesRef.current = strokes;
+  const penSeen = useRef(false);
+  const erased = useRef(false);
+  const cur = useRef<Pt[] | null>(null);
   const drawing = useRef(false);
   const [transcribing, setTranscribing] = useState(false);
 
@@ -91,16 +96,38 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
     if (s === null) { toast.error("This page has a lot of ink. Clear some before adding more."); return; }
     onInkChange?.(s);
   }
-  const pt = (e: React.PointerEvent): [number, number] => {
+  // Where on the page (0 to 1000 across) a pointer event is, and how hard a pen is pressing.
+  const at = (e: { clientX: number; clientY: number; pressure?: number; pointerType?: string }): Pt => {
     const r = canvas.current!.getBoundingClientRect();
     const k = 1000 / r.width;
-    return [(e.clientX - r.left) * k, (e.clientY - r.top) * k];
+    const x = (e.clientX - r.left) * k, y = (e.clientY - r.top) * k;
+    return e.pointerType === "pen" ? [x, y, e.pressure && e.pressure > 0 ? e.pressure : 0.5] : [x, y];
   };
-  const down = (e: React.PointerEvent) => { if (mode !== "pencil") return; e.currentTarget.setPointerCapture(e.pointerId); drawing.current = true; cur.current = [pt(e)]; redraw(); };
-  const move = (e: React.PointerEvent) => { if (!drawing.current || !cur.current) return; cur.current.push(pt(e)); redraw(); };
+  // A stylus's eraser end (or the barrel eraser button) rubs out; once a pen has been used, a resting palm or finger doesn't draw.
+  const erasing = (e: React.PointerEvent) => tool === "eraser" || (e.buttons & 32) === 32 || e.button === 5;
+  const rub = (e: React.PointerEvent, from: Stroke[]) => { const [x, y] = at(e); return eraseAt(from, x, y, e.pointerType === "pen" ? 12 : 16); };
+  const down = (e: React.PointerEvent) => {
+    if (mode !== "pencil") return;
+    if (e.pointerType === "pen") penSeen.current = true;
+    else if (e.pointerType === "touch" && penSeen.current) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drawing.current = true;
+    if (erasing(e)) { erased.current = true; const next = rub(e, strokes); if (next !== strokes) setStrokes(next); return; }
+    cur.current = [at(e)]; redraw();
+  };
+  const move = (e: React.PointerEvent) => {
+    if (!drawing.current) return;
+    if (erased.current) { const next = rub(e, strokesRef.current); if (next !== strokesRef.current) setStrokes(next); return; }
+    if (!cur.current) return;
+    const batch = typeof e.nativeEvent.getCoalescedEvents === "function" ? e.nativeEvent.getCoalescedEvents() : [];
+    for (const c of batch.length ? batch : [e.nativeEvent]) cur.current.push(at(c));
+    redraw();
+  };
   const up = () => {
     if (!drawing.current) return;
     drawing.current = false;
+    if (erased.current) { erased.current = false; commit(strokesRef.current); return; }
     const p = cur.current; cur.current = null;
     if (p && p.length) commit([...strokes, { p: simplify(p) }]);
   };
@@ -179,7 +206,18 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
   }
 
   return (
-    <div className="relative h-full" onPointerDownCapture={(e) => { if (e.pointerType === "pen") setMode("pencil"); }}>
+    <div className="relative h-full" onPointerDownCapture={(e) => {
+      // The first touch of a pen switches to Pencil mode and starts the stroke right then, so no ink is lost.
+      if (e.pointerType !== "pen" || mode === "pencil" || !canvas.current) return;
+      penSeen.current = true;
+      setMode("pencil");
+      e.preventDefault();
+      canvas.current.setPointerCapture(e.pointerId);
+      drawing.current = true;
+      if (erasing(e)) { erased.current = true; const next = rub(e, strokes); if (next !== strokes) setStrokes(next); return; }
+      cur.current = [at(e)];
+      redraw();
+    }}>
       <Textarea
         ref={ref}
         value={value}
@@ -213,6 +251,8 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
           <button type="button" className={TOOL} aria-label="Link" onClick={link}>Link</button>
           <button type="button" className={TOOL} aria-label="Margin note" onClick={margin}>Note</button>
         </> : <>
+          <button type="button" className={TOOL} aria-pressed={tool === "pen"} onClick={() => setTool("pen")} data-tool-pen>Pen</button>
+          <button type="button" className={`${TOOL} ${tool === "eraser" ? "bg-secondary" : ""}`} aria-pressed={tool === "eraser"} onClick={() => setTool(tool === "eraser" ? "pen" : "eraser")} data-tool-eraser>Eraser</button>
           <button type="button" className={TOOL} disabled={!strokes.length} onClick={() => commit(strokes.slice(0, -1))}>Undo</button>
           <button type="button" className={TOOL} disabled={!strokes.length} onClick={() => commit([])}>Clear ink</button>
           <button type="button" className={TOOL} disabled={transcribing || !strokes.length} onClick={() => void transcribeInk()}>{transcribing ? "Reading…" : "To text"}</button>

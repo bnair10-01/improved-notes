@@ -13,7 +13,7 @@ import { AnswerCard } from "@/components/shell/AnswerCard";
 import { SourceList } from "@/components/shell/SourceList";
 import { explain } from "@/lib/ai/run";
 import { rankNotes } from "@/lib/retrieve";
-import { studyOverviewQuery } from "@/lib/study";
+import { studyDueQuery } from "@/lib/study";
 import { openTarget, type VNote, type Vault } from "@/lib/vault";
 
 const label = "font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground";
@@ -25,7 +25,7 @@ const QUICK = ["Explain like I'm new", "What are the key terms?", "What should I
 export function InsightColumn({ note, vault, markdown, onOpenGraph, saved = true }: { note: VNote; vault: Vault; markdown: string; onOpenGraph: () => void; saved?: boolean }) {
   const navigate = useNavigate();
   const live = vault.notes.filter((n) => !n.deleted_at);
-  const { data: study } = useQuery(studyOverviewQuery);
+  const { data: study } = useQuery(studyDueQuery);
 
   const needSave = () => toast("Save this note first, then you can make cards and quizzes from it.");
   const [summary, setSummary] = useState<string | null>(null);

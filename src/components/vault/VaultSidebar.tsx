@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { studyOverviewQuery } from "@/lib/study";
+import { studyDueQuery } from "@/lib/study";
 import { ChevronRight, FilePlus2, Folder, FolderPlus, Lightbulb, MoreHorizontal, Network, NotebookPen, Pin, Plus, Search, Tag, Trash2, Undo2 } from "lucide-react";
 import { AddPopover } from "@/components/shell/AddMenu";
 import { toast } from "sonner";
@@ -27,7 +27,7 @@ export function VaultSidebar({ vault, onNavigate }: { vault: Vault; onNavigate?:
   const [typedText, setTypedText] = useState("");
   const [dropOn, setDropOn] = useState<string | null>(null);
   const [newTopic, setNewTopic] = useState<{ parent: string | null } | null>(null);
-  const { data: study } = useQuery(studyOverviewQuery);
+  const { data: study } = useQuery(studyDueQuery);
   const due = study?.dueTotal ?? 0;
 
   const live = vault.notes.filter((n) => !n.deleted_at);

@@ -40,13 +40,13 @@ export function AppHeader() {
   return (
     <>
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/70 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:px-5 md:min-h-[46px] md:grid-cols-[minmax(0,1fr)_minmax(0,340px)_auto] md:py-1.5">
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 sm:px-5 md:min-h-[46px] md:grid-cols-[minmax(0,1fr)_minmax(0,300px)_auto] md:py-1.5">
         <div className="flex min-w-0 items-center gap-3">
           <Link to="/" className="flex min-w-0 items-center gap-2 whitespace-nowrap font-serif text-lg font-semibold md:hidden">
             <BrandMark className="h-6 w-6" />
             <span data-brand-name className="truncate">Improved Notes</span>
           </Link>
-          {section && <span data-section className="hidden truncate text-[13px] text-foreground md:block">{section}</span>}
+          {section && <span data-section className="hidden truncate text-[13px] text-foreground lg:block">{section}</span>}
         </div>
         {user && !onHome ? (
           <button onClick={openPalette} className="hidden items-center gap-2 rounded-lg border bg-card px-2.5 py-1.5 text-left text-[13px] text-muted-foreground md:flex" aria-label="Search, jump, or ask anything">

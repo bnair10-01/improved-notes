@@ -1,11 +1,25 @@
 import { queryOptions } from "@tanstack/react-query";
-import { getDocs } from "firebase/firestore";
+import { getDocs, query, where } from "firebase/firestore";
 import { auth } from "./firebase";
 import { userCol } from "./db";
 
 type Row = Record<string, unknown> & { id: string };
 const all = async (name: "flashcards" | "quizzes" | "attempts"): Promise<Row[]> =>
   (await getDocs(userCol(name))).docs.map((d) => ({ ...d.data(), id: d.id }));
+
+/**
+ * Just how many cards are due, for the badges on Home, the sidebar and the rail. It asks only for the due cards instead of every
+ * card, quiz and past result, which is what made signing in slow once there was a lot of study history.
+ */
+export const studyDueQuery = queryOptions({
+  queryKey: ["study-due"],
+  staleTime: 20_000,
+  queryFn: async () => {
+    if (!auth.currentUser) return { dueTotal: 0 };
+    const due = await getDocs(query(userCol("flashcards"), where("due_at", "<=", new Date().toISOString())));
+    return { dueTotal: due.size };
+  },
+});
 
 export const studyOverviewQuery = queryOptions({
   queryKey: ["study-overview"],

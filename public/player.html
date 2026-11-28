@@ -20,7 +20,9 @@
   var v = q.get("v") || "";
   var t = Math.max(0, Number(q.get("t")) || 0);
   var player = null;
-  function post(m) { try { parent.postMessage(m, "*"); } catch (e) {} }
+  // Only the page that embeds this one may drive it, and it is answered at its own origin, never broadcast.
+  var peer = "*";
+  function post(m) { try { parent.postMessage(m, peer); } catch (e) {} }
   if (!/^[\w-]{11}$/.test(v)) {
     document.body.textContent = "That video link isn't valid.";
   } else {
@@ -37,7 +39,9 @@
     document.head.appendChild(s);
   }
   addEventListener("message", function (e) {
-    var d = e.data || {};
+    if (e.source !== parent || !e.data || typeof e.data !== "object") return;
+    if (e.origin && e.origin !== "null") peer = e.origin;
+    var d = e.data;
     if (!player || !player.getCurrentTime) return;
     if (d.type === "seek") { player.seekTo(Number(d.seconds) || 0, true); player.playVideo(); }
     if (d.type === "time") post({ type: "time", id: d.id, seconds: player.getCurrentTime() });

@@ -13,6 +13,8 @@ Built for the #BuildHybridAI 2026 hackathon.
 - **Write first.** "Start writing" opens a blank note. A tools row sits above it: Scan, Voice or lecture, PDF or slides, Website, YouTube, Split into notes.
 - **Insight column on every note:** streamed summary, Ask (answers cite numbered sources, with quotes checked against your text), flashcards and a quiz. A badge shows whether each AI call ran **On-device** or in the **Cloud**.
 - **Scan handwriting** always gives the transcript and a mind map, and the note is saved the moment it's transcribed. Edits save as you go.
+- **Pen and tablet ready.** Apple Pencil and other pens draw pressure-sensitive ink with palm rejection and an eraser, and iPads and Android tablets get the roomier layout with touch-sized controls.
+- **Rename, delete and research more** on every note and topic (with Undo and Trash), and a clear-everything option in Settings.
 - **Study that adapts.** Flashcards step up from Guided (a hint) to Flip to Recall (type it from memory) after three right in a row, and back down after two misses; weak cards come first. Quizzes suggest a harder or easier one next from your score.
 - **Fluid motion.** Pages cross-fade, lists ease in, light and dark follow your device's setting live (the switch flips it for now, with a ripple), and phone apps open with an animated splash. Reduce motion turns it all off.
 - **Topics you name.** The AI may suggest a topic for a note; nothing is filed until you accept. Topic pages have a topic-wide summary and Ask.

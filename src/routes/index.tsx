@@ -9,7 +9,7 @@ import { HomeComposer } from "@/components/home/HomeComposer";
 import { Button } from "@/components/ui/button";
 import { IS_NATIVE } from "@/lib/firebase";
 import { authMessage, ensureSignedIn, googleCancelled, rememberNext, signInWithGoogle, useAuth } from "@/lib/auth";
-import { studyOverviewQuery } from "@/lib/study";
+import { studyDueQuery } from "@/lib/study";
 import { openTarget, useVault, type VNote } from "@/lib/vault";
 
 export const Route = createFileRoute("/")({
@@ -102,14 +102,14 @@ function when(iso: string) {
  * pick up again (recent notes, topics, cards due), and nothing at all when there is nothing yet.
  */
 function Home({ name }: { name: string }) {
-  const { data: vault, isLoading } = useVault();
-  const { data: study } = useQuery(studyOverviewQuery);
-  if (isLoading || !vault) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading your notes" /></div>;
-
-  const live = vault.notes.filter((n) => !n.deleted_at);
+  const { data: vault } = useVault();
+  const { data: study } = useQuery(studyDueQuery);
+  // The greeting and the box show straight away; what's under them fills in as your notes arrive, rather than a spinner first.
+  const loading = !vault;
+  const live = (vault?.notes ?? []).filter((n) => !n.deleted_at);
   const recent = live.filter(started).sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5);
-  const fresh = recent.length === 0;
-  const topics = vault.folders.slice(0, 8);
+  const fresh = !loading && recent.length === 0;
+  const topics = (vault?.folders ?? []).slice(0, 8);
   const due = study?.dueTotal ?? 0;
 
   return (
@@ -120,7 +120,7 @@ function Home({ name }: { name: string }) {
         {fresh && <span className="block text-muted-foreground">What are you learning today?</span>}
       </h1>
 
-      <div className="enter" style={{ "--i": 2 } as React.CSSProperties}><HomeComposer notes={live} folders={vault.folders} autoFocus /></div>
+      <div className="enter" style={{ "--i": 2 } as React.CSSProperties}><HomeComposer notes={live} folders={vault?.folders ?? []} autoFocus /></div>
 
       {fresh ? (
         <p className="mt-4 px-1 text-xs leading-relaxed text-muted-foreground">
@@ -140,7 +140,10 @@ function Home({ name }: { name: string }) {
               <h2 id="home-recent" className={mono}>Recent</h2>
               <Link to="/vault" className="text-xs text-muted-foreground hover:text-foreground">All notes</Link>
             </div>
-            <ul className="divide-y rounded-xl border">
+            <ul className="divide-y rounded-xl border" aria-busy={loading}>
+              {loading && [0, 1, 2].map((i) => (
+                <li key={i} className="flex items-center gap-3 px-3.5 py-3" aria-hidden><span className="h-3.5 flex-1 animate-pulse rounded bg-secondary" style={{ maxWidth: `${70 - i * 12}%` }} /><span className="h-3 w-10 animate-pulse rounded bg-secondary" /></li>
+              ))}
               {recent.map((n, i) => (
                 <li key={n.id} className="enter" style={{ "--i": i + 5 } as React.CSSProperties}>
                   <Link {...openTarget(n)} className="flex items-center gap-3 px-3.5 py-2.5 hover:bg-secondary/60">

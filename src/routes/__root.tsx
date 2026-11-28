@@ -81,7 +81,7 @@ function RootComponent() {
       <HeadContent />
       <Outlet />
       <LaunchGate />
-      <Toaster richColors position="top-center" />
+      <Toaster position="top-center" />
     </QueryClientProvider>
   );
 }

@@ -96,7 +96,9 @@ export default function VaultGraph3D({ notes, links, folders = [], focusId, show
   const degree = useMemo(() => { const d = new Map<string, number>(); for (const e of edges) { d.set(e.a, (d.get(e.a) ?? 0) + 1); d.set(e.b, (d.get(e.b) ?? 0) + 1); } return d; }, [edges]);
   const orphans = useMemo(() => notes.filter((n) => !degree.has(n.id)).map((n) => n.id), [notes, degree]);
 
-  useEffect(() => { onStats?.({ notes: notes.length, links: edges.length - auto, auto, orphans }); }, [notes.length, edges.length, auto, orphans, onStats]);
+  // Keyed by content, not identity: the parent re-renders when it gets this, and a fresh array each time would loop forever.
+  const orphanKey = orphans.join(",");
+  useEffect(() => { onStats?.({ notes: notes.length, links: edges.length - auto, auto, orphans }); }, [notes.length, edges.length, auto, orphanKey, onStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Connected notes are laid out by their links; notes nothing connects to yet sit on an outer shell, so they stay in view without crowding the map.
   const layoutKey = `${notes.map((n) => n.id).sort().join(",")}#${edges.map((e) => pairKey(e.a, e.b)).sort().join(",")}`;
@@ -197,7 +199,7 @@ export default function VaultGraph3D({ notes, links, folders = [], focusId, show
         <p className="flex items-center gap-2"><span className="inline-block h-px w-5 bg-[#e8e7e3]" /> linked</p>
         {showAuto && <p className="flex items-center gap-2"><span className="inline-block w-5 border-t border-dashed border-[#8fb8e8]" /> related</p>}
         {orphans.length > 0 && <p className="flex items-center gap-2"><span className="inline-block h-2 w-2 rounded-full bg-[#8a8984]/70" /> not connected yet ({orphans.length})</p>}
-        <p className="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-[#55544f] sm:block">Drag to orbit · scroll to zoom · click a note · double-click to open</p>
+        <p className="hidden font-mono text-[10px] uppercase tracking-[0.1em] text-[#55544f] sm:block pointer-coarse:hidden">Drag to orbit · scroll to zoom · click a note · double-click to open</p>
       </div>
 
       {sel && (

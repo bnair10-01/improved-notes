@@ -470,3 +470,15 @@ html[data-motion="reduce"] .navicon *, html[data-motion="reduce"] .navicon { ani
 a[data-on] .ni-node { animation: ni-node-loop 2.4s ease-in-out infinite; }
 a[data-on] .ni-n2 { animation-delay: 0.4s; }
 a[data-on] .ni-n3 { animation-delay: 0.8s; }
+
+/* ---------- Touch targets on tablets ----------
+   Tablets get the roomier laptop layout, but they're used with fingers and pens, so on any touch screen controls keep a
+   thumb-sized hit area (zero specificity here, so a component's own sizing still wins where it sets one). */
+@media (pointer: coarse) {
+  :where(button, [role="tab"], [role="menuitem"], [role="radio"], select, summary):not([data-graph-node], .react-flow *, [data-no-touch]) { min-height: 40px; }
+  :where(button):not([data-graph-node], .react-flow *, [data-no-touch]) { min-width: 40px; }
+  [data-rail] a { width: 44px; height: 44px; }
+  [data-rail] a[aria-label="Improved Notes home"] { width: 44px; height: 44px; display: grid; place-items: center; margin-bottom: 0.5rem; }
+  [data-rail] a[aria-label="Settings"] { display: grid; place-items: center; width: 44px; height: 44px; }
+  kbd { display: none; }
+}

@@ -4,13 +4,13 @@ import { BrandMark } from "@/components/BrandMark";
 import { useAuth } from "@/lib/auth";
 import { NAV, isActive } from "@/lib/nav";
 import { NavIcon, navKind } from "./NavIcon";
-import { studyOverviewQuery } from "@/lib/study";
+import { studyDueQuery } from "@/lib/study";
 
 /** The narrow icon rail on laptops and tablets: the mark, the sections, and who you are. */
 export function Rail({ initials, avatarUrl }: { initials: string; avatarUrl: string | null }) {
   const { user } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { data: study } = useQuery({ ...studyOverviewQuery, enabled: !!user });
+  const { data: study } = useQuery({ ...studyDueQuery, enabled: !!user });
   const due = study?.dueTotal ?? 0;
   return (
     <nav aria-label="Sections" data-rail className="fixed inset-y-0 left-0 z-40 hidden w-[52px] flex-col items-center gap-1.5 border-r bg-background py-3 md:flex" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>

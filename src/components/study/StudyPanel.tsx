@@ -45,7 +45,7 @@ function Flashcards({ noteId, cards }: { noteId: string; cards: FCard[] }) {
   // Weakest cards first, so the ones you're shaky on get the most attention.
   const queue = useMemo(() => [...(all ? cards : cards.filter((c) => isDue(c.due_at)))].sort((a, b) => a.ease - b.ease), [cards, all]);
   const card = queue[0];
-  const reload = () => qc.invalidateQueries({ queryKey: ["study", noteId] });
+  const reload = () => Promise.all([qc.invalidateQueries({ queryKey: ["study", noteId] }), qc.invalidateQueries({ queryKey: ["study-due"] }), qc.invalidateQueries({ queryKey: ["study-overview"] })]);
 
   async function grade(g: Grade) {
     if (!card) return;

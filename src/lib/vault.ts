@@ -5,6 +5,7 @@ import {
   collection,
   deleteDoc,
   getDocs,
+  getDocsFromCache,
   increment,
   limit,
   onSnapshot,
@@ -56,7 +57,19 @@ export async function loadVault(): Promise<Vault> {
   const [n, f, l] = await Promise.all([getDocs(userCol("notes")), getDocs(userCol("folders")), getDocs(userCol("links"))]);
   return build(n, f, l);
 }
-export const vaultQuery = queryOptions({ queryKey: ["vault"], queryFn: loadVault });
+/**
+ * Open fast: read the copy already stored on this device first (the live listeners then bring it up to date), and only go to the
+ * server when there's no local copy yet, as on a first sign-in on a new device. Signing back in no longer waits on the network.
+ */
+async function loadVaultFast(): Promise<Vault> {
+  if (!auth.currentUser) return empty;
+  try {
+    const [n, f, l] = await Promise.all([getDocsFromCache(userCol("notes")), getDocsFromCache(userCol("folders")), getDocsFromCache(userCol("links"))]);
+    if (!n.empty || !f.empty || !l.empty) return build(n, f, l);
+  } catch { /* no local copy yet */ }
+  return loadVault();
+}
+export const vaultQuery = queryOptions({ queryKey: ["vault"], queryFn: loadVaultFast });
 
 /**
  * The vault, kept live: Firestore snapshot listeners push every change (from this device or

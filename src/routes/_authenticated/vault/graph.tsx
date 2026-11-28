@@ -1,5 +1,5 @@
 import { ClientOnly, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Check, Loader2, Search, SlidersHorizontal, Sparkles, Unlink, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -45,15 +45,16 @@ function GraphPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [lonelyOpen, setLonelyOpen] = useState(false);
   const [pick, setPick] = useState<{ id: string; n: number } | null>(null);
+  // Memoised so the graph isn't handed a brand-new list on every render (that would recompute every connection each time).
+  const live = useMemo(() => (vault?.notes ?? []).filter((n) => !n.deleted_at), [vault]);
+  const shown = useMemo(() => live.filter((n) => kinds.includes(n.kind) && (!tag || n.tags.includes(tag)) && (!folder || n.folder_id === folder)), [live, kinds, tag, folder]);
+  const q = query.trim().toLowerCase();
+  const matches = useMemo(() => (q ? new Set(shown.filter((n) => n.title.toLowerCase().includes(q)).map((n) => n.id)) : undefined), [shown, q]);
   if (!vault) return null;
 
-  const live = vault.notes.filter((n) => !n.deleted_at);
   const tags = [...new Set(live.flatMap((n) => n.tags))].sort();
-  const shown = live.filter((n) => kinds.includes(n.kind) && (!tag || n.tags.includes(tag)) && (!folder || n.folder_id === folder));
   const title = (id: string) => live.find((n) => n.id === id)?.title ?? "?";
   const sel = "h-8 rounded-md border bg-background px-2 text-sm";
-  const q = query.trim().toLowerCase();
-  const matches = q ? new Set(shown.filter((n) => n.title.toLowerCase().includes(q)).map((n) => n.id)) : undefined;
 
   async function runSuggest() {
     setBusy(true);

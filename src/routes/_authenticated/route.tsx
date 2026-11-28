@@ -1,6 +1,10 @@
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { auth } from "@/lib/firebase";
 import { authSettled, rememberNext, useAuth } from "@/lib/auth";
+import { Capacitor } from "@capacitor/core";
+
+// In the phone apps the banner would sit under the notch; the account menu and Settings carry the same prompt.
+const NATIVE = Capacitor.isNativePlatform();
 
 // Signed-in area. Guests (anonymous accounts) get the same notes, study and settings as anyone:
 // their data lives under their own guest id and moves to a real account when they sign in.
@@ -16,7 +20,7 @@ function AuthenticatedLayout() {
   const { user } = useAuth();
   return (
     <>
-      {user?.isAnonymous && (
+      {user?.isAnonymous && !NATIVE && (
         <div role="status" className="border-b border-border/70 bg-secondary/60 px-4 py-2 text-center text-xs text-muted-foreground">
           You're using a guest account. Your notes stay in this browser until you{" "}
           <Link to="/auth" search={{ redirect: "/vault" }} onClick={() => rememberNext("/vault")} className="font-medium text-primary underline underline-offset-2">sign in</Link>

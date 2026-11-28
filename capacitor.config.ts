@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "Improved Notes",
   webDir: "dist",
   backgroundColor: "#050505",
-  ios: { contentInset: "always", backgroundColor: "#050505" },
+  ios: { contentInset: "never", backgroundColor: "#050505" },
   android: { backgroundColor: "#050505" },
 };
 

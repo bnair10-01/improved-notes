@@ -11,18 +11,20 @@ import { generateModelSpec } from '@/lib/ai/tasks';
 import { generateReferenceImage, type ReferenceImage } from '@/lib/ai/illustrate';
 import { validateSpec, type Spec, modelConcept } from '@/lib/model3d';
 import { Button } from '@/components/ui/button';
+import { Working } from '@/components/fun/Doodle';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export type NewModelDialogProps = { open: boolean; onOpenChange: (open: boolean) => void; sourceNote?: { id: string; title: string; markdown: string; folderId?: string | null } };
 export function NewModelDialog({ open, onOpenChange, sourceNote }: NewModelDialogProps) {
   const [concept, setConcept] = useState(''), [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
+  const [stage, setStage] = useState<'picture' | 'model' | 'saving' | null>(null), [preview, setPreview] = useState<string | null>(null);
   const lock = useRef(false), qc = useQueryClient(), navigate = useNavigate();
   async function run(work: () => Promise<void>) {
     if (lock.current) return;
-    lock.current = true; setBusy(true); setMessage('');
+    lock.current = true; setBusy(true); setMessage(''); setPreview(null);
     try { await work(); } catch (e) { setMessage(e instanceof Error ? e.message : 'Something went wrong. Please try again.'); }
-    finally { lock.current = false; setBusy(false); }
+    finally { lock.current = false; setBusy(false); setStage(null); }
   }
   async function create(spec: Spec | null, upload?: File, picture?: ReferenceImage | null) {
     const user = await ensureSignedIn();
@@ -55,11 +57,13 @@ export function NewModelDialog({ open, onOpenChange, sourceNote }: NewModelDialo
         const what = sourceNote ? modelConcept(sourceNote.title, concept) : concept;
         const notes = sourceNote ? sourceNote.markdown.slice(0, 30000) : undefined;
         // First a clean picture of the whole (Nano Banana), then the 3D model built to match it. No picture? The model still gets built.
-        setMessage('Drawing a reference picture…');
+        setStage('picture');
         const picture = await generateReferenceImage(what, notes).catch(() => null);
-        setMessage(picture ? 'Building the 3D model to match…' : 'Building the 3D model…');
+        if (picture) setPreview(`data:${picture.mime};base64,${picture.base64}`);
+        setStage('model');
         const response = await generateModelSpec({ concept: what, ...(notes ? { context: notes } : {}), ...(picture ? { reference: picture } : {}) });
         if (!response.ok) throw new Error(response.error);
+        setStage('saving');
         await create(validateSpec(response.spec), undefined, picture);
       })}>{busy ? 'Creating…' : sourceNote ? 'Create 3D model' : 'Create schematic'}</Button></TabsContent>
       <TabsContent value="upload" className="space-y-3"><label className="block text-sm">Self-contained GLB file (maximum 25 MB)<input className="mt-2 block w-full text-sm" type="file" accept=".glb,model/gltf-binary" onChange={e => setFile(e.target.files?.[0] ?? null)} /></label><p className="text-xs text-muted-foreground">Meshes become selectable parts. Single-mesh files cannot be exploded.</p><Button disabled={busy || !file} onClick={() => void run(async () => {
@@ -69,6 +73,13 @@ export function NewModelDialog({ open, onOpenChange, sourceNote }: NewModelDialo
         if (header.getUint32(0, true) !== 0x46546c67 || header.getUint32(4, true) !== 2 || header.getUint32(8, true) !== file.size) throw new Error('This is not a valid GLB 2.0 file.');
         await create(null, file);
       })}>{busy ? 'Uploading…' : 'Upload model'}</Button></TabsContent>
-    </Tabs>{message && <p role="status" className="text-sm">{message}</p>}
+    </Tabs>
+    {busy && stage && <div className="space-y-3">
+      {preview && <img src={preview} alt="Reference picture being used for the model" className="enter-pop mx-auto max-h-48 rounded-lg border bg-white object-contain" />}
+      {stage === 'picture' && <Working kind="sketch" quips="model3d" steps={['Sketching a reference picture…', 'Picking the parts worth showing…']} />}
+      {stage === 'model' && <Working kind="blocks" quips="model3d" steps={['Reading the picture and your note…', 'Placing the outer shell…', 'Fitting the parts inside…', 'Spacing them so nothing overlaps…']} />}
+      {stage === 'saving' && <Working kind="blocks" steps={['Saving your model…']} />}
+    </div>}
+    {message && <p role="status" className="text-sm">{message}</p>}
   </DialogContent></Dialog>;
 }

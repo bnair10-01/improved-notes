@@ -21,15 +21,15 @@ export const THEMES: Record<Mode, { id: string; name: string; swatch: [string, s
 };
 export const DEFAULT_THEME: Record<Mode, string> = { light: "mono", dark: "noir" };
 
-/** Runs before paint (inline in <head>) so the saved theme shows without a flash. */
-export const THEME_INIT_SCRIPT = `(function(){try{var m=localStorage.getItem('theme-mode');if(m!=='light'&&m!=='dark'){m=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}var t=localStorage.getItem('theme-'+m)||(m==='dark'?'noir':'mono');var d=document.documentElement;d.classList.toggle('dark',m==='dark');d.setAttribute('data-theme',t)}catch(e){}})();`;
+/** Runs before paint (inline in <head>) so the theme shows without a flash. Light or dark always comes from the device; only the colour theme within it is chosen. */
+export const THEME_INIT_SCRIPT = `(function(){try{var m=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var t=localStorage.getItem('theme-'+m)||(m==='dark'?'noir':'mono');var d=document.documentElement;d.classList.toggle('dark',m==='dark');d.setAttribute('data-theme',t)}catch(e){}})();`;
 
 export function applyTheme(mode: Mode, theme: string) {
   const d = document.documentElement;
   d.classList.toggle("dark", mode === "dark");
   d.setAttribute("data-theme", theme);
-  localStorage.setItem("theme-mode", mode);
   localStorage.setItem(`theme-${mode}`, theme);
+  window.dispatchEvent(new Event("theme-change"));
 }
 
 export function readTheme(): { mode: Mode; theme: string } {
@@ -42,21 +42,24 @@ export function savedThemeFor(mode: Mode) {
   return localStorage.getItem(`theme-${mode}`) ?? DEFAULT_THEME[mode];
 }
 
-type Origin = { x: number; y: number };
 type ViewTransitionDoc = Document & { startViewTransition?: (cb: () => void) => { finished: Promise<unknown> } };
 
-/**
- * Change the look with a little theatre: switching light and dark washes the new colours out from the switch like a
- * ripple, and choosing another theme fades. `update` runs inside the change so any on-screen state lands in the same frame.
- * Under Reduce motion, or where the browser can't, it simply changes.
- */
-export function transitionTheme(mode: Mode, theme: string, from?: Origin, update?: () => void) {
+/** Light or dark is whatever the device says. There is no manual override. */
+export const systemMode = (): Mode => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
+/** Apply a theme with a soft cross-fade. Under Reduce motion, or where the browser can't, it simply changes. */
+export function transitionTheme(mode: Mode, theme: string) {
   const d = document.documentElement, doc = document as ViewTransitionDoc;
-  const apply = () => { applyTheme(mode, theme); update?.(); };
+  const apply = () => applyTheme(mode, theme);
   if (!doc.startViewTransition || d.getAttribute("data-motion") === "reduce") { apply(); return; }
-  const ripple = mode !== readTheme().mode;
-  if (ripple && from) { d.style.setProperty("--tx", `${from.x}px`); d.style.setProperty("--ty", `${from.y}px`); }
-  d.setAttribute("data-theming", ripple ? "ripple" : "fade");
-  const t = doc.startViewTransition(apply);
-  void t.finished.finally(() => d.removeAttribute("data-theming"));
+  d.setAttribute("data-theming", "fade");
+  void doc.startViewTransition(apply).finished.finally(() => d.removeAttribute("data-theming"));
+}
+
+/** Follow the device live: when it flips between light and dark (sunset, a Control Centre toggle), so does the app. */
+export function startSystemThemeSync() {
+  const mq = matchMedia("(prefers-color-scheme: dark)");
+  const sync = () => { const mode = systemMode(); if (readTheme().mode !== mode) transitionTheme(mode, savedThemeFor(mode)); };
+  mq.addEventListener("change", sync);
+  sync();
 }

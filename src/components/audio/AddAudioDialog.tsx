@@ -1,3 +1,4 @@
+import { Working } from "@/components/fun/Doodle";
 import { takeCaptureTopic } from "@/lib/capture-context";
 import { dialogFile } from "@/lib/dialogs";
 import { useEffect, useRef, useState } from "react";
@@ -137,6 +138,7 @@ export function AddAudioDialog({ open, onOpenChange }: { open: boolean; onOpenCh
     </Tabs>
     {file && <p className="break-all text-sm">{file.name} · {formatTime(duration)}</p>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    {busy && <Working kind="wave" quips="audio" steps={["Preparing your audio…", "Getting it ready to listen…", "Saving it to your notes…"]} />}
     <Button disabled={!file || busy || starting || state !== "idle"} onClick={() => void save()}>{busy ? "Preparing audio…" : "Save audio note"}</Button>
   </DialogContent></Dialog>;
 }

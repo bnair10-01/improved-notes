@@ -8,6 +8,7 @@ import { importFromUrl, type UrlImport } from "@/lib/ai/tasks";
 import { sourceLink } from "@/lib/video";
 import { forceMode, homeIntent, toNote, type HomeIntent, type HomeMode } from "@/lib/home-intent";
 import { ResearchPanel } from "./ResearchPanel";
+import { Working } from "@/components/fun/Doodle";
 import { rankNotes } from "@/lib/retrieve";
 import { createNote, openTarget, useRefreshVault, type VFolder, type VNote } from "@/lib/vault";
 
@@ -143,6 +144,8 @@ export function HomeComposer({ notes, folders, autoFocus }: { notes: VNote[]; fo
           ))}
         </div>
       )}
+
+      {busy === "link" && <div className="enter-pop mt-3 rounded-xl border bg-card/60 p-3"><Working kind="globe" quips="link" steps={["Opening the link…", "Reading what is on it…", "Dividing it into ideas…"]} /></div>}
 
       {researching && <ResearchPanel subject={researching} onClose={() => setResearching(null)} />}
 

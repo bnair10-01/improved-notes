@@ -25,6 +25,10 @@ export type RunOptions = {
   hasImages?: boolean;
   /** Extra model tools, such as reading a web page from its URL. */
   tools?: Tool[];
+  /** Use this cloud model instead of the one the routing policy picks. */
+  model?: string;
+  /** Let the model reason before it answers (slower, better for layout and logic). */
+  think?: boolean;
 };
 
 export class AiFailure extends Error {
@@ -81,13 +85,13 @@ export async function runModel(opts: RunOptions & { forceCloud?: boolean }): Pro
   const r = route(opts.task, chars, { hasImages: !!opts.hasImages, forceCloud: !!opts.forceCloud });
   // Simple tasks don't need the model to "think" first (it adds seconds). Hard ones (photos, drawings, 3D) keep it.
   // (3D models are long structured answers; with thinking on, the model sometimes returned a single part.)
-  const thinks = opts.task === "transcribe" || opts.task === "diagrams" || !!opts.hasImages;
+  const thinks = opts.think ?? (opts.task === "transcribe" || opts.task === "diagrams" || !!opts.hasImages);
   const model = getGenerativeModel(ai(), {
     mode: r.mode,
     // Tell the on-device model the JSON shape too, otherwise it answers in free text.
     ...(opts.schema ? { onDeviceParams: { promptOptions: { responseConstraint: opts.schema } } } : {}),
     inCloudParams: {
-      model: r.model,
+      model: opts.model ?? r.model,
       ...(opts.tools ? { tools: opts.tools } : {}),
       generationConfig: {
         ...(thinks ? {} : { thinkingConfig: { thinkingBudget: 0 } }),

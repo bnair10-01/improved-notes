@@ -350,24 +350,11 @@ html[data-motion="reduce"] .launch-splash { display: none; }
 .flip-in { animation: flip-in 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards; transform-origin: top center; }
 html[data-motion="reduce"] .pop, html[data-motion="reduce"] .shake, html[data-motion="reduce"] .flip-in { animation: none !important; }
 
-/* ---------- Light / dark switch ---------- (uses the theme's own colours, so it always matches) */
-.theme-track { position: relative; display: block; width: 46px; height: 26px; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); background: var(--secondary); transition: background-color 400ms ease, border-color 400ms ease; }
-.theme-thumb { position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--foreground); color: var(--background); transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 400ms ease; }
-[aria-checked="true"] .theme-thumb { transform: translateX(20px); }
-.theme-thumb svg { grid-area: 1 / 1; width: 13px; height: 13px; transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease; }
-.theme-moon { opacity: 0; transform: rotate(-120deg) scale(0.3); }
-[aria-checked="true"] .theme-sun { opacity: 0; transform: rotate(120deg) scale(0.3); }
-[aria-checked="true"] .theme-moon { opacity: 1; transform: none; }
-/* The new colours ripple out from the switch (see transitionTheme in theme.ts). The header, rail and tab bar join the ripple. */
+/* Changing colour theme cross-fades the page (see transitionTheme in theme.ts). The header, rail and tab bar join in. */
 html[data-theming] header.sticky, html[data-theming] [data-rail], html[data-theming] [data-tabbar] { view-transition-name: none; }
-html[data-theming]::view-transition-old(root), html[data-theming]::view-transition-new(root) { mix-blend-mode: normal; }
-html[data-theming="ripple"]::view-transition-old(root) { animation: none; }
-html[data-theming="ripple"]::view-transition-new(root) { animation: theme-ripple 650ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-html[data-theming="fade"]::view-transition-old(root) { animation: none; }
-html[data-theming="fade"]::view-transition-new(root) { animation: fade-in 320ms ease both; }
-@keyframes theme-ripple { from { clip-path: circle(0 at var(--tx, 50%) var(--ty, 0)); } to { clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 0)); } }
+html[data-theming]::view-transition-old(root) { animation: none; }
+html[data-theming]::view-transition-new(root) { animation: fade-in 320ms ease both; mix-blend-mode: normal; }
 @keyframes fade-in { from { opacity: 0; } }
-html[data-motion="reduce"] .theme-track, html[data-motion="reduce"] .theme-thumb, html[data-motion="reduce"] .theme-thumb svg { transition: none; }
 
 /* A container whose direct children ease in one after another when the page opens. */
 .stagger > * { animation: enter 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
@@ -381,3 +368,50 @@ html[data-motion="reduce"] .theme-track, html[data-motion="reduce"] .theme-thumb
 html[data-motion="reduce"] .stagger > * { animation: none !important; }
 /* Fields glow in rather than snapping. */
 input, textarea, select { transition: border-color 160ms ease, box-shadow 200ms ease, background-color 160ms ease; }
+
+/* ---------- Doodles (src/components/fun/Doodle.tsx): small pictures that move to match the job ---------- */
+.doodle * { transform-box: fill-box; transform-origin: center; }
+@keyframes d-sweep { 0%, 100% { transform: translate(-3px, 1px); } 50% { transform: translate(12px, 7px); } }
+@keyframes d-fade { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.9; } }
+@keyframes d-page { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
+@keyframes d-pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.25); opacity: 1; } }
+@keyframes d-progress { from { stroke-dasharray: 0 40; } to { stroke-dasharray: 40 0; } }
+@keyframes d-draw { 0% { stroke-dasharray: 80; stroke-dashoffset: 80; } 60%, 100% { stroke-dasharray: 80; stroke-dashoffset: 0; } }
+@keyframes d-pencil { 0% { transform: translate(-10px, 6px); } 60%, 100% { transform: translate(6px, -2px); } }
+@keyframes d-brush { 0%, 100% { transform: rotate(-10deg) translate(0, 0); } 50% { transform: rotate(8deg) translate(-4px, 4px); } }
+@keyframes d-drop { 0% { transform: translateY(-22px); opacity: 0; } 25%, 85% { transform: none; opacity: 1; } 100% { transform: none; opacity: 0; } }
+@keyframes d-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.1); } }
+@keyframes d-bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-4px); } }
+@keyframes d-tick { 0%, 40% { stroke-dasharray: 20; stroke-dashoffset: 20; } 70%, 100% { stroke-dasharray: 20; stroke-dashoffset: 0; } }
+@keyframes d-twinkle { 0%, 100% { transform: scale(0.6) rotate(0); opacity: 0.35; } 50% { transform: scale(1.1) rotate(20deg); opacity: 1; } }
+@keyframes d-scan { 0% { transform: translateY(-16px); opacity: 0; } 15%, 85% { opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
+@keyframes d-bar { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1.1); } }
+@keyframes d-slide { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(8px); } }
+@keyframes d-spin { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
+@keyframes d-snip-a { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-14deg); } }
+@keyframes d-snip-b { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(14deg); } }
+.d-sweep { animation: d-sweep 2.2s ease-in-out infinite; }
+.d-fade { animation: d-fade 2.2s ease-in-out infinite; }
+.d-page { animation: d-page 1.8s ease-in-out infinite; transform-origin: left center; }
+.doodle .d-page { transform-origin: 0 50%; }
+.d-pulse { animation: d-pulse 1.4s ease-in-out infinite; }
+.d-progress { animation: d-progress 2.4s linear infinite; stroke-width: 3; }
+.d-draw { animation: d-draw 2.4s ease-in-out infinite; }
+.d-pencil { animation: d-pencil 2.4s ease-in-out infinite; }
+.d-brush { animation: d-brush 1.6s ease-in-out infinite; }
+.d-drop { animation: d-drop 2.8s cubic-bezier(0.34, 1.4, 0.64, 1) infinite; }
+.d-drop.d-1 { animation-delay: 0ms; } .d-drop.d-2 { animation-delay: 350ms; } .d-drop.d-3 { animation-delay: 700ms; } .d-drop.d-4 { animation-delay: 1050ms; }
+.d-flip { animation: d-flip 1.6s ease-in-out infinite; }
+.d-bounce { animation: d-bounce 1.2s ease-in-out infinite; }
+.d-tick { animation: d-tick 2s ease-in-out infinite; }
+.d-twinkle { animation: d-twinkle 1.6s ease-in-out infinite; }
+.d-late { animation-delay: 400ms; } .d-later { animation-delay: 800ms; }
+.d-scan { animation: d-scan 1.8s ease-in-out infinite; }
+.d-bar { animation: d-bar 0.9s ease-in-out infinite; transform-origin: center; }
+.d-slide { animation: d-slide 1.8s ease-in-out infinite; }
+.d-spin { animation: d-spin 2.4s ease-in-out infinite; }
+.d-snip-a { animation: d-snip-a 0.8s ease-in-out infinite; transform-origin: 12px 12px; }
+.d-snip-b { animation: d-snip-b 0.8s ease-in-out infinite; transform-origin: 12px 36px; }
+.working-bar { height: 3px; border-radius: 999px; background: linear-gradient(90deg, transparent, var(--foreground), transparent) no-repeat, var(--border); background-size: 40% 100%, 100% 100%; animation: working-bar 1.4s ease-in-out infinite; opacity: 0.8; }
+@keyframes working-bar { from { background-position: -40% 0, 0 0; } to { background-position: 140% 0, 0 0; } }
+html[data-motion="reduce"] .doodle *, html[data-motion="reduce"] .working-bar { animation: none !important; }

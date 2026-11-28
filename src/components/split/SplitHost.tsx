@@ -1,3 +1,4 @@
+import { Working } from "@/components/fun/Doodle";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -19,7 +20,7 @@ export function SplitHost() {
       const id = (e as CustomEvent<string>).detail;
       const note = latest.current?.notes.find((n) => n.id === id);
       if (!note) { toast.error("Couldn't find that note."); return; }
-      const t = toast.loading("Reading your note to find its separate ideas…");
+      const t = toast.custom(() => <div className="w-[min(92vw,380px)] rounded-xl border bg-card p-3 shadow-lg"><Working kind="scissors" quips="split" steps={["Reading your note…", "Finding where one idea ends…", "Cutting it into separate notes…"]} /></div>, { duration: Infinity });
       try {
         const r = await sectioniseNote({ title: note.title, markdown: note.markdown });
         toast.dismiss(t);

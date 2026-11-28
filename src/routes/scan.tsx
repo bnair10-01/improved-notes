@@ -1,3 +1,4 @@
+import { Working } from "@/components/fun/Doodle";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Camera, FileText, ImagePlus, Loader2, Network, RotateCw, Sparkles, X } from "lucide-react";
@@ -141,6 +142,7 @@ function ScanPage() {
               ))}
             </ol>
             <div className="fixed inset-x-0 bottom-[var(--tabbar)] z-20 border-t bg-background/85 p-3 backdrop-blur-md sm:sticky sm:bottom-4 sm:mt-8 sm:flex sm:justify-center sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+              {busy && <div className="mb-3 rounded-xl border bg-card p-3 shadow-lg sm:absolute sm:bottom-full sm:mb-3 sm:w-96"><Working kind="scan" quips="scan" steps={["Looking at your pages…", "Reading the handwriting…", "Marking anything unclear…", "Tidying it into notes…"]} /></div>}
               <Button size="lg" onClick={run} disabled={busy} className="w-full shadow-lg sm:w-auto">
                 {busy ? <><Loader2 className="animate-spin" /> Transcribing…</> : <><Sparkles /> Transcribe</>}
               </Button>

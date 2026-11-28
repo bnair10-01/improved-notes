@@ -1,9 +1,10 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { LogIn, LogOut, Plus, Search } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useAccountActions } from "./AccountActions";
 import { ThemePicker } from "./ThemePicker";
 import { A11yPanel } from "./shell/A11yPanel";
 import { HelpDialog } from "./shell/HelpDialog";
@@ -16,13 +17,11 @@ import { Rail } from "./shell/Rail";
 import { CommandPalette, openPalette } from "./shell/CommandPalette";
 import { SplitHost } from "./split/SplitHost";
 import { AddPopover } from "./shell/AddMenu";
-import { signOut as signOutUser, useAuth } from "@/lib/auth";
-import { resetSession } from "@/lib/session";
 
 export function AppHeader() {
-  const { user } = useAuth();
+  const { user, guest, signIn, askSignOut, dialog } = useAccountActions();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const [menu, setMenu] = useState(false);
   const pathname = useRouterState({ select: (st) => st.location.pathname });
   const section = sectionName(pathname);
   // Home's own box already searches and creates, so the top bar stays quiet there.
@@ -36,14 +35,7 @@ export function AppHeader() {
     .slice(0, 2)
     .map((w) => w[0]!.toUpperCase())
     .join("");
-
-  async function signOut() {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    resetSession();
-    await signOutUser();
-    navigate({ to: "/", replace: true });
-  }
+  const menuRow = "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-secondary active:bg-secondary";
 
   return (
     <>
@@ -70,8 +62,8 @@ export function AppHeader() {
           <A11yPanel />
           <ThemePicker />
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Popover open={menu} onOpenChange={setMenu}>
+              <PopoverTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 px-1.5" aria-label="Account">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="" referrerPolicy="no-referrer" className="h-7 w-7 rounded-full object-cover ring-1 ring-border" />
@@ -80,20 +72,21 @@ export function AppHeader() {
                   )}
                   <span data-header-name className="hidden max-w-28 truncate text-sm font-medium sm:block">{displayName}</span>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <p className="truncate px-2 py-1.5 text-sm font-medium">{displayName}</p>
-                <p className="truncate px-2 pb-1.5 text-xs text-muted-foreground">{user.email ?? (user.isAnonymous ? "Guest — sign in to sync across devices" : "Signed in")}</p>
-                <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}><Settings /> Settings</DropdownMenuItem>
-                <DropdownMenuItem onClick={signOut}><LogOut /> Sign out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-1.5" data-account-menu>
+                <p className="truncate px-3 pt-1.5 text-sm font-medium">{displayName}</p>
+                <p className="truncate px-3 pb-1.5 text-xs text-muted-foreground">{user.email ?? (user.isAnonymous ? "Guest. Sign in to sync across devices" : "Signed in")}</p>
+                <button type="button" className={menuRow} onClick={() => { setMenu(false); navigate({ to: "/settings" }); }}><Settings className="h-4 w-4" /> Settings</button>
+                {guest && <button type="button" className={menuRow} onClick={() => { setMenu(false); signIn(); }}><LogIn className="h-4 w-4" /> Sign in to keep your notes</button>}
+                <button type="button" className={menuRow} onClick={() => { setMenu(false); askSignOut(); }}><LogOut className="h-4 w-4" /> Sign out</button>
+              </PopoverContent>
+            </Popover>
           ) : null}
         </nav>
       </div>
     </header>
     <Rail initials={initials} avatarUrl={avatarUrl} />
-    {user && <><MobileTabBar /><DialogHost /><SplitHost /><CommandPalette /></>}
+    {user && <><MobileTabBar /><DialogHost /><SplitHost /><CommandPalette />{dialog}</>}
     </>
   );
 }

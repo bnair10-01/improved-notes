@@ -49,6 +49,17 @@ function Inner({ value, onChange, onShowSource, onRegenerate, fileBase, sourceNo
   const [edit, setEdit] = useState<{ kind: "rename"; id: string } | { kind: "connection"; from: string; to: string } | null>(null);
   const [draft, setDraft] = useState("");
   const rf = useReactFlow();
+  // Two-finger pinch on the flat map inside the phone apps (the page itself is locked against zoom): WebKit's gesture events drive the flow's zoom.
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    let start = 1;
+    const gStart = (e: Event) => { e.preventDefault(); start = rf.getZoom(); };
+    const gChange = (e: Event) => { e.preventDefault(); void rf.zoomTo(Math.min(2.5, Math.max(0.1, start * ((e as Event & { scale?: number }).scale || 1)))); };
+    el.addEventListener("gesturestart", gStart, { passive: false });
+    el.addEventListener("gesturechange", gChange, { passive: false });
+    return () => { el.removeEventListener("gesturestart", gStart); el.removeEventListener("gesturechange", gChange); };
+  }, [rf]);
   const wrap = useRef<HTMLDivElement>(null);
   const [past, setPast] = useState<MindMap[]>([]);
   const [future, setFuture] = useState<MindMap[]>([]);

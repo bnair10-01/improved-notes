@@ -1,3 +1,4 @@
+import { PinchZoom, ZoomButtons } from "@/components/scene/SceneZoom";
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Html, Lightformer, Line, OrbitControls, Stars } from "@react-three/drei";
@@ -56,6 +57,7 @@ function Scene({ map, visible, selected, neighbours, onSelect, dark }: Props) {
       {dark && <Stars radius={60} depth={30} count={1200} factor={2} fade />}
       <OrbitControls makeDefault enableDamping enablePan autoRotate={!selected} autoRotateSpeed={0.4} minDistance={3} maxDistance={60} />
       <Fly target={target} />
+      <PinchZoom />
 
       {map.edges.filter((e) => pos[e.from] && pos[e.to]).map((e, i) => {
         const crossLink = e.kind === "cross_link";
@@ -104,7 +106,8 @@ function Scene({ map, visible, selected, neighbours, onSelect, dark }: Props) {
 
 export default function Mind3D(props: Props) {
   return (
-    <div className="h-full w-full" data-scene-ready="">
+    <div className="relative h-full w-full" data-scene-ready="" data-scene>
+      <ZoomButtons className="bottom-3 right-3" />
       <Canvas
         camera={{ position: [0, 6, 18], fov: 50 }}
         dpr={[1, 2]}

@@ -12,6 +12,7 @@ import { SHAPES, declutter, fitToView, tidyGenerated, validateSpec, verifyPartQu
 import { AiFailure, imagePart, runJson, runModel, runStream, safe } from "./run";
 import type { JS } from "./schema";
 import { modelInstructions } from "./model-rules";
+import { aiConfig } from "./config";
 import { parseSections, verifySectionQuotes, type ParsedMaterial } from "../split";
 import { numberSources, verifyCitations, type Citation, type Source, type SourceInput } from "./cite";
 
@@ -316,7 +317,7 @@ const MODEL_SCHEMA = wrapObj({ title: str, summary: str, parts: { type: "array",
 
 export type GenerateModelResponse = { ok: true; spec: Spec } | { ok: false; error: string };
 
-export const generateModelSpec = ({ concept, context, reference }: { concept: string; context?: string; reference?: { mime: string; base64: string } }): Promise<GenerateModelResponse> =>
+export const generateModelSpec = ({ concept, context, reference, model }: { concept: string; context?: string; reference?: { mime: string; base64: string }; model?: string }): Promise<GenerateModelResponse> =>
   safe("model3d", async () => {
     if (!concept.trim() || concept.length > 1000) throw new AiFailure("Describe a concept in 1–1000 characters.");
     const notes = context?.slice(0, 30000);
@@ -324,6 +325,7 @@ export const generateModelSpec = ({ concept, context, reference }: { concept: st
       const { data } = await runJson<unknown>({
         task: "model3d", schema: MODEL_SCHEMA, chars: concept.length + (notes?.length ?? 0),
         instructions: modelInstructions(concept, notes, !!reference),
+        model: model ?? aiConfig().model3d_model, think: false,
         ...(reference ? { hasImages: true, parts: [{ inlineData: { mimeType: reference.mime, data: reference.base64 } }] } : {}),
       });
       const spec = tidyGenerated(validateSpec(data));

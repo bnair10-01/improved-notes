@@ -1,3 +1,4 @@
+import { PinchZoom, ZoomButtons } from "@/components/scene/SceneZoom";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
@@ -98,7 +99,8 @@ export default function VaultGraph3D({ notes, links, folders = [], focusId, show
   }
 
   return (
-    <div className="relative h-full w-full bg-[radial-gradient(ellipse_at_50%_42%,#18181a_0%,#0b0b0c_55%,#060607_100%)]" data-graph3d>
+    <div className="relative h-full w-full bg-[radial-gradient(ellipse_at_50%_42%,#18181a_0%,#0b0b0c_55%,#060607_100%)]" data-graph3d data-scene>
+      <ZoomButtons className="bottom-[calc(var(--tabbar,0px)+0.75rem)] right-3" />
       <Boundary fallback={list}>
         <Canvas camera={{ position: [0, radius * 0.35, Math.max(9, radius * 2.5)], fov: 50 }} onPointerMissed={() => setSelected(null)} gl={{ antialias: true }}>
           <ambientLight intensity={0.9} />
@@ -128,7 +130,8 @@ export default function VaultGraph3D({ notes, links, folders = [], focusId, show
             );
           })}
           <LabelProjector anchors={anchors} labels={labelRefs} />
-          <OrbitControls enableDamping autoRotate={!reduced() && !selected} autoRotateSpeed={0.45} minDistance={3} maxDistance={radius * 6} />
+          <PinchZoom />
+          <OrbitControls makeDefault enableDamping autoRotate={!reduced() && !selected} autoRotateSpeed={0.45} minDistance={3} maxDistance={radius * 6} />
         </Canvas>
       </Boundary>
       <div className="pointer-events-none absolute inset-0 overflow-hidden" role="group" aria-label="Notes in the graph">

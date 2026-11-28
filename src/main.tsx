@@ -6,6 +6,7 @@ import { getRouter } from "./router";
 import { startUploadQueue } from "./lib/upload-queue";
 import { uploadPending } from "./lib/notes";
 import { Capacitor } from "@capacitor/core";
+import { startSystemThemeSync } from "./lib/theme";
 import { LaunchSplash, holdForSplash } from "./components/LaunchSplash";
 
 // Inside the phone apps the page is the app, so it never zooms: no pinch or double-tap zoom to get stuck in.
@@ -15,6 +16,7 @@ if (Capacitor.isNativePlatform()) {
   document.querySelector('meta[name="viewport"]')?.setAttribute("content", "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
 }
 
+startSystemThemeSync();
 holdForSplash();
 const router = getRouter();
 startUploadQueue(uploadPending);

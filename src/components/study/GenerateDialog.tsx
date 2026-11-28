@@ -1,3 +1,4 @@
+import { Working } from "@/components/fun/Doodle";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Sparkles } from "lucide-react";
@@ -68,6 +69,7 @@ export function GenerateDialog({ noteIds, focusTopics, trigger, initialKind, ini
           {kind === "slides" && <label className="flex items-center gap-2 text-sm"><input type="checkbox" role="switch" checked={speakerNotes} onChange={(e) => setSpeakerNotes(e.target.checked)} /> Speaker notes</label>}
           {kind === "quiz" && <div><p className="mb-1.5 text-xs text-muted-foreground">Difficulty</p><Chips value={difficulty} onChange={setDifficulty} options={[["easy", "Easy"], ["medium", "Medium"], ["hard", "Hard"]]} /></div>}
           {focusTopics?.length ? <p className="text-xs text-muted-foreground">Focusing on: {focusTopics.join(", ")}</p> : null}
+          {busy && <Working kind={kind === "flashcards" ? "cards" : kind === "quiz" ? "quiz" : kind === "slides" ? "slides" : "sparkle"} quips="study" steps={kind === "flashcards" ? ["Finding what is worth remembering…", "Writing the cards…", "Checking each answer is in your note…"] : kind === "quiz" ? ["Picking what to ask…", "Writing the questions…", "Checking each answer is in your note…"] : kind === "slides" ? ["Choosing the main points…", "Laying out the slides…"] : ["Reading your note…", "Writing the summary…"]} />}
           <Button className="w-full" onClick={run} disabled={busy}>{busy ? <><Loader2 className="animate-spin" /> Generating…</> : "Generate"}</Button>
         </div>
       </DialogContent>

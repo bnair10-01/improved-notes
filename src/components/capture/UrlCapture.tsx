@@ -1,3 +1,4 @@
+import { Working } from "@/components/fun/Doodle";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Sparkles } from "lucide-react";
@@ -36,6 +37,7 @@ export function UrlCapture({ kind, folderId, folderName }: { kind: "website" | "
         <p className="text-xs text-muted-foreground">
           Gemini reads the {label} and divides it into separate notes, one per idea. You'll see them and name the topic before anything is saved. This runs in the cloud, so the link's contents are sent to Google.
         </p>
+        {busy && <Working kind={kind === "youtube" ? "video" : "globe"} quips="link" steps={kind === "youtube" ? ["Opening the video…", "Reading what is said…", "Dividing it into ideas…"] : ["Opening the page…", "Reading it…", "Dividing it into ideas…"]} />}
         <Button type="submit" disabled={busy || !url.trim()}>{busy ? <><Loader2 className="animate-spin" /> Reading…</> : <><Sparkles /> Read and divide</>}</Button>
       </form>
       <SplitPreview open={!!item} onOpenChange={(o) => !o && setItem(null)} material={item ? { ...item, source: sourceLink(item.kind, item.title, item.url), tags: [item.kind] } : null}

@@ -1,3 +1,4 @@
+import { PinchZoom, ZoomButtons } from "@/components/scene/SceneZoom";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Edges, Environment, Html, Lightformer, OrbitControls } from '@react-three/drei';
@@ -194,13 +195,15 @@ export default function ModelViewer({ spec, onSpecChange, glbUrl, focusPartId, c
     {!!path.length && <nav aria-label="Model breadcrumbs" className="flex flex-wrap gap-2 text-sm"><button onClick={() => navigate([])}>{root.title}</button>{crumbs.map((p, i) => <button key={p.id} onClick={() => navigate(path.slice(0, i + 1))}>/ {p.name}</button>)}</nav>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {glbUrl && !loaded && !error && <p role="status">Loading uploaded model…</p>}
-    {webgl ? <CanvasBoundary fallback={fallback}><div className={`relative overflow-hidden rounded-lg bg-[radial-gradient(ellipse_at_50%_40%,#1b1b1e_0%,#0c0c0d_60%,#070708_100%)] ${compact ? 'h-64' : 'h-80 sm:h-[30rem]'}`} aria-label="Interactive 3D model. Use the parts list for keyboard navigation.">
+    {webgl ? <CanvasBoundary fallback={fallback}><div data-scene className={`relative overflow-hidden rounded-lg bg-[radial-gradient(ellipse_at_50%_40%,#1b1b1e_0%,#0c0c0d_60%,#070708_100%)] ${compact ? 'h-64' : 'h-80 sm:h-[30rem]'}`} aria-label="Interactive 3D model. Use the parts list for keyboard navigation.">
+      <ZoomButtons className="bottom-2 right-2" />
       <Canvas camera={{ position: [8, 6, 8], near: 0.01, far: 1000 }} gl={{ preserveDrawingBuffer: true }} onCreated={({ gl }) => { canvas.current = gl.domElement; }} onPointerMissed={() => setSelected(null)}>
         <ambientLight intensity={0.8} /><directionalLight position={[5, 8, 5]} intensity={2} />
         <Environment resolution={128}><Lightformer position={[0, 5, -4]} scale={[10, 10, 1]} intensity={2} /></Environment>
         {(numbers || labels) && <Html><span aria-hidden /></Html>}{/* the first label the 3D library mounts renders empty; this one absorbs that */}
         <group ref={group}>{parts.filter(p => { const k = p.instance_of ?? p.id; return !hidden.has(k) && (!isolate || isolate === k); }).map(p => { const k = p.instance_of ?? p.id; return <Piece n={primaries.findIndex(x => x.id === k) + 1} showLabel={!p.instance_of && (numbers || labels)} hover={k === hoverId} onHover={(on: boolean) => setHoverId(on ? k : null)} hasNote={!!(p.instance_of ? primaries.find(x => x.id === k)?.note : p.note)} key={`${path.join('/')}/${p.id}`} part={p} {...(loaded?.geometry.get(p.id) ? { geometry: loaded.geometry.get(p.id)! } : {})} t={parts.length < 2 ? 0 : explode} selected={k === selectedId} dim={!!selectedId && k !== selectedId} labels={labels} select={() => setSelected(k)} focus={() => framePart(p)} />; })}</group>
         <Camera target={focus} reset={reset} radius={radius} rotate={rotate} />
+        <PinchZoom />
       </Canvas>
       {(hoverId || selectedId) && (() => { const hp = primaries.find(x => x.id === (hoverId ?? selectedId)); return hp ? <div className="pointer-events-none absolute bottom-3 left-3 max-w-[80%] rounded-lg border border-white/10 bg-black/70 px-3 py-1.5 backdrop-blur"><p className="text-sm font-medium text-white">{hp.name}</p>{hp.description && <p className="mt-0.5 line-clamp-2 text-xs text-white/70">{hp.description}</p>}</div> : null; })()}
       </div></CanvasBoundary> : fallback}

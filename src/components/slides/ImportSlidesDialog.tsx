@@ -1,3 +1,4 @@
+import { Working } from "@/components/fun/Doodle";
 import { takeCaptureTopic } from "@/lib/capture-context";
 import { dialogFile } from "@/lib/dialogs";
 import { useState } from "react";
@@ -57,7 +58,7 @@ export function ImportSlidesDialog({ open, onOpenChange }: { open: boolean; onOp
     <label className="grid gap-2 text-sm">Presentation file<input type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" disabled={busy} onChange={(e) => { const next = e.target.files?.[0] ?? null; if (next) { const error = validateDeckFile(next); if (error) { toast.error(error); e.target.value = ""; setFile(null); return; } } setFile(next); }} className="min-w-0 w-full rounded-md border p-2 file:mr-2" /></label>
     {file && <p className="break-all text-sm" data-chosen-file>{file.name}</p>}
     <p className="text-sm text-muted-foreground">Complex layouts may not match — export to PDF for full fidelity. PPTX imports retain text and the first embedded image on each slide.</p>
-    {busy && <div className="space-y-2" role="status" aria-live="polite"><p className="text-sm">{status}</p><progress className="w-full accent-primary" max={100} value={progress} aria-label="Import progress" /></div>}
+    {busy && <div className="space-y-2"><Working kind="slides" quips="slides" steps={[status || "Importing…"]} /><progress className="w-full accent-primary" max={100} value={progress} aria-label="Import progress" /></div>}
     <Button disabled={!file || busy} onClick={run}>{busy ? "Importing…" : "Import slides"}</Button>
   </DialogContent></Dialog>;
 }

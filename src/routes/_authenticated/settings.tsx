@@ -1,4 +1,5 @@
 import { AppearanceControls } from "@/components/ThemePicker";
+import { AccountCard } from "@/components/AccountActions";
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -62,6 +63,7 @@ function SettingsPage() {
     <AppHeader />
     <main className="stagger mx-auto max-w-3xl space-y-6 px-4 py-6">
       <h1 className="font-serif text-3xl font-semibold">Settings</h1>
+      <AccountCard />
       <section aria-labelledby="learning-heading" className="paper-sheet space-y-4 p-4 sm:p-6">
         <h2 id="learning-heading" className="text-lg font-semibold">Learning preferences</h2>
         <p className="text-sm text-muted-foreground">A starting point, not a label. Try any approach that helps you.</p>

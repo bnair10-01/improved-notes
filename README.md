@@ -6,6 +6,18 @@ Built for the #BuildHybridAI 2026 hackathon.
 
 **Live:** https://improvednotes-d0907.web.app (Chrome recommended; on-device AI needs Gemini Nano).
 
+## Download
+
+| Where | Get it |
+|---|---|
+| **Any browser** (phone, tablet, laptop) | https://improvednotes-d0907.web.app (Chrome recommended; on iPhone and iPad, Safari → Share → Add to Home Screen) |
+| **Android phone or tablet** | **[Download ImprovedNotes.apk](https://github.com/bnair10-01/improved-notes/releases/latest/download/ImprovedNotes.apk)** ([release page and checksum](https://github.com/bnair10-01/improved-notes/releases/latest)) |
+| **iPhone and iPad** | TestFlight link coming once Apple finishes the developer-program setup. Until then, use the web app above. |
+
+**Installing the Android app:** open the downloaded file and allow "Install unknown apps" for the app you opened it from (Chrome, Files...). It is one app for phones and tablets. To check the file, compare its SHA-256 with `ImprovedNotes.apk.sha256` on the release page.
+
+**About AI in the Android download:** AI features (summaries, research, pictures) in this build use a shared test credential for Firebase App Check, because a sideloaded app can't prove itself to Google any other way yet. That credential will be revoked after the hackathon; sign-in, notes, sync, the graph and study keep working afterwards, and AI keeps working in the web app. See [RELEASING.md](RELEASING.md).
+
 > **Status:** the web app runs against a live Firebase project. The native apps are shells that use the cloud model only. See [Status](#status).
 
 ## What you can do

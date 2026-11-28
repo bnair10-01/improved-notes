@@ -297,3 +297,29 @@ html[data-contrast="high"] [data-rail], html[data-contrast="high"] header { bord
 /* Phone apps: no double-tap zoom, no focus zoom, no rubber-banding the whole page. */
 html[data-native], html[data-native] body { touch-action: manipulation; overscroll-behavior-y: none; -webkit-text-size-adjust: 100%; }
 html[data-native] input, html[data-native] textarea, html[data-native] select { font-size: 16px; }
+
+/* ---------- Motion ----------
+   Pages cross-fade and rise a little (View Transitions, set up in router.tsx); the header, side rail and tab bar are named so they
+   stay put. Inside a page, .enter eases things in, and --i staggers a list. Everything here is switched off by "Reduce motion". */
+[data-rail] { view-transition-name: app-rail; }
+header.sticky { view-transition-name: app-header; }
+[data-tabbar] { view-transition-name: app-tabbar; }
+::view-transition-old(root) { animation: page-out 140ms ease-in both; }
+::view-transition-new(root) { animation: page-in 260ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both; }
+@keyframes page-out { to { opacity: 0; } }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } }
+@keyframes enter-pop { from { opacity: 0; transform: scale(0.97) translateY(4px); } }
+.enter { animation: enter 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--i, 0) * 55ms); }
+.enter-pop { animation: enter-pop 240ms cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--i, 0) * 35ms); }
+/* A soft press on anything you tap, so a tap always answers back. */
+button:not(:disabled), [role="menuitem"], [data-tabbar] a { transition: transform 120ms ease, background-color 160ms ease, color 160ms ease, opacity 160ms ease; }
+button:not(:disabled):active, [role="menuitem"]:active, [data-tabbar] a:active { transform: scale(0.97); }
+[data-tabbar] a svg { transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+[data-tabbar] a[aria-current="page"] svg { transform: translateY(-2px) scale(1.12); }
+a, summary { transition: color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
+.paper-sheet { transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, background-color 160ms ease; }
+@media (hover: hover) { .paper-sheet:hover { transform: translateY(-2px); } }
+html[data-motion="reduce"] ::view-transition-group(*), html[data-motion="reduce"] ::view-transition-old(*), html[data-motion="reduce"] ::view-transition-new(*) { animation: none !important; }
+html[data-motion="reduce"] .enter, html[data-motion="reduce"] .enter-pop { animation: none !important; }
+html[data-motion="reduce"] button:active, html[data-motion="reduce"] [role="menuitem"]:active, html[data-motion="reduce"] .paper-sheet:hover { transform: none !important; }

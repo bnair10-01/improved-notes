@@ -38,8 +38,8 @@ function VaultHome() {
       </div>
       <div className="mt-3"><Hint id="vault">Link notes by typing [[ in a note. Press Ctrl/⌘ K to jump to any note, or open Graph to see how they connect.</Hint></div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {notes.map((n) => (
-          <Link key={n.id} {...openTarget(n)} className="paper-sheet block min-w-0 p-4 transition-colors hover:ring-2 hover:ring-primary/30">
+        {notes.map((n, i) => (
+          <Link key={n.id} {...openTarget(n)} style={{ "--i": Math.min(i, 12) } as React.CSSProperties} className="enter paper-sheet block min-w-0 p-4 hover:ring-2 hover:ring-primary/30">
             <p className="truncate font-medium">{n.title || "Untitled"}</p>
             <p className="mt-0.5 text-xs capitalize text-muted-foreground">{n.kind} · {new Date(sort === "created" ? n.created_at : n.updated_at).toLocaleDateString()}</p>
             <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{n.markdown.slice(0, 160) || "Empty note"}</p>

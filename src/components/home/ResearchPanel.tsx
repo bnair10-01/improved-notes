@@ -91,7 +91,7 @@ export function ResearchPanel({ subject, onClose }: { subject: string; onClose: 
     : status[k] === "failed" ? <span className="text-xs text-destructive">Couldn't read</span> : null;
 
   return (
-    <section ref={panel} className="mt-3 scroll-mb-28 rounded-2xl border bg-card/60 p-3.5" aria-label={`Researching ${subject}`} data-research>
+    <section ref={panel} className="enter-pop mt-3 scroll-mb-28 rounded-2xl border bg-card/60 p-3.5" aria-label={`Researching ${subject}`} data-research>
       <div className="mb-2.5 flex items-center justify-between">
         <span className={label}>Learning · {titleCase(subject)}</span>
         <button onClick={onClose} disabled={building} aria-label="Close" className="-m-2 p-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><X className="h-4 w-4" /></button>

@@ -114,20 +114,20 @@ function Home({ name }: { name: string }) {
 
   return (
     <div className={`mx-auto flex w-full max-w-[720px] flex-col px-4 sm:px-6 ${fresh ? "min-h-[calc(100dvh-8rem)] justify-center pb-24" : "pb-16 pt-10 sm:pt-20"}`}>
-      <div className={mono}>{today()}</div>
-      <h1 className="mb-6 mt-2 font-serif text-[32px] font-normal leading-tight tracking-[-0.01em] sm:text-[40px]">
+      <div className={`${mono} enter`}>{today()}</div>
+      <h1 className="enter mb-6 mt-2 font-serif text-[32px] font-normal leading-tight tracking-[-0.01em] sm:text-[40px]">
         {greeting()}{name ? `, ${name}` : ""}.
         {fresh && <span className="block text-muted-foreground">What are you learning today?</span>}
       </h1>
 
-      <HomeComposer notes={live} folders={vault.folders} autoFocus />
+      <div className="enter" style={{ "--i": 2 } as React.CSSProperties}><HomeComposer notes={live} folders={vault.folders} autoFocus /></div>
 
       {fresh ? (
         <p className="mt-4 px-1 text-xs leading-relaxed text-muted-foreground">
           Type to start a note. Paste a YouTube or web link and it's divided into notes, one per idea. Press + to scan handwriting, record a lecture or import slides.
         </p>
       ) : (
-        <div className="mt-10 space-y-8">
+        <div className="enter mt-10 space-y-8" style={{ "--i": 4 } as React.CSSProperties}>
           {due > 0 && (
             <Link to="/study" className="flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm hover:bg-secondary" data-home-due>
               <BookOpenCheck className="h-4 w-4 text-muted-foreground" />
@@ -141,8 +141,8 @@ function Home({ name }: { name: string }) {
               <Link to="/vault" className="text-xs text-muted-foreground hover:text-foreground">All notes</Link>
             </div>
             <ul className="divide-y rounded-xl border">
-              {recent.map((n) => (
-                <li key={n.id}>
+              {recent.map((n, i) => (
+                <li key={n.id} className="enter" style={{ "--i": i + 5 } as React.CSSProperties}>
                   <Link {...openTarget(n)} className="flex items-center gap-3 px-3.5 py-2.5 hover:bg-secondary/60">
                     <span className="min-w-0 flex-1 truncate text-sm">{n.title || "Untitled"}</span>
                     {n.pinned && <Pin className="h-3 w-3 shrink-0 fill-current text-muted-foreground" aria-label="Pinned" />}

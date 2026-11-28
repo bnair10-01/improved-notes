@@ -119,7 +119,7 @@ export function NoteVideo({ videos, onAddNote }: { videos: Video[]; onAddNote: (
   };
 
   return (
-    <section className="mt-4 rounded-xl border bg-card/50 p-3" aria-label="Video" data-note-video>
+    <section className="enter-pop mt-4 rounded-xl border bg-card/50 p-3" aria-label="Video" data-note-video>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Watch</span>
         {videos.length > 1

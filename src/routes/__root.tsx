@@ -8,6 +8,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { LaunchGate } from "@/components/LaunchGate";
 
 function NotFoundComponent() {
   return (
@@ -79,6 +80,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <HeadContent />
       <Outlet />
+      <LaunchGate />
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );

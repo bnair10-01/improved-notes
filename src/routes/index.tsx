@@ -23,7 +23,7 @@ function HomePage() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main>{!ready ? null : user ? <Home name={firstName(user.displayName, user.email)} /> : <Welcome />}</main>
+      <main>{!ready ? null : user ? <Home name={firstName(user.displayName, user.email)} /> : IS_NATIVE ? null : <Welcome />}</main>
     </div>
   );
 }
@@ -77,7 +77,7 @@ function Welcome() {
             {busy === "google" ? <Loader2 className="animate-spin" /> : <GoogleMark />} Continue with Google
           </Button>
         )}
-        <Button asChild variant="ghost" size="sm" className="w-full text-muted-foreground"><Link to="/auth" search={{ redirect: "/" }}>Sign in with email</Link></Button>
+        <Link to="/auth" search={{ redirect: "/" }} className="mx-auto block w-fit min-h-9 px-2 py-1.5 text-sm text-foreground underline underline-offset-4">Sign in with email</Link>
         <p className="px-1 text-xs text-muted-foreground">Start without an account and sign in later to keep your notes on every device.</p>
       </div>
     </Column>

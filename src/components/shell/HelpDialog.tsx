@@ -63,7 +63,7 @@ const GUIDE: [string, string[]][] = [
     "Every AI answer cites where it came from, and quotes are checked against your own text.",
   ]],
   ["Appearance and accessibility", [
-    "Light or dark always follows your device's setting and changes with it, so there's no switch to flip. The palette button in the top bar (and Settings → Appearance) picks the colour theme for each mode.",
+    "Light or dark follows your device's setting and changes with it. The sun/moon switch flips it for now with a ripple, and it goes back to the device's setting when you reopen the app or the device changes. The palette button (and Settings → Appearance, which is where a phone picks one) chooses the colour theme for each mode.",
     "The accessibility button sets font (including dyslexia-friendly), text size, line spacing, high contrast, reduced motion and focus mode. Reduce motion also turns off the animations.",
     "Read aloud on any note uses a natural Gemini voice (your device's voice as a backup) and highlights the current sentence.",
     "These settings are saved on each device and apply everywhere.",

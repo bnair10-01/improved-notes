@@ -324,19 +324,25 @@ html[data-motion="reduce"] ::view-transition-group(*), html[data-motion="reduce"
 html[data-motion="reduce"] .enter, html[data-motion="reduce"] .enter-pop { animation: none !important; }
 html[data-motion="reduce"] button:active, html[data-motion="reduce"] [role="menuitem"]:active, html[data-motion="reduce"] .paper-sheet:hover { transform: none !important; }
 
-/* Phone-app launch: the splash, and the start page waiting for it to lift (--hold). */
+/* Phone-app front door (src/components/LaunchGate.tsx): the logo animation, then the sign-in choices on the same screen. */
 html[data-launch] { --hold: 1250ms; }
-.launch-splash { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #050505; pointer-events: none; transition: opacity 450ms ease; }
+.launch-splash { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom); background: var(--background); color: var(--foreground); pointer-events: none; transition: opacity 450ms ease; }
+.launch-splash.launch-gate { pointer-events: auto; }
 .launch-splash.launch-out { opacity: 0; }
-.launch-mark { width: 92px; height: 92px; overflow: visible; filter: drop-shadow(0 10px 30px rgba(245, 243, 238, 0.12)); animation: launch-tile 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.launch-brand { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.launch-mark { width: 92px; height: 92px; overflow: visible; filter: drop-shadow(0 10px 30px color-mix(in oklab, var(--foreground) 14%, transparent)); animation: launch-tile 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.launch-tile { fill: var(--foreground); }
+.launch-line, .launch-dot { fill: var(--background); }
 .launch-line { transform-box: fill-box; transform-origin: top; animation: launch-line 520ms cubic-bezier(0.22, 1, 0.36, 1) 380ms both; }
 .launch-dot { transform-box: fill-box; transform-origin: center; animation: launch-dot 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 720ms both; }
-.launch-name { font-family: var(--font-serif, Georgia, serif); font-size: 22px; letter-spacing: -0.01em; color: #f5f3ee; animation: launch-name 600ms cubic-bezier(0.22, 1, 0.36, 1) 700ms both; }
+.launch-name { font-family: var(--font-serif, Georgia, serif); font-size: 22px; letter-spacing: -0.01em; animation: launch-name 600ms cubic-bezier(0.22, 1, 0.36, 1) 700ms both; }
+.launch-actions { display: grid; grid-template-rows: 0fr; width: min(88vw, 360px); opacity: 0; transition: grid-template-rows 650ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms ease 150ms; }
+.launch-actions > div { min-height: 0; overflow: hidden; }
+.launch-gate .launch-actions { grid-template-rows: 1fr; opacity: 1; }
 @keyframes launch-tile { from { opacity: 0; transform: scale(0.55) rotate(-6deg); } }
 @keyframes launch-line { from { transform: scaleY(0); } }
 @keyframes launch-dot { from { transform: scale(0); } }
 @keyframes launch-name { from { opacity: 0; transform: translateY(10px); letter-spacing: 0.06em; } }
-html[data-motion="reduce"] .launch-splash { display: none; }
 /* The splash is its own layer, so a page transition at startup can't fade it in over the old page. */
 .launch-splash { view-transition-name: launch-splash; }
 ::view-transition-group(launch-splash), ::view-transition-old(launch-splash), ::view-transition-new(launch-splash) { animation: none; }
@@ -350,11 +356,23 @@ html[data-motion="reduce"] .launch-splash { display: none; }
 .flip-in { animation: flip-in 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards; transform-origin: top center; }
 html[data-motion="reduce"] .pop, html[data-motion="reduce"] .shake, html[data-motion="reduce"] .flip-in { animation: none !important; }
 
-/* Changing colour theme cross-fades the page (see transitionTheme in theme.ts). The header, rail and tab bar join in. */
+/* ---------- Light / dark switch ---------- (the theme's own colours, so it always matches) */
+.theme-track { position: relative; display: block; width: 46px; height: 26px; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); background: var(--secondary); transition: background-color 400ms ease, border-color 400ms ease; }
+.theme-thumb { position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--foreground); color: var(--background); transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 400ms ease; }
+[aria-checked="true"] .theme-thumb { transform: translateX(20px); }
+.theme-thumb svg { grid-area: 1 / 1; width: 13px; height: 13px; transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease; }
+.theme-moon { opacity: 0; transform: rotate(-120deg) scale(0.3); }
+[aria-checked="true"] .theme-sun { opacity: 0; transform: rotate(120deg) scale(0.3); }
+[aria-checked="true"] .theme-moon { opacity: 1; transform: none; }
+/* The new colours ripple out from the switch (see transitionTheme in theme.ts); a colour theme change cross-fades. Header, rail and tab bar join in. */
 html[data-theming] header.sticky, html[data-theming] [data-rail], html[data-theming] [data-tabbar] { view-transition-name: none; }
+html[data-theming]::view-transition-old(root), html[data-theming]::view-transition-new(root) { mix-blend-mode: normal; }
 html[data-theming]::view-transition-old(root) { animation: none; }
-html[data-theming]::view-transition-new(root) { animation: fade-in 320ms ease both; mix-blend-mode: normal; }
+html[data-theming="ripple"]::view-transition-new(root) { animation: theme-ripple 650ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+html[data-theming="fade"]::view-transition-new(root) { animation: fade-in 320ms ease both; }
+@keyframes theme-ripple { from { clip-path: circle(0 at var(--tx, 50%) var(--ty, 0)); } to { clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 0)); } }
 @keyframes fade-in { from { opacity: 0; } }
+html[data-motion="reduce"] .theme-track, html[data-motion="reduce"] .theme-thumb, html[data-motion="reduce"] .theme-thumb svg { transition: none; }
 
 /* A container whose direct children ease in one after another when the page opens. */
 .stagger > * { animation: enter 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }

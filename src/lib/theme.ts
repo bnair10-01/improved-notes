@@ -43,20 +43,29 @@ export function savedThemeFor(mode: Mode) {
 }
 
 type ViewTransitionDoc = Document & { startViewTransition?: (cb: () => void) => { finished: Promise<unknown> } };
+type Origin = { x: number; y: number };
 
-/** Light or dark is whatever the device says. There is no manual override. */
+/**
+ * Light or dark comes from the device, always: at launch, and again whenever the device changes. The switch in the top bar only
+ * flips it for now; reopening the app, or the device changing, puts it back to the device's setting.
+ */
 export const systemMode = (): Mode => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 
-/** Apply a theme with a soft cross-fade. Under Reduce motion, or where the browser can't, it simply changes. */
-export function transitionTheme(mode: Mode, theme: string) {
+/**
+ * Apply a look with a little theatre: changing light and dark washes the new colours out from the switch like a ripple, and
+ * choosing another colour theme cross-fades. Under Reduce motion, or where the browser can't, it simply changes.
+ */
+export function transitionTheme(mode: Mode, theme: string, from?: Origin) {
   const d = document.documentElement, doc = document as ViewTransitionDoc;
   const apply = () => applyTheme(mode, theme);
   if (!doc.startViewTransition || d.getAttribute("data-motion") === "reduce") { apply(); return; }
-  d.setAttribute("data-theming", "fade");
+  const ripple = mode !== readTheme().mode;
+  if (ripple && from) { d.style.setProperty("--tx", `${from.x}px`); d.style.setProperty("--ty", `${from.y}px`); }
+  d.setAttribute("data-theming", ripple && from ? "ripple" : "fade");
   void doc.startViewTransition(apply).finished.finally(() => d.removeAttribute("data-theming"));
 }
 
-/** Follow the device live: when it flips between light and dark (sunset, a Control Centre toggle), so does the app. */
+/** Follow the device live: when it flips between light and dark (sunset, a Control Centre toggle), so does the app, overriding the switch. */
 export function startSystemThemeSync() {
   const mq = matchMedia("(prefers-color-scheme: dark)");
   const sync = () => { const mode = systemMode(); if (readTheme().mode !== mode) transitionTheme(mode, savedThemeFor(mode)); };

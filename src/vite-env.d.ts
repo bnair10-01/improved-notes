@@ -11,5 +11,6 @@ interface ImportMetaEnv {
   readonly VITE_USE_EMULATORS?: string;
   readonly VITE_EMULATOR_HOST?: string;
   readonly VITE_NATIVE_SELFTEST?: string;
+  readonly VITE_NATIVE_GOOGLE?: string;
 }
 interface ImportMeta { readonly env: ImportMetaEnv }

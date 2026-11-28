@@ -7,7 +7,7 @@ import { startUploadQueue } from "./lib/upload-queue";
 import { uploadPending } from "./lib/notes";
 import { Capacitor } from "@capacitor/core";
 import { startSystemThemeSync } from "./lib/theme";
-import { LaunchSplash, holdForSplash } from "./components/LaunchSplash";
+import { holdForSplash } from "./components/LaunchGate";
 
 // Inside the phone apps the page is the app, so it never zooms: no pinch or double-tap zoom to get stuck in.
 // (The website keeps normal zoom. Phones still have their own system Zoom for anyone who needs it.)
@@ -30,7 +30,6 @@ declare module "@tanstack/react-router" {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />
-    <LaunchSplash />
   </StrictMode>,
 );
 

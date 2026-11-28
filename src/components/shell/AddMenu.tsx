@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Box, Camera, FileText, Globe, Mic, Paperclip, SquarePen } from "lucide-react";
+import { Image as PictureIcon, Camera, FileText, Globe, Mic, Paperclip, SquarePen } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { setCaptureTopic } from "@/lib/capture-context";
@@ -82,7 +82,7 @@ export function AddItems({ onDone, folderId = null, onBusy }: { onDone?: () => v
       <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 4 } as CSSProperties} onClick={go(() => openDialog("link"))}><Globe className="h-4 w-4 shrink-0" /> Website or YouTube link</button>
       <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 5 } as CSSProperties} onClick={go(() => picker.current?.click())}><Paperclip className="h-4 w-4 shrink-0" /> Upload a file…</button>
       <div className="my-1 border-t" role="separator" />
-      <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 6 } as CSSProperties} onClick={go(() => openDialog("model"))}><Box className="h-4 w-4 shrink-0" /> 3D model of a concept</button>
+      <button role="menuitem" className={`${row} enter-pop`} style={{ "--i": 6 } as CSSProperties} onClick={go(() => openDialog("model"))}><PictureIcon className="h-4 w-4 shrink-0" /> Picture of a concept</button>
       <input ref={picker} type="file" multiple accept={ACCEPT} className="hidden" onChange={(e) => { void bringIn(e.target.files, folderId); e.target.value = ""; }} />
     </div>
   );

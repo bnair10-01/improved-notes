@@ -78,3 +78,28 @@ export const researchSubject = (subject: string) =>
     }
     return { research: result };
   });
+
+const STOP = new Set("about above after again against also always because been before being between both could does doing down during each either even every from further have having here however into itself just keep known later like made make many might more most much must never only other over same should since some such than that their them then there these they this those through under until upon very were what when where which while whose will with within without would your yours the and for are but not you all can had her was one our out has his how its who did get may use used using each".split(" "));
+
+/**
+ * Ideas to look into, taken from the notes themselves (no AI, instant): the headings, bold terms, [[links]] and
+ * capitalised names the writer used, then the words that keep coming up. Skips the title, which is what you started from.
+ */
+export function researchIdeas(text: string, title = "", limit = 6): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>([title.trim().toLowerCase()]);
+  const add = (raw: string) => {
+    const t = raw.replace(/[*_`#>[\]()]/g, " ").replace(/\s+/g, " ").trim().replace(/[.:;,]+$/, "");
+    const k = t.toLowerCase();
+    if (t.length < 4 || t.length > 40 || seen.has(k) || /^\d+$/.test(t) || t.split(" ").every((w) => STOP.has(w.toLowerCase()))) return;
+    seen.add(k); out.push(t);
+  };
+  for (const m of text.matchAll(/^#{1,3}\s+(.+)$/gm)) add(m[1]!);
+  for (const m of text.matchAll(/\*\*([^*\n]{3,40})\*\*/g)) add(m[1]!);
+  for (const m of text.matchAll(/\[\[([^\]\n|]{3,40})(?:\|[^\]\n]*)?\]\]/g)) add(m[1]!);
+  for (const m of text.matchAll(/(?<![.!?]\s)(?<!^)\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,}){1,2})\b/gm)) add(m[1]!);
+  const counts = new Map<string, number>();
+  for (const w of text.toLowerCase().match(/[a-z][a-z-]{4,}/g) ?? []) if (!STOP.has(w)) counts.set(w, (counts.get(w) ?? 0) + 1);
+  for (const [w] of [...counts].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1])) add(w);
+  return out.slice(0, limit);
+}

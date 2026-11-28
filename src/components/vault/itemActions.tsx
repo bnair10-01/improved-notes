@@ -26,7 +26,7 @@ export function useNoteActions() {
   const actions = (n: VNote): MenuAction[] => [
     { label: "Rename", icon: <Pencil className="h-4 w-4" />, onSelect: () => setRenaming(n) },
     { label: n.pinned ? "Unpin" : "Pin", icon: n.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />, onSelect: async () => { await updateNote(n.id, { pinned: !n.pinned }); await refresh(); } },
-    { label: "Research more", icon: <Search className="h-4 w-4" />, onSelect: () => openResearch({ subject: n.title || "", folderId: n.folder_id }) },
+    { label: "Research more", icon: <Search className="h-4 w-4" />, onSelect: () => openResearch({ subject: n.title || "", folderId: n.folder_id, context: n.markdown }) },
     { label: "Delete", icon: <Trash2 className="h-4 w-4" />, danger: true, onSelect: () => trash(n) },
   ];
   const dialogs = (
@@ -51,7 +51,7 @@ export function useTopicActions(opts: { onDeleted?: () => void } = {}) {
   }
   const actions = (f: VFolder): MenuAction[] => [
     { label: "Rename", icon: <Pencil className="h-4 w-4" />, onSelect: () => setRenaming(f) },
-    { label: "Research this topic", icon: <Search className="h-4 w-4" />, onSelect: () => openResearch({ subject: f.name, folderId: f.id }) },
+    { label: "Research this topic", icon: <Search className="h-4 w-4" />, onSelect: () => openResearch({ subject: f.name, folderId: f.id, context: (vault?.notes ?? []).filter((x) => !x.deleted_at && x.folder_id === f.id).map((x) => `${x.title}\n${x.markdown.slice(0, 4000)}`).join("\n\n") }) },
     { label: "Delete topic", icon: <Trash2 className="h-4 w-4" />, danger: true, onSelect: () => setDeleting(f) },
   ];
   const n = deleting ? count(deleting) : 0;

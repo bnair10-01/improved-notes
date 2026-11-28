@@ -2,7 +2,7 @@ import { ClientOnly, createFileRoute, Link, useNavigate } from "@tanstack/react-
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, ChevronLeft, ChevronRight, Copy, Download, FileText, Image as ImageIcon, Loader2, ImagePlus, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
+import { Check, Search, ChevronLeft, ChevronRight, Copy, Download, FileText, Image as ImageIcon, Loader2, ImagePlus, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportPdf } from "@/lib/pdf";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { getDoc } from "firebase/firestore";
 import { userDoc } from "@/lib/db";
 import { prepareImage, urlToDataUrl } from "@/lib/image";
 import { LocalGraph } from "@/components/vault/LocalGraph";
+import { openResearch } from "@/lib/dialogs";
 import { saveDiagrams, saveMindmap, saveNote, signedUrls } from "@/lib/notes";
 import { extractDiagrams } from "@/lib/ai/tasks";
 import type { Diagram } from "@/lib/diagram-types";
@@ -343,6 +344,7 @@ function ReviewPage() {
         <div className="mb-3 flex items-center gap-2">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Title" className="h-auto min-w-0 flex-1 border-transparent bg-transparent px-0 font-serif text-xl font-semibold shadow-none focus-visible:border-input focus-visible:px-2 sm:text-2xl md:text-2xl" />
           <InferenceBadge className="hidden sm:inline-flex" />
+          <Button variant="outline" size="sm" onClick={() => openResearch({ subject: title || "", context: markdown })} aria-label="Research more about this note" data-research-note><Search /><span className="hidden sm:inline">Research more</span></Button>
           <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setInsightOpen(true)}>Insight</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

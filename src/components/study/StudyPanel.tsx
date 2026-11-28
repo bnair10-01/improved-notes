@@ -118,7 +118,7 @@ function Flashcards({ noteId, cards }: { noteId: string; cards: FCard[] }) {
               </div>
             )}
             {flipped && (
-              <button type="button" onClick={() => openResearch({ subject: shown.prompt.replace(/[{}]/g, "").slice(0, 120) })} data-look-up
+              <button type="button" onClick={() => openResearch({ subject: shown.prompt.replace(/[{}]/g, "").slice(0, 120), context: `${shown.prompt} ${shown.answer} ${card?.source_snippet ?? ""}` })} data-look-up
                 className="mx-auto mt-2 flex min-h-10 items-center gap-1.5 px-3 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"><Search className="h-3.5 w-3.5" /> Read more about this</button>
             )}
           </div>

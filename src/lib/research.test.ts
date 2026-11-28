@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanWikiText, extractYouTubeUrls } from "./research";
+import { cleanWikiText, extractYouTubeUrls, researchIdeas } from "./research";
 
 describe("cleanWikiText", () => {
   it("drops See also, references and everything after", () => {
@@ -26,5 +26,25 @@ describe("extractYouTubeUrls", () => {
     expect(extractYouTubeUrls("no links")).toEqual([]);
     const many = Array.from({ length: 9 }, (_, i) => `https://youtu.be/aaaaaaaaaa${i}`).join(" ");
     expect(extractYouTubeUrls(many, 3)).toHaveLength(3);
+  });
+});
+
+describe("research ideas from a note", () => {
+  const note = "# Photosynthesis\n\nPlants turn light into sugar in the **Calvin cycle** and the light reactions. The Calvin cycle needs ATP. Chlorophyll absorbs light. See [[Cellular respiration]] too.\n\nMelvin Calvin won a Nobel Prize for it.";
+  it("offers the writer's own headings, bold terms and links, then the words that recur", () => {
+    const ideas = researchIdeas(note, "Photosynthesis");
+    expect(ideas).toContain("Calvin cycle");
+    expect(ideas).toContain("Cellular respiration");
+    expect(ideas.some((i) => /light/i.test(i))).toBe(true);
+  });
+  it("leaves out the title itself, repeats and filler words", () => {
+    const ideas = researchIdeas(note, "Photosynthesis");
+    expect(ideas.map((i) => i.toLowerCase())).not.toContain("photosynthesis");
+    expect(new Set(ideas.map((i) => i.toLowerCase())).size).toBe(ideas.length);
+    expect(ideas.some((i) => /^(about|which|would)$/i.test(i))).toBe(false);
+  });
+  it("gives nothing for an empty note, and respects the limit", () => {
+    expect(researchIdeas("", "x")).toEqual([]);
+    expect(researchIdeas(note, "", 2)).toHaveLength(2);
   });
 });

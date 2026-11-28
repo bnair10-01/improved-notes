@@ -11,7 +11,7 @@ export const dialogFile = () => file;
 export function useOpenDialog() { return useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => current, () => null); }
 
 /** Research more on something you already have: a note, a topic, a weak quiz topic, a card you missed. Notes made from it can go into a topic. */
-export type ResearchRequest = { subject: string; folderId?: string | null };
+export type ResearchRequest = { subject: string; folderId?: string | null; /** The note's own text (or a topic's notes), used to suggest what to dig into. */ context?: string };
 let research: ResearchRequest = { subject: "" };
 export function openResearch(r: ResearchRequest) { research = r; openDialog("research"); }
 export const researchRequest = () => research;

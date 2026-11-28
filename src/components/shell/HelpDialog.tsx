@@ -17,11 +17,11 @@ const GUIDE: [string, string[]][] = [
   ["Rename, delete and research more", [
     "Every note and topic has a ⋯ menu (on the Notes list, in a topic, and in the sidebar): rename it, pin it, research more about it, or delete it. Deleting a note moves it to Trash, with an Undo.",
     "Deleting a topic asks whether to keep its notes (they simply leave the topic) or send them to Trash too.",
-    "Research more opens from a note, a topic, the weak topics after a quiz, and any flashcard (“Read more about this”). New notes made from a topic's research go into that topic.",
+    "Research more opens from the 🔎 chip on any note, a topic, the weak topics after a quiz, and any flashcard (“Read more about this”). It starts from what's in your notes and suggests things from them to dig into. New notes made from a topic's research go into that topic.",
     "Settings → Your notes can move every note to Trash at once (with Undo), or delete everything for good after you type DELETE.",
   ]],
   ["Add anything", [
-    "The Add menu is the one place to start: Write a note, Scan handwriting, Voice or lecture, PDF or slides, Website or YouTube link, Upload a file, 3D model of a concept.",
+    "The Add menu is the one place to start: Write a note, Scan handwriting, Voice or lecture, PDF or slides, Website or YouTube link, Upload a file, Picture of a concept.",
     "Open it from inside a topic and whatever you add lands in that topic.",
     "You can also drop a photo, PDF, slides or a recording on Home, or paste a screenshot into the box.",
   ]],
@@ -48,10 +48,9 @@ const GUIDE: [string, string[]][] = [
     "Add → Voice or lecture lets you record or upload. Transcription is optional and uses AI credits; tap a line to jump to that moment.",
     "Add → Website or YouTube link reads a page or video and offers it as notes. Use Split into notes on any long note to divide it the same way.",
   ]],
-  ["3D models", [
-    "Add → 3D model of a concept, or ✦ on any note, builds a model from what you wrote. It first draws a reference picture with Nano Banana, then builds the 3D model to match, and keeps the picture beside it.",
-    "Tap a part to read what it does and the line of your note it came from. Drag to turn, pinch or scroll to zoom, and press E (or Explode) to take it apart.",
-    "It's a simplified schematic, not to scale. Check AI-generated details against your own notes.",
+  ["Pictures of concepts", [
+    "Add → Picture of a concept, or the 🖼 Picture chip on any note, draws a clean picture of it with Nano Banana, and writes what it shows and its main parts, using your own words and quoting your note where it can.",
+    "Tap the picture to see it full size. “Draw again” makes a fresh one. It's a simplified picture, not to scale, so check the details against your own notes.",
   ]],
   ["Mind maps and the graph", [
     "Scans can include a mind map. Switch between flat and 3D views, edit, collapse and connect ideas.",
@@ -71,7 +70,7 @@ const GUIDE: [string, string[]][] = [
   ]],
   ["Pen, Apple Pencil and tablets", [
     "On an iPad or Android tablet it's the same app as on a phone, with more room and controls sized for fingers and pens.",
-    "Touch a note's editor with a pen and it switches to Pencil mode and starts writing straight away. Lines get bolder as you press harder, a resting palm or finger is ignored once a pen is in use, and a stylus's eraser end rubs out.",
+    "Touch a note's editor with a pen and it switches to Pencil mode and starts writing straight away. Ink sits on the page, so it scrolls with the text and shows in Read mode too. Lines get bolder as you press harder, a resting palm or finger is ignored once a pen is in use, and a stylus's eraser end rubs out.",
     "In Pencil mode, Pen and Eraser are in the toolbar, with Undo, Clear ink, and To text to turn your handwriting into text.",
   ]],
   ["Appearance and accessibility", [

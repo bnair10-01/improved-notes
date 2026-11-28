@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { transcribeNotes } from "@/lib/ai/tasks";
@@ -31,9 +31,21 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
   useEffect(() => {
     if (!focusEnd) return;
     const el = ref.current;
-    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); el.scrollTop = el.scrollHeight; }
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); el.scrollIntoView({ block: "end" }); }
     onFocusedEnd?.();
   }, [focusEnd, onFocusedEnd]);
+  // The editor grows with its text and the page scrolls, so the ink layer (which covers the whole editor) moves with the words.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; };
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    let w = el.clientWidth;
+    const ro = new ResizeObserver(() => { if (el.clientWidth !== w) { w = el.clientWidth; fit(); } });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [value]);
   const [menu, setMenu] = useState<Menu>(null);
   const [sel, setSel] = useState(0);
   const [mode, setMode] = useState<"type" | "pencil">("type");
@@ -206,7 +218,7 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
   }
 
   return (
-    <div className="relative h-full" onPointerDownCapture={(e) => {
+    <div className="relative min-h-[55vh]" onPointerDownCapture={(e) => {
       // The first touch of a pen switches to Pencil mode and starts the stroke right then, so no ink is lost.
       if (e.pointerType !== "pen" || mode === "pencil" || !canvas.current) return;
       penSeen.current = true;
@@ -232,7 +244,7 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
           else if (e.key === "Escape") setMenu(null);
         }}
         onBlur={() => setTimeout(() => setMenu(null), 150)}
-        className="h-full resize-none rounded-none border-0 bg-transparent px-5 pb-4 pt-11 font-mono text-sm shadow-none focus-visible:ring-0"
+        className="block min-h-[55vh] w-full resize-none overflow-hidden rounded-none border-0 bg-transparent px-5 pb-16 pt-11 font-mono text-sm shadow-none focus-visible:ring-0"
         aria-label="Note markdown"
       />
       <canvas ref={canvas} aria-label="Pencil layer" data-ink onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
@@ -242,7 +254,7 @@ export function MarkdownEditor({ value, onChange, notes, ink, onInkChange, focus
         <button type="button" aria-pressed={mode === "pencil"} onClick={() => setMode("pencil")} className={`px-2 py-1 ${mode === "pencil" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}>Pencil <kbd className="ml-0.5 font-mono opacity-60">P</kbd></button>
       </div>
       <div role="toolbar" aria-label={mode === "pencil" ? "Pencil tools" : "Text tools"} aria-hidden={mode === "type" && !barOn}
-        className={`absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-full border bg-popover/95 p-1 shadow-lg backdrop-blur transition-opacity duration-300 ${mode === "pencil" || barOn ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`fixed bottom-[calc(var(--tabbar,0px)+0.75rem)] left-1/2 z-40 flex max-w-[96vw] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-full border bg-popover/95 p-1 shadow-lg backdrop-blur transition-opacity duration-300 ${mode === "pencil" || barOn ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onMouseDown={(e) => e.preventDefault()}>
         {mode === "type" ? <>
           <button type="button" className={`${TOOL} font-bold`} aria-label="Bold" onClick={() => wrap("**")}>B</button>

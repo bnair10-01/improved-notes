@@ -20,7 +20,7 @@ Built for the #BuildHybridAI 2026 hackathon.
 - **Topics you name.** The AI may suggest a topic for a note; nothing is filed until you accept. Topic pages have a topic-wide summary and Ask.
 - **Import and split.** Websites and YouTube videos are divided into one note per idea under a topic you name in a preview. "Split into notes" does the same for any long note.
 - **Obsidian-style graph, three sizes.** The whole-vault graph shows every kind of note and how they connect (links you wrote, plus connections found from what notes say); notes nothing connects to yet sit on the outer edge and are listed under Not connected, with the closest matches to connect in one tap. Each note has a local graph, each topic a topic map, and every note a mind map. Labels thin out so a phone stays readable, and you can search, filter and pinch or tap + / − to zoom.
-- **3D model from a note.** Nano Banana first draws a clean reference picture, then the model is built to match it: see-through shells, a few clearly separated parts, and a note quote for each. The picture is kept beside the model.
+- **Picture of a concept.** Nano Banana draws a clean picture of anything, or of a note, and a note lists what it shows and its parts, quoting your own text where it can. Tap for full size, or draw it again.
 - **Read aloud** with a natural Gemini voice (device voice as fallback), pencil ink, high contrast, reduced motion, and phone, tablet and foldable layouts.
 - **Sign-in:** Google or email. Guests last only for the current tab.
 
@@ -28,7 +28,7 @@ Built for the #BuildHybridAI 2026 hackathon.
 
 | Product | What it does here |
 |---|---|
-| **Firebase AI Logic** (hybrid inference) | Every AI feature: handwriting transcription, summaries, flashcards, quizzes, mind maps, links, slides, audio, 3D (plus a Nano Banana reference picture, cloud only). Runs on-device (Gemini Nano in Chrome) when available, otherwise in the cloud. See `src/lib/ai/`. |
+| **Firebase AI Logic** (hybrid inference) | Every AI feature: handwriting transcription, summaries, flashcards, quizzes, mind maps, links, slides, audio, concept pictures (Nano Banana, cloud only). Runs on-device (Gemini Nano in Chrome) when available, otherwise in the cloud. See `src/lib/ai/`. |
 | **App Check** | Verifies requests to AI Logic (reCAPTCHA Enterprise; debug token for local and judging use). |
 | **Remote Config** | Tunes the routing policy (cloud model, on-device size limit, kill switch) without a redeploy. |
 | **Authentication** | Email and Google. Guests can capture first; signing up links the guest account so nothing is lost. |
@@ -39,7 +39,7 @@ Built for the #BuildHybridAI 2026 hackathon.
 ### Hybrid routing (`src/lib/ai/route.ts`)
 
 - Short text jobs (summaries, flashcards, quizzes, links, mind maps) run **on-device first**, with cloud fallback. They work offline.
-- Long inputs go straight to the cloud, as do audio, slides, diagrams and 3D.
+- Long inputs go straight to the cloud, as do audio, slides, diagrams and pictures.
 - Handwriting tries on-device first, then falls back to the stronger cloud model.
 - The UI records where each call actually ran (`src/lib/ai/status.ts`).
 
@@ -99,6 +99,8 @@ Sign in with Apple is not offered: it needs a paid Apple Developer account.
 On iPhone and Android, Google sign-in runs through the device's own Google sign-in (`@capacitor-firebase/authentication`); the app's `GoogleService-Info.plist` and `google-services.json` are per-project and not committed (`firebase apps:sdkconfig <IOS|ANDROID> <app id>` downloads them).
 
 ## Native apps
+
+To share the phone, tablet and iPad apps (signed Android file, TestFlight, how to handle the App Check token), see [RELEASING.md](RELEASING.md).
 
 The same web build is wrapped with Capacitor for Android and iOS (`android/`, `ios/`).
 

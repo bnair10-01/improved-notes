@@ -342,6 +342,27 @@ export const generateModelSpec = ({ concept, context, reference, model }: { conc
   }) as Promise<GenerateModelResponse>;
 
 
+/** The words that go with a concept picture: what it shows, and its main parts, each backed by a line of the person's own notes. */
+export type ConceptText = { title: string; summary: string; parts: { name: string; description: string; source_quote?: string }[] };
+const CONCEPT_SCHEMA = wrapObj({ title: str, summary: str, parts: { type: "array", items: wrapObj({ name: str, description: str, source_quote: { type: "string", description: "An exact passage from the notes, or an empty string." } }) } });
+
+export const describeConcept = ({ concept, context }: { concept: string; context?: string }): Promise<{ ok: true; text: ConceptText } | { ok: false; error: string }> =>
+  safe("model3d", async () => {
+    if (!concept.trim() || concept.length > 1000) throw new AiFailure("Describe a concept in 1–1000 characters.");
+    const notes = context?.slice(0, 30000);
+    const { data } = await runJson<Partial<ConceptText>>({
+      task: "model3d", schema: CONCEPT_SCHEMA, chars: concept.length + (notes?.length ?? 0), model: aiConfig().cloud_model, think: false,
+      instructions: `Describe "${concept}" for a learner, to sit under a labelled picture of it. Give a two-sentence summary and 4 to 8 of its main parts, each with a one-sentence description of what it does. Base it on the NOTES where they speak to it, use standard textbook knowledge where they don't, and never contradict them. "source_quote" is a short passage copied EXACTLY, word for word, from the NOTES that supports the part (at most 20 words), or an empty string if they don't mention it. Never write code.${notes ? `\n\nNOTES:\n${notes}` : ""}`,
+    });
+    const norm = (x: string) => x.toLowerCase().replace(/[*_#>`~|[\]()]/g, " ").replace(/\s+/g, " ").trim();
+    const hay = norm(notes ?? "");
+    const parts = (Array.isArray(data.parts) ? data.parts : []).filter((p) => p && typeof p.name === "string" && p.name.trim()).slice(0, 10).map((p) => ({
+      name: p.name.trim().slice(0, 120), description: String(p.description ?? "").trim().slice(0, 400),
+      ...(p.source_quote && p.source_quote.length >= 8 && hay.includes(norm(p.source_quote)) ? { source_quote: p.source_quote.trim().slice(0, 300) } : {}),
+    }));
+    return { text: { title: String(data.title ?? "").trim().slice(0, 200) || concept.slice(0, 80), summary: String(data.summary ?? "").trim().slice(0, 2000), parts } };
+  }) as Promise<{ ok: true; text: ConceptText } | { ok: false; error: string }>;
+
 /* ───────────── Ask your notes ───────────── */
 
 export type AskAnswer = { answer: string; citations: Citation[] };

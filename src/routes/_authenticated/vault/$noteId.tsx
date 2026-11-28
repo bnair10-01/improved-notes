@@ -28,6 +28,7 @@ import { NoteVideo, seekVideo } from "@/components/vault/NoteVideo";
 import { Hint } from "@/components/shell/Hint";
 import { openResearch } from "@/lib/dialogs";
 import { LocalGraph } from "@/components/vault/LocalGraph";
+import { InkView } from "@/components/vault/InkView";
 import { NoteMindMap } from "@/components/vault/NoteMindMap";
 import { appendMyNote, linkSeconds, sourceVideos, videoId } from "@/lib/video";
 import { TopicSuggestion } from "@/components/vault/TopicSuggestion";
@@ -201,7 +202,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
           <Button variant="ghost" size="icon" aria-label={note.pinned ? "Unpin" : "Pin"} onClick={async () => { await updateNote(noteId, { pinned: !note.pinned }); await refresh(); }}><Pin className={note.pinned ? "fill-current text-primary" : ""} /></Button>
           <VersionHistory noteId={noteId} title={title} markdown={md} onRestored={(v) => { setMd(v.markdown); setTitle(v.title); savedTitle.current = v.title; setStatus("saved"); }} />
           <NoteShareMenu noteId={noteId} title={title} markdown={md} />
-          <Button variant="ghost" size="icon" aria-label="Research more about this note" data-research-note onClick={() => openResearch({ subject: title || "", folderId: note.folder_id })}><Search /></Button>
+          <Button variant="ghost" size="icon" aria-label="Research more about this note" data-research-note onClick={() => openResearch({ subject: title || "", folderId: note.folder_id, context: md })}><Search /></Button>
           <Button variant="ghost" size="icon" aria-label="Move to Trash" onClick={() => setConfirmTrash(true)}><Trash2 /></Button>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -214,7 +215,8 @@ function NoteEditor({ noteId }: { noteId: string }) {
             </DropdownMenuContent>
           </DropdownMenu>
           <GenerateDialog noteIds={[noteId]} trigger={<button className="flex items-center gap-1 rounded-full border border-primary/40 px-2 py-0.5 text-primary">✦ Generate</button>} />
-          {note.kind !== "model3d" && <button onClick={() => setModelOpen(true)} className="flex items-center gap-1 rounded-full border px-2 py-0.5">◇ 3D model</button>}
+          <button onClick={() => openResearch({ subject: title || "", folderId: note.folder_id, context: md })} className="flex items-center gap-1 rounded-full border px-2 py-0.5" data-research-chip>🔎 Research more</button>
+          {note.kind !== "model3d" && <button onClick={() => setModelOpen(true)} className="flex items-center gap-1 rounded-full border px-2 py-0.5" data-draw-picture>🖼 Picture</button>}
           <Input defaultValue={note.tags.join(", ")} placeholder="Add tags, comma separated" aria-label="Tags" className="h-6 w-full min-w-0 rounded-full sm:w-56 px-2 text-xs"
             onBlur={async (e) => { const tags = [...new Set(e.target.value.split(",").map((s) => s.trim().replace(/^#/, "")).filter(Boolean))]; if (tags.join() !== note.tags.join()) { await updateNote(noteId, { tags }); await refresh(); } }} />
         </div>
@@ -222,7 +224,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
         <NoteTools note={note} markdown={md} />
         <TopicSuggestion note={note} vault={vault} markdown={md} />
         {videos.length > 0 && <><NoteVideo videos={videos} onAddNote={addVideoNote} /><div className="mt-2"><Hint id="video">Pause the video and press “Add my note at this moment” to stamp your own note with the time. A timestamp link in the note jumps back to it.</Hint></div></>}
-        {note.kind === "model3d" && <div className="mt-4"><ModelNotePanel noteId={noteId} /></div>}
+        {note.kind === "model3d" && <div className="mt-4"><ModelNotePanel noteId={noteId} title={note.title} markdown={md} /></div>}
         {(note.kind === "slides" || note.kind === "audio") && (
           <div className="mt-4">
             <ClientOnly fallback={<Skeleton className="h-64 w-full" />}>
@@ -237,7 +239,8 @@ function NoteEditor({ noteId }: { noteId: string }) {
         <div className="paper-sheet mt-4 overflow-hidden">
           <Tabs value={tab} onValueChange={setTab} className="gap-0">
             <div className="border-b px-2 py-1.5"><TabsList><TabsTrigger value="preview">Read</TabsTrigger><TabsTrigger value="edit">Edit</TabsTrigger></TabsList></div>
-            <TabsContent value="preview" className={`m-0 px-5 py-4 ${note.kind === "generated" ? "" : "min-h-[45vh]"}`}>
+            <TabsContent value="preview" className={`relative m-0 px-5 py-4 ${note.kind === "generated" ? "" : "min-h-[45vh]"}`}>
+              <InkView ink={note.ink} />
               <div className="mb-3"><ReadAloud text={md} /></div>
               <article className="transcript">
                 <ReactMarkdown remarkPlugins={[remarkGfm, remarkUncertain, remarkHighlight]}
@@ -254,7 +257,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
                 {!md.trim() && <p className="text-muted-foreground">Empty — switch to Edit to start writing.</p>}
               </article>
             </TabsContent>
-            <TabsContent value="edit" className="m-0 h-[55vh]">
+            <TabsContent value="edit" className="relative m-0">
               <MarkdownEditor value={md} notes={live} focusEnd={focusEnd} onFocusedEnd={() => setFocusEnd(false)} ink={note.ink} onInkChange={(v) => { void updateNote(noteId, { ink: v }); }} onChange={(v) => { setMd(v); scheduleSave(v); }} />
             </TabsContent>
           </Tabs>

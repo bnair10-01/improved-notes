@@ -82,7 +82,7 @@ function ScanPage() {
       <main className="mx-auto max-w-4xl px-4 pb-28 pt-5 sm:py-10">
         <h1 className="font-serif text-3xl font-normal tracking-tight sm:text-4xl">Scan handwriting</h1>
         <p className="mt-1 text-sm text-muted-foreground">Photograph your pages. They become one note you can edit, summarise and study.</p>
-        <div className="mt-4"><Hint id="capture">Tip: shoot pages flat in good light. Use the arrows to fix the order before you transcribe.</Hint></div>
+        <div className="mt-4"><Hint id="capture">Tip: shoot pages flat in good light, then use the arrows to fix the order before you transcribe. Want a recording, slides or a link instead? Use Add in the top bar.</Hint></div>
         {ready && user && (
         <>
 

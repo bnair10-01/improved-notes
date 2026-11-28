@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { loadModel, saveModelSpec } from "@/lib/model3d-store";
 import type { Spec } from "@/lib/model3d";
+import { Hint } from "@/components/shell/Hint";
 import ModelViewerClient from "./ModelViewerClient";
 
 /** Viewer for a 'model3d' note: loads its schematic or uploaded file and saves edits back. */
@@ -18,6 +19,7 @@ export function ModelNotePanel({ noteId }: { noteId: string }) {
   if (!spec) return <p role="status" className="paper-sheet p-4 text-sm text-muted-foreground">Loading model…</p>;
   return (
     <>
+      <div className="mb-2"><Hint id="model3d">Tap a part to read what it does and where your note says so. Drag to turn, scroll or pinch to zoom, and press E to take the model apart.</Hint></div>
       <ModelViewerClient spec={spec} {...(glbUrl ? { glbUrl } : {})}
         onSpecChange={async (s) => { setSpec(s); await saveModelSpec(noteId, s); }} />
       {referenceUrl && (

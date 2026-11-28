@@ -5,12 +5,14 @@ export type Grade = "know" | "again";
 const DAY = 86_400_000;
 export const AGAIN_MINUTES = 10;
 
-export function schedule(s: SrsState, grade: Grade, now = new Date()): SrsState & { due_at: string } {
+/** `bonus` stretches or shrinks the next gap: a success from memory earns more, a hinted one less (see adapt.ts). */
+export function schedule(s: SrsState, grade: Grade, now = new Date(), bonus = 1): SrsState & { due_at: string } {
   if (grade === "again") {
     return { reps: 0, interval_days: 0, ease: Math.max(1.3, +(s.ease - 0.2).toFixed(2)), due_at: new Date(now.getTime() + AGAIN_MINUTES * 60_000).toISOString() };
   }
   const reps = s.reps + 1;
-  const interval_days = reps === 1 ? 1 : reps === 2 ? 3 : Math.round(Math.max(1, s.interval_days) * s.ease);
+  const base = reps === 1 ? 1 : reps === 2 ? 3 : Math.round(Math.max(1, s.interval_days) * s.ease);
+  const interval_days = Math.max(1, Math.round(base * bonus));
   const ease = Math.min(3, +(s.ease + 0.05).toFixed(2));
   return { reps, interval_days, ease, due_at: new Date(now.getTime() + interval_days * DAY).toISOString() };
 }

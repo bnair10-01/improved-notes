@@ -36,7 +36,7 @@ function VaultHome() {
           ))}
         </div>
       </div>
-      <div className="mt-3"><Hint id="vault">Link notes by typing [[ in a note. Press Ctrl/⌘ K to jump to any note, or open Graph to see how they connect.</Hint></div>
+      <div className="mt-3"><Hint id="vault">Press Add for a new note, a scan, a recording, slides, a link or a 3D model. Link notes by typing [[ in a note, press Ctrl/⌘ K to jump to any note, or open Graph to see how they connect.</Hint></div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {notes.map((n, i) => (
           <Link key={n.id} {...openTarget(n)} style={{ "--i": Math.min(i, 12) } as React.CSSProperties} className="enter paper-sheet block min-w-0 p-4 hover:ring-2 hover:ring-primary/30">

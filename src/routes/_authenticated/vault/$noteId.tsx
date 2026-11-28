@@ -25,6 +25,7 @@ import { NoteShareMenu } from "@/components/learner/NoteShareMenu";
 import { InsightColumn } from "@/components/vault/InsightColumn";
 import { NoteTools } from "@/components/vault/NoteTools";
 import { NoteVideo, seekVideo } from "@/components/vault/NoteVideo";
+import { Hint } from "@/components/shell/Hint";
 import { appendMyNote, linkSeconds, sourceVideos, videoId } from "@/lib/video";
 import { TopicSuggestion } from "@/components/vault/TopicSuggestion";
 import { ResizableInsight } from "@/components/vault/ResizableInsight";
@@ -219,7 +220,7 @@ function NoteEditor({ noteId }: { noteId: string }) {
 
         <NoteTools note={note} markdown={md} />
         <TopicSuggestion note={note} vault={vault} markdown={md} />
-        {videos.length > 0 && <NoteVideo videos={videos} onAddNote={addVideoNote} />}
+        {videos.length > 0 && <><NoteVideo videos={videos} onAddNote={addVideoNote} /><div className="mt-2"><Hint id="video">Pause the video and press “Add my note at this moment” to stamp your own note with the time. A timestamp link in the note jumps back to it.</Hint></div></>}
         {note.kind === "model3d" && <div className="mt-4"><ModelNotePanel noteId={noteId} /></div>}
         {(note.kind === "slides" || note.kind === "audio") && (
           <div className="mt-4">

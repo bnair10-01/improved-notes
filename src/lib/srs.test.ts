@@ -22,6 +22,12 @@ describe("spaced repetition", () => {
   it("ease never drops below 1.3", () => {
     expect(schedule({ reps: 0, interval_days: 0, ease: 1.3 }, "again", now).ease).toBe(1.3);
   });
+  it("a success from memory waits longer, a hinted one shorter", () => {
+    const s = { reps: 2, interval_days: 3, ease: 2.5 };
+    expect(schedule(s, "know", now, 1.3).interval_days).toBe(10);
+    expect(schedule(s, "know", now, 0.7).interval_days).toBe(6);
+    expect(schedule(fresh, "know", now, 0.7).interval_days).toBe(1);
+  });
   it("a card is due once its time passes", () => {
     expect(isDue("2025-12-31T00:00:00Z", now)).toBe(true);
     expect(isDue("2026-01-02T00:00:00Z", now)).toBe(false);

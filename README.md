@@ -12,6 +12,8 @@ Built for the #BuildHybridAI 2026 hackathon.
 
 - **Write first.** "Start writing" opens a blank note. A tools row sits above it: Scan, Voice or lecture, PDF or slides, Website, YouTube, Split into notes.
 - **Insight column on every note:** streamed summary, Ask (answers cite numbered sources, with quotes checked against your text), flashcards and a quiz. A badge shows whether each AI call ran **On-device** or in the **Cloud**.
+- **Study that adapts.** Flashcards step up from Guided (a hint) to Flip to Recall (type it from memory) after three right in a row, and back down after two misses; weak cards come first. Quizzes suggest a harder or easier one next from your score.
+- **Fluid motion.** Pages cross-fade, lists ease in, the light/dark switch ripples the new colours out, and phone apps open with an animated splash. Reduce motion turns it all off.
 - **Topics you name.** The AI may suggest a topic for a note; nothing is filed until you accept. Topic pages have a topic-wide summary and Ask.
 - **Import and split.** Websites and YouTube videos are divided into one note per idea under a topic you name in a preview. "Split into notes" does the same for any long note.
 - **3D vault graph.** Connections between notes are found automatically. Topic maps show "↗" satellites for notes in other topics.

@@ -19,7 +19,7 @@ function TopicsPage() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="mx-auto max-w-5xl px-5 pb-24 pt-8 sm:px-8 sm:pt-12">
+      <main className="stagger mx-auto max-w-5xl px-5 pb-24 pt-8 sm:px-8 sm:pt-12">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-serif text-4xl font-normal tracking-tight sm:text-5xl">Topics</h1>

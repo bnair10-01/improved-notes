@@ -1,3 +1,4 @@
+import { AppearanceControls } from "@/components/ThemePicker";
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -59,7 +60,7 @@ function SettingsPage() {
   const field = "mt-1 min-h-11 w-full rounded-md border border-input bg-background px-3 text-foreground";
   return <div className="min-h-[calc(100dvh-var(--tabbar))] bg-background text-foreground">
     <AppHeader />
-    <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+    <main className="stagger mx-auto max-w-3xl space-y-6 px-4 py-6">
       <h1 className="font-serif text-3xl font-semibold">Settings</h1>
       <section aria-labelledby="learning-heading" className="paper-sheet space-y-4 p-4 sm:p-6">
         <h2 id="learning-heading" className="text-lg font-semibold">Learning preferences</h2>
@@ -71,6 +72,11 @@ function SettingsPage() {
           if (isLearningStyle(style)) void run(async () => { await saveLearningStyle(style); await client.invalidateQueries({ queryKey: ["learning-style"] }); setMessage("Learning preference saved."); });
         }}><option value="" disabled>Choose a preference</option>{STYLES.map((style) => <option key={style} value={style}>{STYLE_LABELS[style]}</option>)}</select></label>
         <Button variant="outline" onClick={() => setQuiz(true)}>Retake the quiz</Button>
+      </section>
+      <section aria-labelledby="appearance-heading" className="paper-sheet space-y-3 p-4 sm:p-6">
+        <h2 id="appearance-heading" className="text-lg font-semibold">Appearance</h2>
+        <p className="text-sm text-muted-foreground">Switch between light and dark, and pick a colour theme for each.</p>
+        <AppearanceControls />
       </section>
       <section aria-labelledby="accessibility-heading" className="paper-sheet space-y-4 p-4 sm:p-6">
         <h2 id="accessibility-heading" className="text-lg font-semibold">Accessibility</h2>

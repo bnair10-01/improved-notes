@@ -157,8 +157,6 @@ Verified by hand on the live site and on devices:
 - The web app, an iPhone and an iPad (development builds), and the Android emulator.
 
 Not yet verified or not built:
-- **On-device inference inside the app:** Gemini Nano answers from the Chrome console; the in-app On-device badge on a short text task depends on the browser having the model downloaded. Without Nano the app uses the cloud model.
-- Native on-device models in the iOS and Android apps (see above).
 - Slides and audio imports are not split into notes automatically; press **Split into notes** afterwards.
 - A physical Android phone; `scripts/setup-backups.sh` Storage commands are unchecked.
 

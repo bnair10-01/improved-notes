@@ -41,8 +41,8 @@ function Column({ children }: { children: ReactNode }) {
 function Headline({ line1, line2 }: { line1: string; line2: string }) {
   return (
     <div>
-      <div className={mono}>{today()}</div>
-      <h1 className="mt-3.5 font-serif text-[40px] font-normal leading-[1.02] tracking-[-0.02em] sm:text-6xl">
+      <div className={`${mono} enter`}>{today()}</div>
+      <h1 className="enter mt-3.5 font-serif text-[40px] font-normal leading-[1.02] tracking-[-0.02em] sm:text-6xl" style={{ "--i": 1 } as React.CSSProperties}>
         {line1}<br /><span className="italic text-muted-foreground">{line2}</span>
       </h1>
     </div>
@@ -65,10 +65,10 @@ function Welcome() {
   return (
     <Column>
       <Headline line1="Take notes. See the map." line2="Learn it." />
-      <p className="max-w-[520px] text-[15px] leading-relaxed text-muted-foreground">
+      <p className="enter max-w-[520px] text-[15px] leading-relaxed text-muted-foreground" style={{ "--i": 3 } as React.CSSProperties}>
         Write, scan handwriting, or bring in a lecture, a website or a video. Everything is divided into notes, linked into topics, and turned into flashcards and quizzes made only from what you wrote. AI runs on your device first.
       </p>
-      <div className="max-w-sm space-y-2">
+      <div className="enter max-w-sm space-y-2" style={{ "--i": 5 } as React.CSSProperties}>
         <Button className="w-full" size="lg" onClick={() => void write()} disabled={busy !== null}>
           {busy === "write" ? <Loader2 className="animate-spin" /> : <PenLine />} Start writing
         </Button>

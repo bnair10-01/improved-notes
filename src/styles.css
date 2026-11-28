@@ -310,7 +310,7 @@ header.sticky { view-transition-name: app-header; }
 @keyframes page-in { from { opacity: 0; transform: translateY(10px); } }
 @keyframes enter { from { opacity: 0; transform: translateY(8px); } }
 @keyframes enter-pop { from { opacity: 0; transform: scale(0.97) translateY(4px); } }
-.enter { animation: enter 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--i, 0) * 55ms); }
+.enter { animation: enter 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--i, 0) * 55ms + var(--hold, 0ms)); }
 .enter-pop { animation: enter-pop 240ms cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--i, 0) * 35ms); }
 /* A soft press on anything you tap, so a tap always answers back. */
 button:not(:disabled), [role="menuitem"], [data-tabbar] a { transition: transform 120ms ease, background-color 160ms ease, color 160ms ease, opacity 160ms ease; }
@@ -323,3 +323,20 @@ a, summary { transition: color 160ms ease, background-color 160ms ease, box-shad
 html[data-motion="reduce"] ::view-transition-group(*), html[data-motion="reduce"] ::view-transition-old(*), html[data-motion="reduce"] ::view-transition-new(*) { animation: none !important; }
 html[data-motion="reduce"] .enter, html[data-motion="reduce"] .enter-pop { animation: none !important; }
 html[data-motion="reduce"] button:active, html[data-motion="reduce"] [role="menuitem"]:active, html[data-motion="reduce"] .paper-sheet:hover { transform: none !important; }
+
+/* Phone-app launch: the splash, and the start page waiting for it to lift (--hold). */
+html[data-launch] { --hold: 1250ms; }
+.launch-splash { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #050505; pointer-events: none; transition: opacity 450ms ease; }
+.launch-splash.launch-out { opacity: 0; }
+.launch-mark { width: 92px; height: 92px; overflow: visible; filter: drop-shadow(0 10px 30px rgba(245, 243, 238, 0.12)); animation: launch-tile 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.launch-line { transform-box: fill-box; transform-origin: top; animation: launch-line 520ms cubic-bezier(0.22, 1, 0.36, 1) 380ms both; }
+.launch-dot { transform-box: fill-box; transform-origin: center; animation: launch-dot 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 720ms both; }
+.launch-name { font-family: var(--font-serif, Georgia, serif); font-size: 22px; letter-spacing: -0.01em; color: #f5f3ee; animation: launch-name 600ms cubic-bezier(0.22, 1, 0.36, 1) 700ms both; }
+@keyframes launch-tile { from { opacity: 0; transform: scale(0.55) rotate(-6deg); } }
+@keyframes launch-line { from { transform: scaleY(0); } }
+@keyframes launch-dot { from { transform: scale(0); } }
+@keyframes launch-name { from { opacity: 0; transform: translateY(10px); letter-spacing: 0.06em; } }
+html[data-motion="reduce"] .launch-splash { display: none; }
+/* The splash is its own layer, so a page transition at startup can't fade it in over the old page. */
+.launch-splash { view-transition-name: launch-splash; }
+::view-transition-group(launch-splash), ::view-transition-old(launch-splash), ::view-transition-new(launch-splash) { animation: none; }
